@@ -1,0 +1,4 @@
+{"fields":{"min":45,"note":"Manual memory drills"},"id":"s.sys.01","links":{"course":["c.sys"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":30,"note":"Reviewed ownership notes"},"id":"s.sys.02","links":{"course":["c.sys"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":60,"note":"Dynamic array from scratch"},"id":"s.dsa.01","links":{"course":["c.dsa"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":50,"note":"Socket experiments"},"id":"s.net.01","links":{"course":["c.net"]},"schemaVersion":1,"type":"session"}

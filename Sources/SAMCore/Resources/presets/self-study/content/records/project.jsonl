@@ -1,0 +1,3 @@
+{"fields":{"name":"CLI tool with tests","note":"Argument parsing, a subcommand tree, and a real test suite.","status":"building"},"id":"p.cli","links":{"course":["c.sys"]},"schemaVersion":1,"type":"project"}
+{"fields":{"name":"Concurrent crawler","note":"Bounded workers, a shared queue, and polite rate limits.","status":"planned"},"id":"p.crawler","links":{"course":["c.net"]},"schemaVersion":1,"type":"project"}
+{"fields":{"name":"Graph library","note":"Traversal and shortest-path APIs with property tests.","status":"planned"},"id":"p.graph","links":{"course":["c.dsa"]},"schemaVersion":1,"type":"project"}

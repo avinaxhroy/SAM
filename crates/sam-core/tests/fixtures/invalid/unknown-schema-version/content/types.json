@@ -1,0 +1,1 @@
+{"schemaVersion": 2, "types": {"course": {"fields": [{"key":"code","type":"text"}]}}}

@@ -1,0 +1,4 @@
+{"fields":{"kind":"quiz","label":"Memory & ownership checkpoint"},"id":"a.sys.mem","links":{"course":["c.sys"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"drill","label":"Linear structures checkpoint"},"id":"a.dsa.struct","links":{"course":["c.dsa"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"quiz","label":"Sockets checkpoint"},"id":"a.net.sockets","links":{"course":["c.net"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"project-review","label":"CLI tool review"},"id":"a.sys.cli","links":{"course":["c.sys"]},"schemaVersion":1,"type":"assessment"}

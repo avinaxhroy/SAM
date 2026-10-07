@@ -1,0 +1,3 @@
+{"fields":{"code":"NEET-BIO","name":"Biology","note":"Botany and Zoology, Class 11 and Class 12 NCERT.","short":"Biology","subject":"biology"},"id":"c.bio","links":{},"schemaVersion":1,"type":"course"}
+{"fields":{"code":"NEET-CHEM","name":"Chemistry","note":"Physical, Inorganic and Organic chemistry, Class 11 and Class 12 NCERT.","short":"Chemistry","subject":"chemistry"},"id":"c.chem","links":{},"schemaVersion":1,"type":"course"}
+{"fields":{"code":"NEET-PHY","name":"Physics","note":"Class 11 and Class 12 NCERT physics, with numericals.","short":"Physics","subject":"physics"},"id":"c.phy","links":{},"schemaVersion":1,"type":"course"}

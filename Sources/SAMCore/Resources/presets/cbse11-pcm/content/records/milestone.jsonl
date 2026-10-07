@@ -1,0 +1,3 @@
+{"fields":{"label":"Physics: first three chapters finished and anchored","month":"June","target":3},"id":"m.jun.phy","links":{"course":["c.phy.11"]},"schemaVersion":1,"type":"milestone"}
+{"fields":{"label":"Chemistry: mole concept, bonding and equilibrium first pass done","month":"June","target":3},"id":"m.jun.chem","links":{"course":["c.chem.11"]},"schemaVersion":1,"type":"milestone"}
+{"fields":{"label":"All three subjects: 60 problems solved across the practice sets","month":"July","target":60},"id":"m.jul.problems","links":{},"schemaVersion":1,"type":"milestone"}

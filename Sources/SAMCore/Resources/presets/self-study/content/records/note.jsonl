@@ -1,0 +1,3 @@
+{"fields":{"body":"Stack frames die at scope end; heap values live until the last owner drops them.","title":"Heap vs stack: what I mix up"},"id":"n.sys.heap","links":{"course":["c.sys"]},"schemaVersion":1,"type":"note"}
+{"fields":{"body":"Doubling makes the average append constant even though one append is O(n).","title":"Amortised growth in my own words"},"id":"n.dsa.amortised","links":{"course":["c.dsa"]},"schemaVersion":1,"type":"note"}
+{"fields":{"body":"A blocking read stops the thread; a non-blocking read returns WouldBlock and asks me to poll.","title":"Blocking vs non-blocking sockets"},"id":"n.net.sockets","links":{"course":["c.net"]},"schemaVersion":1,"type":"note"}

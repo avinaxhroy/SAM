@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "types": {
+    "language": {
+      "icon": "globe",
+      "fields": [
+        {
+          "key": "name",
+          "type": "text",
+          "label": "Language"
+        },
+        {
+          "key": "native",
+          "type": "text",
+          "label": "Native name"
+        },
+        {
+          "key": "level",
+          "type": "select",
+          "label": "Level",
+          "options": [
+            "N5",
+            "N4",
+            "N3",
+            "N2",
+            "N1"
+          ]
+        },
+        {
+          "key": "goal",
+          "type": "longtext",
+          "label": "Goal"
+        }
+      ]
+    },
+    "track": {
+      "icon": "waveform",
+      "parent": "language",
+      "colorRole": "identity",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of track",
+          "options": [
+            "kana",
+            "vocabulary",
+            "listening",
+            "grammar",
+            "speaking",
+            "reading"
+          ]
+        },
+        {
+          "key": "order",
+          "type": "number",
+          "label": "Order"
+        },
+        {
+          "key": "target",
+          "type": "number",
+          "label": "Target"
+        },
+        {
+          "key": "note",
+          "type": "longtext",
+          "label": "Note"
+        }
+      ]
+    },
+    "unit": {
+      "icon": "squareStack",
+      "parent": "track",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "index",
+          "type": "number",
+          "label": "Order"
+        },
+        {
+          "key": "goal",
+          "type": "text",
+          "label": "Goal"
+        },
+        {
+          "key": "est",
+          "type": "duration",
+          "label": "Estimated time"
+        }
+      ]
+    },
+    "word": {
+      "icon": "character",
+      "parent": "unit",
+      "trackable": true,
+      "pipeline": "srs",
+      "fields": [
+        {
+          "key": "term",
+          "type": "text",
+          "label": "Word"
+        },
+        {
+          "key": "reading",
+          "type": "text",
+          "label": "Reading"
+        },
+        {
+          "key": "meaning",
+          "type": "text",
+          "label": "Meaning"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of item",
+          "options": [
+            "kana",
+            "kanji",
+            "word",
+            "phrase"
+          ]
+        },
+        {
+          "key": "source",
+          "type": "text",
+          "label": "Source"
+        },
+        {
+          "key": "track",
+          "type": "relation",
+          "label": "Track",
+          "to": "track",
+          "cardinality": "one"
+        },
+        {
+          "key": "focus",
+          "type": "date",
+          "label": "Planned for"
+        }
+      ]
+    },
+    "sentence": {
+      "icon": "textQuote",
+      "parent": "unit",
+      "trackable": true,
+      "pipeline": "check",
+      "fields": [
+        {
+          "key": "text",
+          "type": "text",
+          "label": "Sentence"
+        },
+        {
+          "key": "translation",
+          "type": "text",
+          "label": "Translation"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of sentence",
+          "options": [
+            "greeting",
+            "classroom"
+          ]
+        },
+        {
+          "key": "source",
+          "type": "text",
+          "label": "Source"
+        },
+        {
+          "key": "track",
+          "type": "relation",
+          "label": "Track",
+          "to": "track",
+          "cardinality": "one"
+        },
+        {
+          "key": "focus",
+          "type": "date",
+          "label": "Planned for"
+        }
+      ]
+    },
+    "dialogue": {
+      "icon": "bubble",
+      "parent": "unit",
+      "trackable": true,
+      "pipeline": "pages",
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "label": "Title"
+        },
+        {
+          "key": "topic",
+          "type": "text",
+          "label": "Topic"
+        },
+        {
+          "key": "lines",
+          "type": "number",
+          "label": "Lines"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of dialogue",
+          "options": [
+            "conversation",
+            "roleplay"
+          ]
+        },
+        {
+          "key": "track",
+          "type": "relation",
+          "label": "Track",
+          "to": "track",
+          "cardinality": "one"
+        },
+        {
+          "key": "focus",
+          "type": "date",
+          "label": "Planned for"
+        }
+      ]
+    },
+    "resource": {
+      "icon": "trayFull",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Kind",
+          "options": [
+            "video",
+            "audio",
+            "app",
+            "book",
+            "website",
+            "deck"
+          ]
+        },
+        {
+          "key": "url",
+          "type": "url",
+          "label": "Link"
+        },
+        {
+          "key": "provider",
+          "type": "text",
+          "label": "Provider"
+        }
+      ]
+    },
+    "assessment": {
+      "icon": "checklist",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of test",
+          "options": [
+            "kana",
+            "vocabulary",
+            "listening",
+            "mock"
+          ]
+        },
+        {
+          "key": "scope",
+          "type": "text",
+          "label": "Scope"
+        },
+        {
+          "key": "week",
+          "type": "number",
+          "label": "Week"
+        },
+        {
+          "key": "score",
+          "type": "number",
+          "label": "Score"
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": "Questions in the set"
+        },
+        {
+          "key": "result",
+          "type": "formula",
+          "label": "Result",
+          "expr": "pct(score, total)"
+        },
+        {
+          "key": "track",
+          "type": "relation",
+          "label": "Track",
+          "to": "track",
+          "cardinality": "one"
+        }
+      ]
+    },
+    "session": {
+      "icon": "clock",
+      "private": true,
+      "fields": [
+        {
+          "key": "week",
+          "type": "number",
+          "label": "Week"
+        },
+        {
+          "key": "date",
+          "type": "date",
+          "label": "Date"
+        },
+        {
+          "key": "min",
+          "type": "duration",
+          "label": "Minutes"
+        },
+        {
+          "key": "note",
+          "type": "text",
+          "label": "Note"
+        },
+        {
+          "key": "track",
+          "type": "relation",
+          "label": "Track",
+          "to": "track",
+          "cardinality": "one"
+        }
+      ]
+    },
+    "note": {
+      "icon": "pencil",
+      "private": true,
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "label": "Title"
+        },
+        {
+          "key": "body",
+          "type": "longtext",
+          "label": "Body"
+        },
+        {
+          "key": "track",
+          "type": "relation",
+          "label": "Track",
+          "to": "track",
+          "cardinality": "one"
+        },
+        {
+          "key": "word",
+          "type": "relation",
+          "label": "Word",
+          "to": "word",
+          "cardinality": "many"
+        }
+      ]
+    },
+    "milestone": {
+      "icon": "flag",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "measure",
+          "type": "select",
+          "label": "Measure",
+          "options": [
+            "kana",
+            "words",
+            "sentences",
+            "minutes"
+          ]
+        },
+        {
+          "key": "target",
+          "type": "number",
+          "label": "Target"
+        }
+      ]
+    }
+  }
+}

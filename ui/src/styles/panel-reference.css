@@ -1,0 +1,36 @@
+/* Reference panels (Library and Notes) shared filter and clear controls.
+   Variant-specific layouts are scoped to variants/reference-library/. */
+
+/* Filter input field sizing. */
+.ref-find {
+  width: calc(240px * var(--ui-s));
+  min-width: 0;
+  flex: 0 1 auto;
+  padding-inline-start: var(--space-sm);
+}
+/* Ensure input fills height and uses text cursor. */
+.cd-searchpill.ref-find input {
+  cursor: text;
+  align-self: stretch;
+}
+/* Inset focus ring to prevent clipping at border radius. */
+.ref-find:focus-within {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+/* Clear filter pill button. */
+.ref-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  height: var(--hit);
+  padding: 0 var(--space-sm);
+  border-radius: var(--r-pill);
+  font-size: calc(var(--text-xs) * var(--ui-s));
+  color: var(--ink-2);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.ref-clear:hover {
+  background: var(--well-2);
+  color: var(--ink);
+}

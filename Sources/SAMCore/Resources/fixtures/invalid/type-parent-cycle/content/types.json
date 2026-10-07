@@ -1,0 +1,23 @@
+{
+ "schemaVersion": 1,
+ "types": {
+  "a": {
+   "fields": [
+    {
+     "key": "label",
+     "type": "text"
+    }
+   ],
+   "parent": "b"
+  },
+  "b": {
+   "fields": [
+    {
+     "key": "label",
+     "type": "text"
+    }
+   ],
+   "parent": "a"
+  }
+ }
+}

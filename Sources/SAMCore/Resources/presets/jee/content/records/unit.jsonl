@@ -1,0 +1,9 @@
+{"fields":{"index":2,"label":"Kinematics","stage":"Class 11"},"id":"u.jee.phy.kinematics","links":{"course":["c.jee.physics"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":3,"label":"Laws of Motion","stage":"Class 11"},"id":"u.jee.phy.laws","links":{"course":["c.jee.physics"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":11,"label":"Electrostatics","stage":"Class 12"},"id":"u.jee.phy.electrostatics","links":{"course":["c.jee.physics"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":2,"label":"Atomic Structure","stage":"Class 11"},"id":"u.jee.chem.atomic","links":{"course":["c.jee.chemistry"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":3,"label":"Chemical Bonding and Molecular Structure","stage":"Class 11"},"id":"u.jee.chem.bonding","links":{"course":["c.jee.chemistry"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":8,"label":"Chemical Kinetics","stage":"Class 12"},"id":"u.jee.chem.kinetics","links":{"course":["c.jee.chemistry"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":1,"label":"Sets, Relations and Functions","stage":"Class 11"},"id":"u.jee.math.sets","links":{"course":["c.jee.maths"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":6,"label":"Sequence and Series","stage":"Class 11"},"id":"u.jee.math.series","links":{"course":["c.jee.maths"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":3,"label":"Matrices and Determinants","stage":"Class 12"},"id":"u.jee.math.matrices","links":{"course":["c.jee.maths"]},"schemaVersion":1,"type":"unit"}

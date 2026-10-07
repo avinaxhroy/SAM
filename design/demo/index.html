@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<!-- The appearance is decided before the first frame, not after the app boots.
+     A student who chose Daylight on a dark-mode desktop gets Daylight back, and
+     no launch paints the wrong room and then swaps. `data-theme` on <html> above
+     is the floor: it is what a shell with storage disabled keeps. The key is
+     also written by `applyTheme()` in demo.js, and is stated in both files on
+     purpose — this one has to run before demo.js is even parsed. -->
+<script>
+  try {
+    var t = localStorage.getItem('cadence.theme');
+    if (t !== 'light' && t !== 'dark') {
+      t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* storage or matchMedia can be missing in an embedded view */ }
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cadence — study planner</title>
+<!-- Tab identity: the artwork itself, the same glossy S the bundle ships
+     (`mark-light.png` / `mark-dark.png`, cut from the icon sources), declared
+     twice with `media` because a favicon loads as an image and an image
+     cannot read a custom property, so the pair picks the room the way
+     `--ink`/`--ink-inv` pick the sheet. Nothing is embedded here: a base64
+     SVG would put a megabyte of raster inside an HTML file to say this. -->
+<link rel="icon" type="image/png" media="(prefers-color-scheme: light)" href="../mark-light.png" />
+<link rel="icon" type="image/png" media="(prefers-color-scheme: dark)" href="../mark-dark.png" />
+<!-- Type is embedded (data URI) so the app is offline-true and file://-safe. -->
+<link rel="stylesheet" href="../fonts.css" />
+<link rel="stylesheet" href="../tokens.css" />
+<link rel="stylesheet" href="../base.css" />
+<link rel="stylesheet" href="../components.css" />
+<link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+
+<!--
+  THE CHASSIS. Everything above the sheet is window furniture; everything the
+  student works on is rendered into #view by demo.js.
+
+  [data-os] reserves the inset the operating system needs for its own window
+  buttons. Nothing is drawn there — a fake traffic light is a mockup tell.
+  It is set at boot from the real platform, and the shortcut labels are drawn
+  from it, so the inset and the keys can never disagree. Set it to the other
+  value by hand to preview that platform's inset.
+-->
+<div class="cd-window">
+
+  <header class="cd-titlebar" data-os="mac">
+    <div class="cd-titlebar__group">
+      <span class="cd-mark" aria-hidden="true">
+        <img src="../mark-light.png" alt="" data-mark="light" />
+        <img src="../mark-dark.png" alt="" data-mark="dark" />
+      </span>
+      <span class="cd-appname">Cadence</span>
+      <span class="cd-term" id="termMeta"></span>
+    </div>
+
+    <div class="cd-titlebar__spacer"></div>
+
+    <div class="cd-titlebar__group">
+      <!-- A field-shaped button. It looks like search, it opens search; it
+           never pretends to accept typing inline. -->
+      <label class="cd-searchpill" for="q">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input id="q" type="search" placeholder="Search" aria-label="Search courses, topics and tasks"
+               aria-haspopup="dialog" readonly autocomplete="off" />
+        <!-- The shortcut label is rewritten at boot from [data-os]. -->
+        <span class="cd-kbd" aria-hidden="true">⌘K</span>
+      </label>
+
+      <span id="timerHost"></span>
+    </div>
+  </header>
+
+  <div class="cd-body">
+    <!-- The rail is the only navigation. It is built by demo.js because every
+         disc carries live state (the date, the count, the active route). -->
+    <nav class="cd-nav" id="navRail" aria-label="Sections"></nav>
+
+    <div class="cd-scroller cd-scroll" id="scroller">
+      <div class="cd-canvas">
+        <main class="cd-view" id="view" tabindex="-1"></main>
+      </div>
+    </div>
+  </div>
+
+  <div class="cd-toasts" id="toasts" role="status" aria-live="polite"></div>
+  <div id="layer"></div>
+</div>
+
+<!--
+  ICON SPRITE — 24×24, stroke-only, currentColor, round caps and joins.
+  One family, one weight, one corner language: the same softness as the
+  radii. Emoji are never icons; a 14px emoji cannot be colour-managed,
+  cannot inherit ink, and renders differently on every OS.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="i-today"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" /></g>
+    <g id="i-plan"><rect x="3" y="5" width="18" height="16" rx="4" /><path d="M3 10h18M8 3v4M16 3v4" /></g>
+    <g id="i-courses"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v16H6.5A2.5 2.5 0 0 0 4 22z" /><path d="M4 6.5v15" /></g>
+    <g id="i-review"><path d="M20 12a8 8 0 1 1-2.6-5.9" /><path d="M20 4v5h-5" /></g>
+    <g id="i-progress"><path d="M5 20V11M12 20V5M19 20v-6" /></g>
+    <g id="i-plus"><path d="M12 5v14M5 12h14" /></g>
+    <g id="i-search"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></g>
+    <g id="i-check"><path d="m5 13 4.5 4.5L19 7" /></g>
+    <g id="i-clock"><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.2 2" /></g>
+    <g id="i-info"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></g>
+    <g id="i-chevron"><path d="m9 5 7 7-7 7" /></g>
+    <g id="i-arrow"><path d="M5 12h14M13 6l6 6-6 6" /></g>
+    <g id="i-sun"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" /></g>
+    <g id="i-moon"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></g>
+    <g id="i-stop"><rect x="7" y="7" width="10" height="10" rx="2.5" /></g>
+    <g id="i-sparkle"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" /></g>
+    <g id="i-book"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3Z" /></g>
+    <g id="i-target"><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="3.5" /></g>
+    <g id="i-layers"><path d="m12 3 9 5-9 5-9-5z" /><path d="m3.5 12.5 8.5 4.7 8.5-4.7" /></g>
+    <g id="i-calendar-day"><rect x="3" y="5" width="18" height="16" rx="4" /><path d="M3 10h18M8 3v4M16 3v4" /><circle cx="12" cy="15.5" r="1.6" fill="currentColor" stroke="none" /></g>
+    <g id="i-flag"><path d="M6 21V3.5" /><path d="M6 4.4 17 8.8 6 13.2" /></g>
+    <g id="i-pencil"><path d="M4 20h4L20 8l-4-4L4 16v4z" /><path d="m14 6 4 4" /></g>
+  </defs>
+</svg>
+
+<script src="demo.js"></script>
+</body>
+</html>

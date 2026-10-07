@@ -1,0 +1,32 @@
+# The shell (§4.2, D16/D18). This is the ONLY crate in the workspace that links
+# `tauri`; `sam-cli` and `sam-core` cannot acquire a windowing framework, and
+# `crates/sam-cli/tests/no_tauri.rs` is what holds that as a build fact.
+#
+# §9's version rule: the tauri family is pinned to v2 — v3 exists only as an
+# alpha tag and is not a target. `Cargo.lock` carries the exact patch releases,
+# so the build is reproducible without restating them here.
+
+[package]
+name = "sam-shell"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "SAM's app shell: the window, and IPC onto the same sam-core the CLI calls."
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+sam-core = { path = "../crates/sam-core" }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tauri = { version = "2", features = [] }
+# §9's §4.10 behaviours that are shell plugin work rather than CSS: the
+# platform's own file dialogs (`dialog`), window geometry that persists
+# (`window-state`) and single-instance launch (`single-instance`). `fs` and
+# `sql` are never installed (§4.10: the webview gets no filesystem and no SQL
+# — every read and write crosses a command into `sam-core`).
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"

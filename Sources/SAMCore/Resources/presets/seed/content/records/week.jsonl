@@ -1,0 +1,2 @@
+{"fields":{"end":"2026-01-25","index":1,"label":"Week 1","start":"2026-01-12"},"id":"w.01","links":{"term":["term.demo"]},"schemaVersion":1,"type":"week"}
+{"fields":{"end":"2026-02-01","index":2,"label":"Week 2","start":"2026-01-26"},"id":"w.02","links":{"term":["term.demo"]},"schemaVersion":1,"type":"week"}

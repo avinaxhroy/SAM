@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "cadence-light",
+  "name": "Cadence Light",
+  "mode": "auto",
+  "description": "The Warm Workbench as designed: the register's own palette, following the machine's light/dark preference. No overrides — this theme IS design/tokens.json.",
+  "tokens": {}
+}

@@ -1,0 +1,864 @@
+/*
+ * Collection layer styles (UI_SPEC §2.2, design.md §7.5, §11).
+ * Layout rules for record collections, dense rows, level marks, meta lines, and meter rows.
+ */
+
+/* ══ 0 · THE DENSITY REGISTER ═════════════════════════════════════════════
+   Every number this composition chose, declared once, in the `sam-` namespace,
+   each with the design-system rule it derives from. No rule below states a
+   number of its own — this block is the only place an app-layer size lives,
+   which is `UI_SPEC.md` §2.2's promise made enforceable rather than advisory.
+
+   The two row heights are DERIVED, not typed, so a change to the type ramp
+   moves them with it. That is the point of `design.md` §7.5's "a rung is a
+   value the scale owns and it is always one of the tokens".
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── THE ROW ──────────────────────────────────────────────────────────
+     A row carries a title line and one meta line, and nothing else. The
+     arithmetic, on the two steps the type ramp gives those two lines
+     (`--text-md` 17 is "row titles", `--text-xs` 13 is "meta" — §7.4):
+
+         17 × 1.20  = 20.4   the title line
+          4          =  4.0   title → meta, `--space-2xs`
+         13 × 1.25  = 16.3   the meta line
+          8 × 2      = 16.0   the row's own air, `--space-xs`
+         ─────────────────
+                     56.7   → a 57px row
+
+     And the 64 end of the band is not a second number, it is the same row with
+     a chip in its meta line: `.cd-chip` is `--chip-h` 20 (`--chip-h` is a
+     declared geometry rung, §7.5), four pixels taller than the 16.3px line it
+     sits on, which takes the row to 60. So a row of this species measures
+     57px or 60px and nothing else — a 4px spread, against the 100–127px it
+     replaces. The measured band of a *list* is 56–64; this is its bottom two
+     values, and the top of it is the row with two meta lines' worth of chip,
+     which is deliberately a different species (`.cd-coll__row--tall`).
+     It is a `min-height`, never a `height`: a row that has to grow (an error,
+     a wrapped action) grows, and one that can is a row that clips. */
+  --sam-row-line:    1.2;   /* the title's line box — §7.4's "row titles"   */
+  --sam-meta-line:   1.25;  /* the meta's line box — §7.4's "meta"            */
+  --sam-row-pad-b:   var(--space-xs);   /*  8 · the row's own air above/below */
+  --sam-row-pad-i:   var(--space-xl);   /* 24 · == `.cd-card`'s padding, so a
+                                           row's text re-aligns with the card
+                                           head above it (§8.2)              */
+  --sam-row-gap:     var(--space-sm);   /* 12 · mark → body → right slot     */
+  --sam-row-h: calc(
+      var(--text-md) * var(--sam-row-line)
+    + var(--space-2xs)
+    + var(--text-xs) * var(--sam-meta-line)
+    + var(--sam-row-pad-b) * 2
+  );
+  --sam-row-h-tall: calc(
+      var(--sam-row-h) + var(--space-xs) * 2
+  );                                /* 73 · a row whose meta runs to two
+                                       lines: two chips + a fact            */
+
+  /* The compact species is NOT a new number. `--hit` 32 is the system's
+     compact control rung (§7.5) and the number `.cd-row` — the record table's
+     row — already measures (`ui/src/styles/components.css:122`). Declaring it
+     as `var(--hit)` rather than `32px` is the whole point: the two dense row
+     species can no longer fork, because neither of them owns the number. */
+  --sam-row-h-compact: var(--hit);
+
+  /* ── THE COLLECTION'S BLEED ───────────────────────────────────────────
+     `.cd-coll` bleeds to the card's edge so one dashed rule spans the full
+     width while the row's text re-aligns with the head above it. That is the
+     system's own deliberate coupling (`design.md` §8.2, `components.css:540`),
+     and the coupling is the fragile part: it is this one number that must
+     equal the PARENT's padding, and it is a negative margin, so a mismatch is
+     visible rather than subtle — the rules overshoot the parent and get
+     clipped by its radius, or stop short of its edge.
+
+     So it is declared, and the contract is written next to it: a `.cd-coll`
+     belongs inside a `.cd-card`, or inside a box that sets this to its own
+     padding. A collection that is a top-level thing on the sheet sets it to
+     `0`. Getting this wrong is the single most likely way to use this file
+     badly, so it is stated rather than left to be discovered in a screenshot. */
+  --sam-coll-bleed: var(--space-xl);
+
+  /* ── THE LEVEL MARK ───────────────────────────────────────────────────
+     18px is the width the system's own `.cd-lvl` ladder draws at
+     (`design/components.css:574`), so a row carrying either mark has ONE
+     left edge. A size, not a rung: it belongs to this object and to no other
+     (`design.md` §7.5). */
+  --sam-mark: 18px;
+  /* The mark's stroke. The app declares one icon family at a 1.5px stroke on a
+     16px box (`UI_SPEC` §2.2, Icons); an 18px state mark survives a 2× capture
+     and the dark theme at one step heavier, and this is the one mark a
+     student reads at a glance, so it takes the heavier of the two. */
+  --sam-mark-bar: 2px;
+
+  /* ── THE META LINE ────────────────────────────────────────────────────
+     One number for the whole meta line's rhythm, and it is the space scale's
+     SMALLEST legible step rather than the one it was expected to be.
+     `--space-2xs` 4 is the flex gap, and the separator carries 4 of air on
+     each side, so two facts sit 12px apart and a middot floats in the middle
+     of that with 8px to either side. 8px was tried first — the space scale's
+     natural "between two things" — and it put the two facts 16px apart with
+     the dot in the middle, which reads as two loose items rather than one
+     line. The register states what renders, and the mark's own column gap
+     (`--sam-row-gap`, 12) happens to be the same number, so the gap between a
+     fact and the chip before it is the gap between the mark and the first
+     fact. One rhythm down the left side of the row. */
+  --sam-sep-pad: var(--space-2xs);
+
+  /* ── THE FIGURE TILE ──────────────────────────────────────────────────
+     The system's `.cd-tile` is 152px tall because it is an *identity* object:
+     a code chip, a course title, a caption, a foot. A figure needs the numeral
+     and the caption and nothing else, and four 152px tiles are a wall. The
+     arithmetic, on the steps the ramp gives a tile (`--text-xl` 26 is "tile
+     numerals", `--text-xs` 13 is "captions" — §7.4):
+
+         26 × 1.00  = 26.0   the figure, on its own `line-height: 1`
+          8          =  8.0   figure → caption, the tile's own gap
+         13 × 1.25  = 16.3   the caption
+         20 × 2      = 40.0   the tile's own air, `--space-lg`
+         ─────────────────
+                     90.3   → a 90px figure tile (59% of the system's)
+
+     The `1.00` is load-bearing rather than tidy. A baseline-aligned
+     `inline-flex` wrapper is TALLER than its tallest item — the short item
+     hangs below the shared baseline — so the 27.3 this first read as `1.05`
+     was 26 plus an unstated 3px of descent, and the tile measured 95 instead
+     of 92. Pinning `line-height: 1` on `.cd-metric` and
+     `--sam-meta-line` on `.cd-metric__d` makes the number above the number
+     that renders, which is the only kind of derivation worth keeping.
+
+     Still a full step above a card title's floor and two above a row title, so
+     a screen of four figures has a figure at the top of the hierarchy rather
+     than four cards. */
+  --sam-tile-h: calc(
+      var(--text-xl)
+    + var(--space-xs)
+    + var(--text-xs) * var(--sam-meta-line)
+    + var(--space-lg) * 2
+  );
+
+  /* ── THE METER ROW ────────────────────────────────────────────────────
+     One line of fact beside a bar. The system's standard pill is 40px
+     (`--pill-h`, §7.5), and a row carrying a bar and a sentence is a pill's
+     height: 13 × 1.25 + 12 × 2 = 40.25. It takes the rung by name rather than
+     by value so a meter row and a pill can never disagree about height.
+
+     And the bar's width, which is the number this species got wrong first.
+     A meter given `flex: 1` stretches the full width of a 1120px canvas, and
+     at that length the eye stops reading it as a proportion and starts reading
+     it as a rule — a long thin ink line is a divider, not a measure. Worse,
+     it pushes the sentence that states the denominator to the far edge, so the
+     bar and the number that explains it are 800px apart, which is the one
+     thing a meter must never do. 320px is five of the largest space rung
+     (`--space-4xl`), wide enough to compare two bars by eye and short enough
+     that the words stay beside it. */
+  --sam-meterrow-h: var(--pill-h);
+  --sam-meter-w: calc(var(--space-4xl) * 5);
+
+  /* ── THE STRIP ────────────────────────────────────────────────────────
+     A screen head's context line. Its gap is the space scale's, and the
+     figures inside it are tabular so two of them can sit side by side
+     (`base.css`'s `.num` recipe, restated here as a rule so a strip's figure
+     cannot be set two ways). */
+  --sam-strip-gap: var(--space-xs);
+}
+
+/* ══ 1 · THE HIERARCHY ════════════════════════════════════════════════════
+   The one thing no amount of density fixes: three levels of type on a screen
+   all within 2px of each other, so the eye has nothing to land on. The ramp
+   already has the answer written down — `--text-lg` 20 is "**section
+   titles**", `--text-md` 17 is "**row titles**", `--text-base` 15 is "**body
+   prose**", `--text-xs` 13 is "**meta**" (§7.4). The system draws the card
+   title at `--text-md`, the same step it gives row titles, which is why a
+   screen read as one undifferentiated wall of 15–17px.
+
+   So the card title is lifted to the step the ramp assigns it, and the row
+   title takes the step the ramp assigns *it*. Five steps, one job each:
+
+       40  --text-3xl     the page head      (the system's, §8.2)
+       20  --text-lg      the card title     ← this rule
+       17  --text-md      the row title      (§8.2's "row titles")
+       15  --text-base    body prose         (the prose floor, §7.4)
+       13  --text-xs      meta               (the text floor, §7.4)
+
+   This is an app-layer composition decision and it is stated as one: a single
+   declaration changing one property, and the reason a screen of sixteen cards
+   is sixteen cards rather than one undifferentiated field of text. */
+.cd-card__title { font-size: var(--text-lg); }
+
+/* An empty state that is the *body of a card* does not need the system's
+   standalone padding. `.cd-empty` pads `--space-3xl` (48) because it stands
+   alone in a canvas; inside a card that is 540px of card to say "Nothing is
+   due", and the sentence is the content. One rung down on the space scale for
+   the air, and the art one notch smaller — the system's `.cd-ictile` is 34,
+   the smallest of its kind, and an empty state is a caption, not an icon. */
+.cd-empty--tight { padding: var(--space-lg) var(--space-md); gap: var(--space-xs); }
+/* 24px is a SIZE, not a rung: it is this art's own dimension and no other
+   object owns it (`design.md` §7.5), and it is not a space step wearing a
+   size's clothes — `--space-xl` happens to be 24 and using it here would say
+   the number is a gap. The system's own `.cd-ictile` states 34px the same way. */
+.cd-empty--tight .cd-empty__art svg { width: 24px; height: 24px; }
+.cd-empty--tight .cd-empty__t { font-size: var(--text-md); }
+
+/* ══ 2 · THE COLLECTION ═══════════════════════════════════════════════════
+   A card whose body is a list.
+
+   This is the whole answer to "three white cards nested in a white card is
+   depth theatre" (`design.md` §126). Inside a card, rows are ruled, not
+   carded: no fill of their own, no shadow, no corner, one dashed rule between
+   them, and the ONLY fill a row may ever take is a state — hover, done, late,
+   selected. The wrapper below is deliberately thin: it is the bleed and the
+   stacking, and it adds no visual language of its own. */
+.cd-coll {
+  display: flex;
+  flex-direction: column;
+  /* The bleed, coupled to the card's padding on purpose: a rule spans the
+     card's full width while the row's text lines up with the head above it. */
+  margin: 0 calc(var(--sam-coll-bleed) * -1);
+}
+
+/* ══ 3 · THE ROW ══════════════════════════════════════════════════════════
+   A row at a real density. Three columns — a level mark, a body, an optional
+   right slot — which is `.cd-task`'s grid, at 57–60px instead of 77.
+
+   THE ROW IS A CONTROL. Every interactive row is a real `<button>` or an
+   `<a>`, and this file is the CSS for both: `.cd-coll__row` is a `<div>` when
+   the row holds its own controls (the system's own split, §8.2) and a
+   `<button>` when the row *is* the thing you press (`.cd-coll__row--btn`).
+   Either way it carries an accessible name in the markup, and focus is drawn
+   on the row itself either way. */
+.cd-coll__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sam-row-gap);
+  min-height: var(--sam-row-h);
+  padding: var(--sam-row-pad-b) var(--sam-row-pad-i);
+  color: var(--ink);
+  transition: background var(--dur-1) var(--ease);
+}
+
+/* Dashed row divider between collection items. */
+.cd-coll__row + .cd-coll__row { border-top: 1px dashed var(--rule-strong); }
+
+/* Row interaction fills: hover, active, and selected states. */
+.cd-coll__row:hover { background: var(--well); }
+.cd-coll__row:active { background: var(--well-2); }
+.cd-coll__row[aria-selected="true"],
+.cd-coll__row.is-selected { background: var(--well-2); }
+
+/* Inset focus ring to avoid clipping at card boundary. */
+.cd-coll__row:focus-within {
+  background: var(--well);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+/* Completed row appearance. */
+.cd-coll__row[data-done="1"] { background: var(--well); }
+.cd-coll__row[data-done="1"] .cd-coll__title {
+  color: var(--ink-3);
+  font-weight: var(--weight-body);
+  transition: color var(--dur-1) var(--ease);
+}
+
+/* ── late ───────────────────────────────────────────────────────────────
+   A wash, not an outline and never a left edge: "late is a surface, not an
+   outline" (`design.md` §8.2, and §11's refusal of the 3px colour border).
+   The mark beside it and the chip on it say the rest in words. */
+.cd-coll__row[data-late="1"] { background: var(--wash-rose); }
+
+/* ── disabled ───────────────────────────────────────────────────────────
+   The system's own disabled treatment: dimmed and not pointed at. A row that
+   cannot be pressed must not answer the pointer. */
+.cd-coll__row[disabled],
+.cd-coll__row[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+
+/* ── the row that IS the control ────────────────────────────────────────
+   A whole row as one button or one link. The UA centres a button's contents
+   and shrinks it to fit, so both are re-spelled here; the grid and the height
+   are inherited, which is the point. */
+.cd-coll__row--btn { width: 100%; text-align: left; }
+
+/* ── the compact species ────────────────────────────────────────────────
+   32px, `--hit`, one line, no meta. The SAME number the record table's row
+   already measures, reached through the same token, so the app's two dense
+   row species are one number and cannot drift. */
+.cd-coll__row--compact {
+  min-height: var(--sam-row-h-compact);
+  padding-block: 0;
+  gap: var(--space-xs);
+}
+.cd-coll__row--compact .cd-coll__title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+}
+.cd-coll__row--compact .cd-rowmeta { margin-top: 0; }
+
+/* ── the tall species ───────────────────────────────────────────────────
+   For the one row in a collection that carries two meta lines' worth of
+   fact — two chips and a sentence. Declared rather than allowed to happen by
+   accident, because a row that grows to fit a second line is a row whose
+   height was decided by its contents. */
+.cd-coll__row--tall { min-height: var(--sam-row-h-tall); }
+
+/* ── the two columns ────────────────────────────────────────────────────
+   `display: block` on the body is load-bearing, not tidiness: the body is a
+   grid item and is blockified anyway, so declaring it means the row measures
+   the same whether an author wrote `<div>` or `<span>` for it. A row whose
+   title is an inline `<span>` takes its line box from the body, which is
+   `body { line-height: 1.45 }` — and a 17px title at 1.45 is 24.7px, not the
+   20.4px the density register declared. A row that silently measures 8px
+   taller depending on the tag it was written in is the "rule carrying its own
+   magic number" failure in a different costume. */
+.cd-coll__body { display: block; min-width: 0; }
+.cd-coll__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: none;
+}
+
+/* ── the title ──────────────────────────────────────────────────────────
+   `--text-md` 17, the step §7.4 gives row titles, at the label weight. It is
+   one step below the card title (rule 1) and two above the meta, and it is
+   the same size a tile's title is, so a tile and a row are recognised as the
+   same kind of thing.
+
+   `display: block` and `line-height` are both part of the height, not
+   decoration: the line box is the title's own `--sam-row-line` rather than an
+   inherited 1.45, which is what makes the declared `--sam-row-h` the number
+   the row actually measures. */
+.cd-coll__title {
+  display: block;
+  font-size: var(--text-md);
+  font-weight: var(--weight-label);
+  line-height: var(--sam-row-line);
+  letter-spacing: var(--track-title);
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ══ 4 · THE LEVEL MARK ═══════════════════════════════════════════════════
+   The mark that replaces the 8px grey dot.
+
+   WHAT WAS WRONG WITH THE DOT. It was `--rule-strong` grey, 8px, and it
+   encoded four different states by four different *hues* and nothing else
+   (`ui/src/styles/components.css:500-511`). That is a colour-only encoding of
+   a decision, which §2 lists among the failure modes this system was designed
+   against, and four hueless pixels carry nothing at all for a colour-blind
+   reader. It also cost a column and gave nothing back.
+
+   WHAT THIS IS INSTEAD. A mark whose FORM differs per state, drawn from the
+   system's own state pairs — the four chips of §7.3, a wash plus a deep ink,
+   which is the only way a status is allowed to be coloured in this system:
+
+       state            ground            figure              the form
+       ─────────────────────────────────────────────────────────────────
+       overdue          --chip-overdue    a 45° bar            a SLASH
+       due soon         --chip-risk       the left half        a HALF DISC
+       next in plan     --chip-info       a hollow centre      a RING
+       done             --chip-ok         two bars             a TICK
+
+   Four silhouettes. Read in greyscale, in the dark theme, at 2×, and to a
+   reader who cannot see either hue, the four are distinguishable — which is
+   the test §10's "nothing is encoded by colour alone" actually asks for.
+
+   A mark is never the only carrier. `design.md` §7.3: "Status never travels
+   by colour alone: every chip carries a word." Every row that draws one of
+   these draws a `.cd-chip` beside it saying the same thing in words, and the
+   mark itself is `aria-hidden`. The mark is a fast path; the chip is the
+   truth.
+
+   Urgency indicator mark for scheduled tasks (`late · due · next · committed`),
+   distinguished from the mastery ladder (`.cd-lvl`). */
+.cd-urgency {
+  position: relative;
+  flex: none;
+  width: var(--sam-mark);
+  height: var(--sam-mark);
+  border-radius: var(--r-pill);
+  background: var(--chip-info);
+  transition: background var(--dur-1) var(--ease);
+}
+/* Every form positions its own geometry rather than sharing a centred default.
+   A shared `inset: 50% + translate: -50%` is right for a slash and wrong for a
+   tick: a checkmark is two strokes about DIFFERENT points, and centring both
+   turns it into a chevron pointing at nothing. Each figure below is placed as
+   a fraction of the mark, so the shape is scale-independent and checkable. */
+.cd-urgency::before,
+.cd-urgency::after {
+  content: "";
+  position: absolute;
+  background: var(--on-info);
+}
+
+/* NEXT IN PLAN — the neutral one, and the shape everything else is read
+   against. `--chip-info` is the family's neutral label ("recall", "proof"),
+   which is exactly what "next in the plan" is: no pressure on it at all. The
+   form is HOLLOW, with a core, which makes it a third texture rather than a
+   second: the eye calibrates the two fills against it.
+
+   The core is not decoration. A bare ring in a row's left column is the
+   silhouette of an unchecked `.cd-check` — 24px, in `components.css:598`, in
+   the same column of the same kind of row — and that means the exact opposite
+   thing: *press me to finish this*. Two meanings in one silhouette in one
+   position is how a vocabulary stops being one. A ring with a point in it is a
+   target, and a target says "this is the one to pick", which is what "next in
+   the plan" actually is.
+
+   The ring is an inset shadow rather than a `border` because a disc is one of
+   the five objects the system refuses a border on, and because `.cd-check`
+   (`:603`) and `.cd-stage__mark` (`detail-pane.css:90`) already spell a ring
+   exactly this way. */
+.cd-urgency[data-lvl="next"] {
+  background: var(--chip-info);
+  box-shadow: inset 0 0 0 1.5px var(--ink-2);
+}
+.cd-urgency[data-lvl="next"]::before {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: 28%;
+  height: 28%;
+  border-radius: var(--r-pill);
+  background: var(--ink-2);
+  translate: -50% -50%;
+}
+
+/* OVERDUE — a slash. A single diagonal is the one form on this list that
+   survives being drawn in a flat colour, and a bar falling across a disc says
+   *it fell behind* where a filled circle says only "important". */
+.cd-urgency[data-lvl="overdue"] { background: var(--chip-overdue); }
+.cd-urgency[data-lvl="overdue"]::before,
+.cd-urgency[data-lvl="overdue"]::after {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: var(--sam-mark-bar);
+  height: 58%;
+  background: var(--on-overdue);
+  translate: -50% -50%;
+  rotate: -45deg;
+}
+
+/* DUE SOON — a half disc. The left half is the deep ink, so the SILHOUETTE
+   says *the time has partly run*, and the system's own hatched meter head
+   (`components.css:526`, "the part of the term that is still yours") is the
+   same idea about the same clock. A centred bar was tried instead and reads
+   as a minus sign — a symbol with no meaning here; a filled half is a
+   proportion, and a proportion is what this state is. */
+.cd-urgency[data-lvl="soon"] { background: var(--chip-risk); }
+.cd-urgency[data-lvl="soon"]::before {
+  inset-block: 0;
+  inset-inline: 0 auto;
+  width: 50%;
+  height: 100%;
+  background: var(--on-risk);
+  border-radius: var(--r-pill) 0 0 var(--r-pill);
+}
+
+/* DONE — a tick, in two bars, the way the system's own glyphs are drawn (1.8
+   round caps on a 24-grid). The two strokes are placed on the checkmark's own
+   geometry rather than mirrored, because a tick is not symmetric: a short
+   stroke falling to a vertex, and a long stroke rising out of it. The numbers
+   below are that geometry on an 18px mark, in mark fractions:
+
+       short   (4, 9) → (7, 12)    length 4.24  = 24%  centre (31%, 58%)
+       long    (7, 12) → (13, 6)   length 8.49  = 47%  centre (56%, 50%)
+
+   Each is then rotated about its own centre, which is why the position given
+   is the centre of the segment rather than either end of it. The signs are not
+   guesses: in CSS y points DOWN, so `rotate(45deg)` -- clockwise on screen --
+   carries a vertical bar's top end to the right and it becomes `/`, and
+   `rotate(-45deg)` becomes `\`. A tick is `\` then `/`. Getting this backwards
+   draws a chevron, which is a disclosure control and not a completion. */
+.cd-urgency[data-lvl="done"] { background: var(--chip-ok); }
+.cd-urgency[data-lvl="done"]::before {
+  inset-block-start: 58%;
+  inset-inline-start: 31%;
+  width: var(--sam-mark-bar);
+  height: 24%;
+  background: var(--on-ok);
+  translate: -50% -50%;
+  rotate: -45deg;
+}
+.cd-urgency[data-lvl="done"]::after {
+  inset-block-start: 50%;
+  inset-inline-start: 56%;
+  width: var(--sam-mark-bar);
+  height: 47%;
+  background: var(--on-ok);
+  translate: -50% -50%;
+  rotate: 45deg;
+}
+
+/* A mark on a row that carries a fill of its own still reads: the ground is
+   the mark's own wash, never the row's, so no state inherits a hue it did not
+   ask for. */
+
+/* ══ 5 · THE META LINE ════════════════════════════════════════════════════
+   One line, `--text-xs` 13, `--ink-3` (the text floor — §10 measures 5.52:1
+   on a card, and this is small meta text read at 23:10 by a tired student),
+   items separated by a real separator, and it NEVER wraps the row to two
+   lines. That last one is the whole reason this element exists and the reason
+   it is a flex row with `min-width: 0` and a single shrinkable child rather
+   than a wrapped block: a meta line that grows the row is a row whose height
+   was decided by its contents, and a 57px row with a 73px row in it is a list
+   the eye cannot scan. */
+.cd-rowmeta {
+  display: flex;
+  align-items: center;
+  gap: var(--sam-sep-pad);
+  min-width: 0;
+  margin-top: var(--space-2xs);
+  font-size: var(--text-xs);
+  line-height: var(--sam-meta-line);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cd-rowmeta > * { flex: none; }
+/* Exactly one child may give way, and it is the last one: the facts that lead
+   a row are the ones a student scans for, and the tail is the one that may be
+   clipped to an ellipsis. */
+.cd-rowmeta > :last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* THE SEPARATOR. A real one, not the space scale standing in for punctuation:
+   four meta items run together as "medium 28 of 40 attempted 21 solved" and
+   the reader has to count the gaps to find where one fact ends. A middot is
+   punctuation, not a word, and `--ink-4` is the register that carries
+   punctuation and glyphs ("Never a word — one em dash excepted", §7.1) while
+   never falling below the text floor, because it is not text. It is
+   deliberately quieter than `--ink-3`: a separator as loud as the words it
+   separates has stopped separating.
+
+   It rides every non-chip item that is not last, and it does NOT ride a chip.
+   A chip is a filled object with its own radius — a middot inside one would be
+   printed on the wash, and a chip beside a middot is two separators. So the
+   rule is one sentence: **a chip is its own separator.** Which also makes the
+   line read correctly in every ordering, with no ordering to get wrong. */
+.cd-rowmeta > *:not(:last-child):not(.cd-chip)::after {
+  content: "·";
+  color: var(--ink-4);
+  margin-inline: var(--sam-sep-pad);
+}
+
+/* THE ROW-FIGURE MODIFIER — the rule against printing a figure twice.
+
+   The defect, measured: a Practice row printed `53% solved` as a chip in its
+   meta line AND `53%` right-aligned in the same row, for the same number.
+   `UI_SPEC` §2.2 lists a fraction chip and a right-aligned percentage as two
+   prints of one claim, and §8.2 already holds the system's answer: "the
+   top-right chip is always a fraction, because a fraction is a fact and a
+   percentage is a claim."
+
+   So: **one figure, one home.** A row prints its figure in its meta line, as a
+   `.cd-metric` — the one that carries the denominator beside it, because a
+   percentage with no denominator is the fake precision §2 refuses. The right
+   slot is for a DIFFERENT datum: when a session is running, when a thing is
+   due, how many items a column holds. It is never a second reading of the
+   number already on the row.
+
+   This class is that contract, made visible. Put it on a row whose figure
+   lives in the right slot and the meta line carries only the facts that
+   qualify it; its one job is that a strip cut short by the right slot's width
+   does not then end on a dangling separator. */
+.cd-rowmeta--rightfig > :last-child { flex: none; }
+.cd-rowmeta--rightfig > :last-child::after { content: none; }
+
+/* ══ 6 · THE FIGURE ═══════════════════════════════════════════════════════
+   A number and what it is a number OF.
+
+   R13 wants "number + denominator + what it counts, at most four in a row", and
+   the measured screen had four small pills with tiny numerals, which is the one
+   thing the system's `.cd-tile` was made for. Two species, one vocabulary:
+
+     · `.cd-metric`          the inline figure — "9 of 35 solved" in a row
+     · `.cd-metric--tile`    the big figure — a modifier ON the system's own
+                              `.cd-tile`, not a wrapper around it
+
+   TWO CLASSES, TWO JOBS, ONE HOME EACH:
+
+     `.cd-metric__n`   the number lives here
+     `.cd-metric__d`   the label — the denominator and what it counts — here
+
+   These are the only two places a figure is styled as a figure, in both
+   species. They deliberately do NOT alias the system's `.cd-tile__num` /
+   `.cd-tile__cap`: aliasing them would put one number in two registers, which
+   is the failure `design.md` §7 opens on ("the number of hand-copied values in
+   a system is the number of places a system can disagree with itself").
+   Inside a tile these two classes take the tile's own sizes, so a figure looks
+   the same at both scales and is written the same way at both. */
+.cd-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  flex: none;
+  /* See `--sam-tile-h`: a baseline-aligned flex box is taller than its tallest
+     item, and this line is what stops that 3px of descent from being an
+     undeclared addition to every figure in the window. */
+  line-height: 1;
+}
+.cd-metric__n {
+  font-weight: var(--weight-label);
+  font-variant-numeric: tabular-nums;   /* the `.num` recipe, as a rule */
+  color: var(--ink-2);
+}
+.cd-metric__d { color: var(--ink-3); line-height: var(--sam-meta-line); }
+
+/* ONE FIGURE PER ROW, STRUCTURALLY. Prose cannot enforce this, so CSS does,
+   and it does it by removal rather than by warning: a `.cd-metric` in a row's
+   right slot is, by definition, a second figure in one row — the row already
+   printed one in its body — so it is not rendered. The right slot keeps
+   whatever other datum it was carrying, which is the only thing a right slot
+   is for. A row therefore has exactly one figure no matter which of the two
+   columns an author reaches for. */
+.cd-coll__row:has(.cd-metric) > .cd-coll__right .cd-metric { display: none; }
+
+/* ── the big figure: the system's tile, restated for a number ────────────
+   This is a MODIFIER on `.cd-tile`, not a wrapper: the object is the one the
+   system already ships (`components.css:455`), and what changes is that the
+   identity parts are gone — no code chip, no course title, no call-to-action —
+   and the height comes from the density register instead of the tile's own
+   152px. Everything else (the wash, the `--wash-grad`, `--r-card`, `--sh-1`,
+   the hover lift, the four-course cap) is inherited untouched, so a figure
+   tile and a course tile are visibly the same object at two densities. */
+/* The `gap` is not cosmetic: it is the 8px `--sam-tile-h` was derived with.
+   `.cd-tile` is a flex column with no gap of its own, so without this the two
+   lines stack flush and 8px of the tile's height collects at the BOTTOM — a
+   tile whose content sits 8px above centre reads as a padding mistake. */
+.cd-tile.cd-metric--tile { min-height: var(--sam-tile-h); gap: var(--space-xs); }
+.cd-metric--tile .cd-metric__n {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-title);
+  line-height: 1;
+  color: inherit;
+}
+.cd-metric--tile .cd-metric__d {
+  font-size: var(--text-xs);
+  color: inherit;
+  opacity: 0.72;          /* the system's own `.cd-tile__sub` weighting (`:473`) */
+}
+
+/* ══ 7 · THE METER ROW ════════════════════════════════════════════════════
+   What replaces a bare "0 of 6 revised · 6 untouched" text line.
+
+   Two facts, and the second one is a *denominator with a remainder* — the
+   hatched headroom the system already draws for exactly this ("headroom reads
+   as hatched — the part of the term that is still yours",
+   `components.css:526`). A bare sentence states the same two numbers and the
+   reader has to hold the bar in their head to see it; a bar with the sentence
+   beside it says the same thing in the time it takes to look.
+
+   The denominator is stated in words beside the bar (`.cd-meterrow__say`),
+   satisfying the §8.3 meter specification. */
+.cd-meterrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--sam-meterrow-h);
+  padding: var(--space-3xs) var(--sam-row-pad-i);
+}
+.cd-meterrow + .cd-meterrow { border-top: 1px dashed var(--rule-strong); }
+/* The bar is a measure, not a rule, so it is capped (see `--sam-meter-w`) and
+   the words stay beside it. It may still give way on a narrow card, because
+   the words are the content and the bar is the illustration of them. */
+.cd-meterrow .cd-meter { flex: 0 1 auto; width: var(--sam-meter-w); min-width: 0; }
+.cd-meterrow__say {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  flex: none;
+  font-size: var(--text-xs);
+  line-height: var(--sam-meta-line);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+/* The remainder, in the system hatch's own register: quieter than the fill,
+   and never a colour of its own. */
+.cd-meterrow__left { color: var(--ink-4); }
+
+/* ══ 8 · THE SECTION HEAD ═════════════════════════════════════════════════
+   The ONE legal exception to "the card is the only place a section title
+   lives — there is no `h2` outside a card head" (`design.md` §8.2).
+
+   WHY IT EXISTS, and why it is exactly this shape. The rule is doing real
+   work: a title outside a card is a title with no object under it, and a
+   screen of free-floating titles is the toolbar look §11 refuses. But a screen
+   that has to divide — a long list under two distinct headings, a settings
+   page with four unrelated groups — cannot invent a card per section, because
+   a card per section is the nesting this file exists to stop. So the exception
+   is deliberately the weakest thing that can do the job:
+
+     · a rule and a label, and NO card, no fill, no shadow, no radius. It is
+       apparatus, drawn on the sheet, and it disappears the moment a card can
+       hold the title instead.
+     · the label is `--text-2xs` in `--track-caps` — the same voice as the
+       table's own head (`ui/src/styles/components.css:105`) and the queue's
+       group heading (`ui/src/styles/components.css:515`), both of which are a
+       label bar and not a headline. It is never `--text-lg`: §7.4 gives that
+       step to a card title, and this is not one.
+     · the rule is DASHED, because §11 grants exactly one hairline outside a
+       surface and it is dashed; a solid rule here would be the grid the
+       system refuses.
+     · an optional right action, and at most one, exactly as the page head
+       gets at most one.
+
+   Use it where a card cannot hold the title. Do not use it because a heading
+   is more convenient than a card head. */
+.cd-sec {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  /* The same deliberate coupling the collection itself has: the rule that
+     separates two groups of rows has to span the card's full width, or it stops
+     short of the card and the card reads as two cards. So the head bleeds by
+     the card's padding and puts the padding back on the label — the rule reaches
+     the card's edge, the words line up with the rows beneath them, and the count
+     on the right does too. Measured before this: the head sat at the card's edge
+     (offset 0 against 24px of padding), so "LATE FOR REVIEW" was flush with the
+     card's radius and its count was flush with the opposite edge. */
+  margin-inline: calc(var(--sam-coll-bleed) * -1);
+  /* The label lines up with the **rows' text**, not with the card's edge — the
+     rows bleed to the edge and pad back in by `--sam-row-pad-i`, so their text
+     sits one row-padding inside the bleed, and the head has to sit there too or
+     every group title is 24px to the left of the rows it titles. Measured: the
+     label at x=160 and the first row's mark at x=184 in the same card. */
+  padding-inline: calc(var(--sam-coll-bleed) + var(--sam-row-pad-i));
+  margin-block: var(--space-xl) var(--space-sm);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--ink-3);
+}
+/* The rule TRAILS the label and takes the slack, so the label is pinned to the
+   left — where the content it heads is. A leading rule was tried first and is
+   wrong: a flexible `::before` pushes the label to the far edge of the canvas,
+   which is the one place a section title must never sit. A trailing rule has
+   the second property the design wants anyway: it terminates the row against
+   the next section, so the two are separated by a measure and not by air. */
+.cd-sec::after {
+  content: "";
+  flex: 1 1 auto;
+  min-width: var(--space-md);
+  border-top: 1px dashed var(--rule-strong);
+}
+.cd-sec__t {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Section bar action positioned after flexible dashed rule. */
+.cd-sec__act {
+  order: 1;
+  flex: none;
+  text-transform: none;
+  letter-spacing: var(--track-body);
+}
+
+/* ══ 9 · THE STRIP ════════════════════════════════════════════════════════
+   Context metric summary strip for screen headers (R13, §7.4). */
+.cd-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--sam-strip-gap);
+  min-width: 0;
+  flex-wrap: nowrap;
+  font-size: var(--text-2xs);
+  line-height: 1.35;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cd-strip > * { flex: none; }
+.cd-strip__k {
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.cd-strip__v {
+  font-weight: var(--weight-label);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+/* The separator is the same middot the meta line uses, on the same reasoning:
+   it is punctuation, it is not a word, and it is quieter than what it
+   separates. */
+.cd-strip > *:not(:last-child)::after {
+  content: "·";
+  color: var(--ink-4);
+  margin-inline: var(--sam-sep-pad);
+}
+/* Truncation. A strip never wraps and never scrolls sideways: it holds every
+   fact at full size for as long as it can, and the LAST fact is the only one
+   that may shrink, so at the width where the strip stops fitting the last
+   fact is the one that gives way — to an ellipsis.
+
+   Below that width it is a hard cut at the container edge, and no amount of
+   flexbox changes that: deciding WHERE to cut needs the width of what has not
+   been drawn yet, and this system refuses to measure ("Nothing in this system
+   measures text, and here it does not need to", design.md &sect;4). So the
+   contract is the ORDERING, not a guarantee: the facts a screen is decided by
+   go first, and a strip that has run out of room has said everything the
+   student needed before the cut. */
+.cd-strip > :last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ══ 10 · THE SKELETON, BORROWED ══════════════════════════════════════════
+   `.cd-skel__row` is 76px because `.cd-task` was 76px — the system states
+   this as the whole point of a skeleton: "it borrows the geometry it is
+   standing in for… so nothing shifts vertically and every title starts on the
+   same x when the content lands" (`design.md` §7.5, `components.css:746`).
+
+   The row species in this file is 57px, so the system's 76px skeleton would
+   land 19px of empty space on every row of a list that loads. This is the
+   arriving geometry, restated at the arriving height — the same object, the
+   same reason, this file's number. */
+.cd-skel__row--coll { height: var(--sam-row-h); }
+.cd-skel__row--coll > :first-child { width: var(--sam-mark); height: var(--sam-mark); }
+
+/* ══ 11 · NARROW ═════════════════════════════════════════════════════════
+   §12's rule: the canvas loses its side padding before any column hides, and
+   nothing is removed while a column is still affordable. A row's right slot is
+   the first thing to go, because it is the least load-bearing of the three
+   columns and it is the one that carries a *different* datum (rule 5) rather
+   than the row's fact. */
+@media (max-width: 760px) {
+  .cd-coll__row { gap: var(--space-xs); }
+  .cd-coll__row--btn { min-height: var(--sam-row-h-tall); }
+}
+
+
+/* ── A ZERO STEM IS A FACT, AND IN DARK IT WAS INVISIBLE ────────────────────
+   `design/components.css:667` draws an empty day as `--well-2`, which is correct
+   in light (a 3.6-point step down from `--card`) and a **two-point** step in
+   dark: `--well-2` is L32 and `--card` is L30. `design.md:249` names exactly
+   this failure — "the wells are a step off the sheet and on a card in dark that
+   is a two-point difference — an invisible skeleton" — and answers it with
+   `--rule`/`--rule-strong`, the tones two steps further apart.
+
+   So the empty stem takes `--rule-strong` in the app layer, which is the system's
+   own documented answer to its own two-point problem, and keeps `--well-2` in
+   light where it already read. Measured in the dark Progress capture: fourteen
+   4px stubs at L32 on L30 were invisible; at `--rule-strong` they are the quiet
+   zero they are supposed to be — present, and clearly nothing.
+
+   This is the one place the app re-states a system value, and the reason is
+   that the system's value is a light-theme value. A single declaration, and the
+   reasoning is in the design system's own words. */
+[data-theme='dark'] .cd-stem[data-empty='1'] { background: var(--rule-strong); }

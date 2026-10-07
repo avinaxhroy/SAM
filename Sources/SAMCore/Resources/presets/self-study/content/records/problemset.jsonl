@@ -1,0 +1,4 @@
+{"fields":{"attempted":8,"chapter":"Memory & ownership","difficulty":"medium","solved":6,"total":20},"id":"ps.sys.mem","links":{"course":["c.sys"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":5,"chapter":"Arrays & dynamic arrays","difficulty":"easy","solved":4,"total":15},"id":"ps.dsa.arrays","links":{"course":["c.dsa"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":0,"chapter":"Graph traversal","difficulty":"hard","solved":0,"total":12},"id":"ps.dsa.graphs","links":{"course":["c.dsa"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":3,"chapter":"Socket programming","difficulty":"medium","solved":2,"total":10},"id":"ps.net.sockets","links":{"course":["c.net"]},"schemaVersion":1,"type":"problemset"}

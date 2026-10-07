@@ -1,0 +1,3 @@
+{"fields":{"est":30,"kind":"watch","title":"Bayes' theorem"},"id":"t.bayes","links":{"course":["c.math"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","title":"Naive Bayes"},"id":"t.naive","links":{"course":["c.math"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":25,"kind":"read","title":"Conditional probability"},"id":"t.cond","links":{"course":["c.math"]},"schemaVersion":1,"type":"topic"}

@@ -1,0 +1,275 @@
+/*
+ * System panel styles (S14, design.md §7.5, §11).
+ * Layout rules for system screen sections, radio pickers, and schema inspection cards.
+ */
+
+/* ══ 0 · THE DENSITY REGISTER ════════════════════════════════════════════ */
+:root {
+  --sys-mark: var(--sam-mark);        /* 18 · the collection's own mark width  */
+  --sys-pick-pad: var(--space-md);    /* 16 · a radio card's own air           */
+  --sys-pick-gap: var(--space-xs);    /*  8 · between two radio cards          */
+  --sys-map-gap: var(--space-2xs);    /*  4 · name → its target, in the map    */
+  --sys-pick-w: calc(var(--space-4xl) * 3); /* 192 · a browsable card's floor   */
+}
+
+/* ══ 1 · THE HEAD'S ONE FIELD ═════════════════════════════════════════════
+   The system's own `.cd-searchpill`, with the cursor a field has. A field's
+   placeholder says what it searches, and it is longer than the titlebar's
+   "Search" precisely because this one searches the machine and not the plan —
+   two surfaces, one object, and a student can tell them apart by what they
+   promise. */
+.sys-q {
+  cursor: text;
+  /* The placeholder is the promise; the system's own colour is the promise's
+     weight. Nothing else is added — no glyph, no kbd chip, because this screen
+     declares no keys (a screen-scoped shortcut would need a registry entry to
+     stay answerable to `design.md` §10's "the keys and the reservation cannot
+     disagree"). */
+}
+.sys-q input { cursor: text; }
+/* The UA's own clear affordance on `type="search"` is a browser-chrome button
+   painted in the platform's own accent — a raw colour in a window whose whole
+   rule is that every colour is a token. It is hidden, and the clear affordance
+   this screen ships instead is the `Clear` control beside the results (plus
+   `Esc`, which gives the search its value back before it closes the surface). */
+.sys-q input::-webkit-search-cancel-button,
+.sys-q input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+
+/* ══ 2 · THE PLACES ═══════════════════════════════════════════════════════
+   The group row. It is in the flow, not sticky and not floating: `design.md`
+   §11 allows exactly one floating column (the rail) and one floating layer
+   (the console), and a sticky bar with a fill is the toolbar §11 refuses. The
+   six groups of `system.view` are six *places*, so a bar that had to stay
+   within reach would be a bar stuck inside one of them. */
+.sys-groups {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+.sys-groups__spacer { flex: 1 1 auto; min-width: var(--space-sm); }
+
+/* ══ 3 · THE ROW'S MARK AND ITS ONE-LINE COMPACT SPECIES ══════════════════
+   The one thing the collection layer's row grid asks for and cannot supply: a
+   first column. On a machine row the mark earns its place only because **search
+   mixes the groups** — a result list draws kinds, screens, rules and ladders in
+   one column, and the mark is what says which kind of thing each hit is. Inside
+   one group it repeats the group's icon tile, which is why the card head already
+   carries that tile.
+
+   `--well`, not `--well-2`: ten marks in one column are apparatus, and a well is
+   half the step off the card that a pressed fill is. The glyph is `--ink-4`,
+   which §7.1 documents as the register for glyphs and never for a word. */
+.sys-mark {
+  width: var(--sys-mark);
+  height: var(--sys-mark);
+  border-radius: var(--r-mini);
+  background: var(--well);
+  /* Uses --ink-3 to satisfy the 3:1 non-text contrast floor against --well. */
+  color: var(--ink-3);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+/* The compact species, done as `collection.css:361` intends: the title and its
+   facts share ONE line, because the whole reason a compact row is 32px is that
+   it does not wrap to two. The body becomes a flex row, the title gives way
+   first, and the meta line's last child is the one that may ellipsise. */
+.sys-one { display: flex; align-items: center; gap: var(--space-xs); min-width: 0; }
+.sys-one .cd-coll__title { flex: 0 1 auto; }
+.sys-one .cd-rowmeta { flex: 1 1 auto; margin-top: 0; }
+
+/* A row's own disclosure control: the system's interactive chip rather than a
+   pill, because a column of ten 32px pills reads as a wall of buttons where ten
+   20px chips read as a column of labels that open. The open state is a fill and
+   the word "Close" — the label already says which way the control goes, so a
+   caret would be a second statement of the same fact. */
+.sys-open[aria-expanded="true"] { background: var(--well-2); color: var(--ink); }
+
+/* ══ 4 · THE RADIO CARD ════════════════════════════════════════════════════
+   A choice among a small set where the consequence is not obvious from the
+   label — the review schedule, and a stage's target when a pipeline changes.
+   `design/controls.md` §4 names this family for exactly that case, and §2
+   forbids the alternative: a dropdown hides three options and forces clicks
+   to compare them.
+
+   It is a real `<button role="radio">`. The chosen card is `--well-2` with a
+   tick beside its name, NOT ink: the screen's one dark object is the lit group
+   pill, and a pressed state is not a decision (a schedule is a *state*, the
+   place you are in is the decision). The form is the same, not only the colour
+   — a tick and a word, so it survives greyscale and colour-blindness
+   (`design.md` §10). */
+.sys-picks { display: grid; gap: var(--sys-pick-gap); }
+.sys-picks--row {
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+/* The BROWSABLE family: more than four options, so the cards wrap instead of
+   being squeezed into a strip. `auto-fill` rather than `auto-fit` so a family
+   of three keeps three cards at the floor width rather than stretching to
+   fill — a stretched card is a banner, and this is a list of choices. */
+.sys-picks--grid { grid-template-columns: repeat(auto-fill, minmax(var(--sys-pick-w), 1fr)); }
+.sys-pick {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2xs);
+  padding: var(--sys-pick-pad);
+  border-radius: var(--r-tile);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px var(--rule);
+  text-align: left;
+  color: var(--ink);
+  transition: background var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.sys-pick:hover { background: var(--well); }
+.sys-pick[data-sel="1"] { background: var(--well-2); box-shadow: inset 0 0 0 1.5px var(--ink-4); }
+.sys-pick__head { display: flex; align-items: center; gap: var(--space-2xs); }
+.sys-pick__tick {
+  width: var(--chip-h);
+  height: var(--chip-h);
+  border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
+  color: var(--card);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+  flex: none;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.sys-pick[data-sel="1"] .sys-pick__tick { background: var(--ink); color: var(--ink-inv); box-shadow: none; }
+.sys-pick__t { font-size: var(--text-base); font-weight: var(--weight-label); letter-spacing: var(--track-title); }
+.sys-pick__s { font-size: var(--text-xs); color: var(--ink-2); line-height: var(--sam-meta-line); }
+.sys-pick__load { font-size: var(--text-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+/* The mini species: a stage's target inside the pipeline mapping. One class,
+   two sizes — the same object at a row's scale, so the two cannot drift. */
+.sys-pick--mini { padding: var(--space-xs) var(--space-sm); }
+.sys-pick--mini .sys-pick__t { font-size: var(--text-xs); }
+
+/* ══ 5 · THE PROJECTION ═══════════════════════════════════════════════════
+   The L3 panel (`controls.md` §3): a structural write states its consequence
+   before it commits. The object is the system's own `.cd-detail` — a `--well`
+   panel at `--r-tile` — so a projection is visibly the same kind of thing as
+   every other disclosure, and this file adds no surface of its own.
+
+   A projection is three parts, always in this order: **what changes** (a
+   sentence with the count), **what does not** (the sentence that stops the
+   student imagining a migration), and the row of doors. Never a number without
+   a noun, never a bare percentage, never the engine's own payload. */
+.sys-proj__lines { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3xs); }
+.sys-proj__line { font-size: var(--text-xs); color: var(--ink-2); line-height: 1.5; }
+.sys-proj__line b { font-weight: var(--weight-label); color: var(--ink); }
+.sys-proj__acts {
+  margin-top: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+/* ══ 6 · THE STAGE LADDER ═════════════════════════════════════════════════
+   `controls.md` §4: an ordered, discrete ladder with gates between its steps
+   is a **stepped** control, never a slider, and the gate *is* the hint. Drawn
+   as chips in a row with a dashed measure between them, because the dashed
+   rule is the system's one hairline and it means "these are in sequence"
+   rather than "these are in a box". */
+.sys-ladder { display: flex; align-items: center; gap: var(--space-2xs); flex-wrap: wrap; }
+.sys-ladder__step { flex: none; }
+/* The rule between two steps is a *connector*, not a divider: it takes one
+   `--space-2xl` and stops, so the ladder is a compact object that hugs the
+   left. A `1 1` rule stretched to 700px of a disclosure is a horizontal rule
+   with chips on it. */
+.sys-ladder__rule {
+  flex: 0 1 var(--space-2xl);
+  min-width: var(--space-sm);
+  height: 0;
+  border-top: 1px dashed var(--rule-strong);
+}
+.sys-ladder__gate { margin-top: var(--space-2xs); font-size: var(--text-xs); color: var(--ink-3); }
+
+/* ══ 7 · THE STAGE MAPPING ════════════════════════════════════════════════
+   One old stage, one new stage. The engine refuses a pipeline change that
+   carries neither a map nor an explicit reset (`pipeline.mapping-required`),
+   so this grid is not a convenience — it is the only way through, and the
+   refusal it prevents is a refusal the student cannot argue with.
+
+   The left column takes its own width rather than half the panel: three target
+   cards 700px from the stage they belong to is a table with a hole in it. The
+   targets shrink to their own words (`max-content`) and each carries a tick as
+   well as the chosen fill, because a selection carried by a fill alone is a
+   colour-only encoding — the one thing `design.md` §10 refuses. */
+.sys-map { display: grid; gap: var(--space-3xs); }
+.sys-map__row {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+}
+.sys-map__from {
+  min-width: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  color: var(--ink-2);
+}
+.sys-map__targets { grid-auto-columns: max-content; }
+/* The mini card is the SAME object at a row's scale, laid out on one line: a
+   `.sys-pick` is a grid, and a grid stacks the tick above the word. */
+.sys-map__targets .sys-pick--mini {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  min-width: 9ch;
+}
+.sys-map__targets .sys-pick__tick { width: 16px; height: 16px; }
+
+/* ══ 8 · A GROUP WITH NOTHING IN IT ═══════════════════════════════════════
+   The screen's empty state is designed, and the difference between "nothing
+   here yet" and "this failed" is visible at a glance: this one is a drawn
+   check in a card body, and a failure is `role="alert"` in a card of its own
+   with a retry. */
+.sys-nothing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  padding: var(--space-md) 0 var(--space-2xs);
+}
+.sys-nothing__say { font-size: var(--text-xs); color: var(--ink-3); min-width: 0; }
+
+/* ══ 9 · A DISCLOSURE'S OWN COLLECTION ═════════════════════════════════════
+   The one composition `collection.css` asks an author to declare: a
+   `.cd-coll` bleeds by `--sam-coll-bleed`, which is the *parent's* padding
+   (`--space-xl`, the card's). A `.cd-detail` pads at `--space-lg`, so a
+   collection inside one would overshoot its box by 4px and the rules would be
+   clipped by the panel's radius. The contract is in that file's own words
+   ("a `.cd-coll` belongs inside a `.cd-card`, or inside a box that sets this
+   to its own padding"), and this is that box. */
+.sys-detail { --sam-coll-bleed: var(--space-lg); }
+.sys-detail .cd-detail__grid { align-items: start; }
+.sys-detail__cell { display: grid; gap: var(--space-3xs); align-content: start; }
+/* A cell's children are facts and controls, not a layout: `justify-self` keeps a
+   button the width of its own label instead of stretching it into a banner
+   across the cell, which is what a grid's default stretch does to a pill. */
+.sys-detail__cell > * { justify-self: start; }
+.sys-detail__cell > .cd-detail__v { max-width: 46ch; }
+
+/* ══ 10 · A ROW OF CONTROLS INSIDE A DISCLOSURE ═══════════════════════════
+   Every verb a row owns lives in the row's own disclosure, so a row of ten
+   kinds carries one control per row rather than three, and `type.delete` and
+   `column.new` each have **one** visible control on the whole screen (D3). */
+.sys-acts { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+
+/* ══ 11 · A ROW OF DOORS ═══════════════════════════════════════════════════
+   The file door and the terminal twin, on one line, beside the thing they
+   describe. `data-developer` marks them: they are the four doors, and the
+   census exempts exactly that marker. */
+.sys-doors { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+
+/* ══ 12 · THE PLAN'S OWN LOAD ═════════════════════════════════════════════
+   A row of facts beside a bar is `.cd-meterrow`, and it is the collection
+   layer's own species: the bar is capped at `--sam-meter-w` so the eye reads
+   it as a proportion and not as a rule, and the sentence that states the
+   denominator is never optional. This block only needs to say that the bar's
+   height is the largest count in the window, so two bars compare by eye. */
+.sys-curve { --sam-meterrow-h: var(--pill-h); }

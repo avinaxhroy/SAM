@@ -1,0 +1,403 @@
+/* ════════════════════════════════════════════════════════════════════════
+   CADENCE · TOKENS
+   Theme: Warm Workbench
+   Source of truth: the five reference designs in ~/Documents/LAAT/Designer/
+   studyweb (S1–S5) — read from their tokens.css and screenshots, not from
+   their design.md prose. Values marked "ref" are lifted from those files.
+   ────────────────────────────────────────────────────────────────────────
+   THE MODEL, in one paragraph:
+
+   A quiet near-neutral room — one warm band across the window's own top
+   chrome. Inside it, one cool near-white sheet with real depth.
+   On the sheet, everything is a soft object: 24px corners, a wide quiet
+   shadow, plenty of air. Colour is *surface*, never outline — mint, lilac,
+   butter and sky are the four course rooms, each a pale wash carrying its
+   own deep ink so text stays legible on it. Exactly one thing in the whole
+   window is solid dark: the interaction. Black pills mean "press me", black
+   circles mean "you are here". Nothing else is allowed to be that heavy.
+   ────────────────────────────────────────────────────────────────────────
+   THE THREE COLOUR JOBS (unchanged rule; v4.8 moved the warmth to the
+   titlebar band):
+     1 · INTERACTION — ink. Buttons, the active nav pill, the active day,
+         meter fills. Never used as decoration.
+     2 · IDENTITY — the four washes + their deep foregrounds. A course owns
+         one, and owns it as a fill (tile, chip, gradient). Never as a
+         3px left border, which is the 2019 admin tell.
+     3 · STATE — four chips, each a wash + a deep matching ink. Status is
+         never a saturated red/green/amber dot on a white row.
+   There is still no brand colour, and that is deliberate: the accent is
+   ink, so the palette has nothing to be on-brand with.
+   ────────────────────────────────────────────────────────────────────────
+   MEASURED CONTRAST (computed from these exact values, WCAG 2.1):
+
+     LIGHT                        DARK
+     ink / surface      15.80     ink / surface      11.10
+     ink / sheet        14.73     ink-2 / surface     7.30
+     ink-2 / surface     7.14     ink-3 / surface     5.50
+     ink-3 / surface     5.52     ink-3 / sheet       6.45
+     ink-3 / sheet       5.15     ink-4 / sheet       3.74  ← non-text only
+     ink-4 / sheet       2.79  ←  deep-on-wash ≥ 11.09 / ≥ 9.38
+       non-text only              chip ink ≥ 8.18
+     deep-on-wash  ≥ 11.09
+     chip ink      ≥  7.63
+
+   Every value used for text clears 4.5:1. ink-4 is the one exception: it may
+   draw glyphs, dashed outlines and hatching, and exactly one em dash whose
+   meaning is repeated in words under it. It never carries a word of its own.
+   ────────────────────────────────────────────────────────────────────────
+   WHY THE LIGHT STACK SITS WHERE IT DOES (this pass):
+   WCAG sets a contrast *floor* (4.5:1) and no ceiling, so a palette can pass
+   every check and still hurt — which is what happened here. The old light
+   stack pinned three tokens at the extremes the colour space has: `--card`
+   was L100, `--ink` was L15, `--ink-inv` was L100. That put `--ink` on a card
+   at 19.67:1, or 94% of the maximum this measurement can return (21:1), and
+   put white-on-black at the same figure on every black pill in the app.
+   Very high contrast is not free: at a fixed adaptation level the eye reads
+   excessive relative luminance as glare, and light-on-dark text at the top of
+   the range halates — the glyph bleeds into the surface behind it. APCA caps
+   useful contrast at Lc 90 for exactly this reason; Material's dark theme
+   ships its primary text at 87% white rather than pure.
+   So: `--card` comes off pure white, `--ink` and `--ink-inv` come off the
+   floor and the ceiling, and the whole stack drops ~1.3 points together so no
+   *relationship* between two surfaces changed — only the glare at the top of
+   the range. `--ink` on a card lands at 15.80:1, still more than twice the
+   AAA floor, and nothing anywhere in the system fell below where it was.
+   The room also stops being candy, and then stops being warm. `--backdrop`
+   was `oklch(92.5% .035 15)` (#fddddf): a chromatic field that size reads as
+   pink, not as blushing white, and set against the sheet's cool (260) neutral
+   it made the window look lit by two different lamps. v4.3 ran the same hue
+   quieter (chroma .022) and kept the blush as the system's identity. v4.8
+   finishes the move the other way: the room joins the sheet's 260 family,
+   because at field size *any* hue opposite the sheet reads as two lamps, and
+   a blush band around every window read as a stain rather than a choice.
+   The warmth the room was carrying goes where warmth belongs — onto the
+   window's own chrome (`--wash-rose` on `.cd-titlebar`) and the washes that
+   already had it.
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Canvas & surfaces ─────────────────────────────────────────────── */
+  --backdrop:     oklch(91.0% 0.005 260);  /* the room: the rung it always
+                                              had, in the sheet's own family
+                                              — a wall, never a mood  ref S2 */
+  --sheet:        oklch(96.2% 0.006 260);  /* cool near-white page  ref S2 */
+  --well:         oklch(93.4% 0.007 260);  /* inset track, search   ref S2 */
+  --well-2:       oklch(90.6% 0.009 260);  /* pressed / deeper well ref S2 */
+  --card:         oklch(98.6% 0.002 260);  /* the lightest surface, not the
+                                              brightest value that exists */
+
+  /* ── Ink ───────────────────────────────────────────────────────────── */
+  --ink:          oklch(24.0% 0.010 260);  /* soft black — see the note on
+                                              glare in the header */
+  --ink-2:        oklch(45.0% 0.014 260);  /* ref S2 — secondary text */
+  --ink-3:        oklch(51.0% 0.014 260);  /* muted, still legal      */
+  --ink-4:        oklch(66.0% 0.012 260);  /* NON-TEXT ONLY           */
+  --ink-inv:      oklch(98.5% 0.003 260);  /* text on ink             */
+
+  /* ── Rules — wells and dashed outlines, never row separators ─────────
+     Measured against the card, not against white: each keeps the same step
+     it had off L100 (7.5 and 14 points) now that the card is L98.6. */
+  --rule:         oklch(91.0% 0.006 260);
+  --rule-strong:  oklch(84.5% 0.010 260);
+
+  /* ── Identity: four course rooms, wash + deep ink ──────────────────── */
+  /* ref S1 "4 locked category washes, deep ink on pastels"                */
+  --w-mint:       oklch(91.5% 0.035 168);
+  --fg-mint:      oklch(25.0% 0.040 170);
+  --w-lilac:      oklch(87.0% 0.045 305);
+  --fg-lilac:     oklch(24.0% 0.045 305);
+  --w-butter:     oklch(92.5% 0.085  85);
+  --fg-butter:    oklch(28.0% 0.060  70);
+  --w-sky:        oklch(89.0% 0.050 235);
+  --fg-sky:       oklch(24.0% 0.035 240);
+
+  /* ── Gradient accents: card washes that fade out of white ──────────── */
+  /* ref S2 "directional gradient cards" — white 35% → wash 100%           */
+  --wash-rose:    oklch(95.5% 0.040  10);
+  --wash-iris:    oklch(95.5% 0.030 275);
+  --wash-peach:   oklch(95.5% 0.030  55);
+
+  /* ── State: chip wash + deep ink ───────────────────────────────────── */
+  --chip-overdue: oklch(90.0% 0.060  18);
+  --on-overdue:   oklch(38.0% 0.150  18);
+  --chip-risk:    oklch(93.0% 0.075  85);
+  --on-risk:      oklch(40.0% 0.090  70);
+  --chip-ok:      oklch(92.0% 0.045 168);
+  --on-ok:        oklch(34.0% 0.060 168);
+  --chip-info:    oklch(93.0% 0.030 275);
+  --on-info:      oklch(38.0% 0.070 275);
+
+  /* ── Focus ─────────────────────────────────────────────────────────── */
+  /* ref S2: focus IS ink. Read as a ring because the geometry always
+     leaves a gap of surface between the shape and the outline.            */
+  --focus:        var(--ink);
+
+  /* ── Translucent panes, fills and the scrim ────────────────────────────
+     Three jobs, all defined against `--ink-inv` so they invert with the
+     theme instead of being restated inside it. A *pane* is a surface laid
+     over a wash so words on the wash stay legible; a *fill* is the quieter
+     half of a control that lives on the ink; the *scrim* is the room, gone
+     dark, behind the one floating layer. Written as a mix, one token covers
+     both themes — which is how four hand-written alphas became two. */
+  --pane:           color-mix(in oklab, var(--ink-inv) 68%, transparent);
+  --fill-on-ink:    color-mix(in oklab, var(--ink-inv) 16%, transparent);
+  --fill-on-ink-hi: color-mix(in oklab, var(--ink-inv) 26%, transparent);
+  --scrim:          oklch(22% 0.01 260 / 0.28);  /* the room, gone dark    */
+
+  /* ── Type ──────────────────────────────────────────────────────────── */
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-body:    "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  /* Three weights, three jobs. A fourth value is a bug: the face has one
+     axis, and these are its stops. */
+  --weight-body:    400;
+  --weight-label:   600;
+  --weight-display: 700;
+
+  --text-2xs:     11px;
+  --text-xs:      13px;
+  --text-sm:      var(--text-xs);   /* one step, two roles: a caption and
+                                       the quiet button beside it */
+  --text-base:    15px;
+  --text-md:      17px;
+  --text-lg:      20px;
+  --text-xl:      26px;
+  --text-2xl:     32px;
+  --text-3xl:     40px;
+  --text-display: 52px;
+
+  /* Five tracking roles, and no sixth. Display and title tighten because a
+     geometric sans sets loose as it grows; body barely does; a code string
+     loosens so that two capitals of near-equal width stay apart; a micro-caps
+     label loosens a lot, so three 11px capitals read as a label and not as a
+     word. */
+  --track-display: -0.030em;   /* display sizes, once per screen           */
+  --track-title:   -0.018em;   /* titles, tile names, every numeral in a
+                                  column (with .num, below) */
+  --track-body:    -0.006em;   /* prose and controls                       */
+  --track-code:     0.020em;   /* a course code: CS201, MA210              */
+  --track-caps:     0.070em;   /* micro-caps: THU, DUE SOON                */
+
+  /* ── Space (4pt) ───────────────────────────────────────────────────── */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs:  8px;
+  --space-sm:  12px;
+  --space-md:  16px;
+  --space-lg:  20px;
+  --space-xl:  24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+
+  /* ── Radii — one family, one rung per object class ────────────────────
+     The rung is decided by what the object *is*, never by taste: the more
+     an object is a sheet of paper, the larger its corner; the more it is a
+     key you press, the smaller. Every corner in the system is one of these
+     nine values, so two objects of the same class cannot disagree — and a
+     chip, which is a pill, says so. */
+  --r-card:   24px;   /* ref S2/S3/S5 — every card                        */
+  --r-window: var(--r-card);   /* the window is a card at the largest scale */
+  --r-tile:   18px;   /* a pastel tile, a disclosure, a ledger cell       */
+  --r-disc:   16px;   /* a rail disc: square enough to be a key, round
+                         enough to be a button */
+  --r-item:   14px;   /* a row inside a padded list (the console's items) */
+  --r-mini:   12px;   /* a 34–38px washed square: icon tile, date tile    */
+  --r-mark:    9px;   /* the app mark, a mini icon tile in the console    */
+  --r-key:     6px;   /* a keycap                                         */
+  --r-pill:  999px;   /* pills, chips, circles, meters, checks            */
+
+  /* ── Depth — two parts, never one grey blur ─────────────────────────────
+     Every elevation is a *contact* shadow (tight, crisp, where the object
+     meets its plane) plus an *ambient* one (wide, soft, how the room dims
+     around it). One-part shadows read as a sticker; two-part reads as an
+     object. The hue is the room's, not the ink's — a shadow is the room
+     going dark, so it darkens in the room's own family (260), a hair off
+     neutral the way the room is.
+
+     A rung belongs to an *object class*, not to a state: the three-ladder is
+     window (sh-3) → card (sh-2) → the row, tile or disc inside a card (sh-1).
+     Hover promotes an object one rung; it is not a rung of its own. */
+  --sh-1:   0 1px 1.5px oklch(30% 0.04 260 / 0.06), 0 2px 6px -2px oklch(30% 0.04 260 / 0.06);   /* a row, tile or disc on a card */
+  --sh-2:   0 1px 2px oklch(28% 0.04 260 / 0.06), 0 3px 8px -3px oklch(28% 0.05 260 / 0.08), 0 12px 28px -12px oklch(24% 0.05 260 / 0.16);   /* a card on the sheet */
+  --sh-3:   0 2px 4px oklch(24% 0.05 260 / 0.06), 0 12px 28px -12px oklch(22% 0.06 260 / 0.16), 0 48px 96px -32px oklch(20% 0.06 260 / 0.30);   /* the window itself */
+  --sh-pop: 0 4px 8px oklch(22% 0.05 260 / 0.08), 0 24px 56px -16px oklch(20% 0.06 260 / 0.22), 0 64px 128px -32px oklch(20% 0.06 260 / 0.34);
+  --sh-ink: 0 1px 2px oklch(15% 0.02 260 / 0.20), 0 8px 20px -8px oklch(15% 0.02 260 / 0.30);
+
+  /* ── Glass — one recipe, used by the rail and nothing else ─────────────
+     Liquid glass is mostly *nothing*. The mistake this recipe corrects is
+     that a fill opaque enough to be seen (62% card) is, by arithmetic, a
+     solid: at that alpha the surface is painted on, and no rim can talk a
+     painted plane into being a lens. Glass is a filter in the light's way,
+     so the fill drops to 30% and the material moves to the *edge*, which is
+     where a real pane spends its light anyway.
+
+     Five rungs, and each is an edge, not an emboss — nothing here is
+     pressable, so none of this is a button's bevel:
+       top catch    the room's light arriving on the top edge
+       bottom bounce  the same light leaving the far curve, dimmer
+       full rim     the boundary of the glass, lit all the way round
+       inner glow   light bending at the rim — the lens, not a coat of paint
+       outer veil   a dark hairline outside, so the lit rim has a dark side
+     The fill is now nearly transparent, which is why the rim is doing all
+     of this work: on a near-white sheet the edge *is* the material.
+
+     The veil is a percentage of `--ink`, which makes it theme-automatic: ink
+     is the dark of a light room and the light of a dark one, so the same
+     recipe darkens the sheet in one theme and lifts it in the other — and
+     glass is exactly that, a veil of the foreground's own tone. It is mixed
+     from ink, not card, because a translucent *card* over a card is the one
+     mixture that can neither read nor be seen through.
+
+     The first pass here stacked five whites at full strength and produced an
+     opaque white chip — the rim has to be thin at these sizes, or it becomes
+     the surface. Every rung below is deliberately low-alpha. */
+  --glass:        color-mix(in oklab, var(--ink) 5%, transparent);
+  --glass-blur:   26px;
+  --glass-line:   oklch(100% 0 0 / 0.55);   /* the light itself */
+  --glass-rim:    oklch(100% 0 0 / 0.26);   /* the boundary, lit all round */
+  --glass-bounce: oklch(100% 0 0 / 0.18);   /* the far edge, lit from below */
+  --glass-glow:   oklch(100% 0 0 / 0.07);   /* light bending at the rim */
+  --glass-veil:   oklch(72% 0.014 260 / 0.26); /* the dark side of a lit edge */
+  --catch:      inset 0 1px 0 var(--glass-line);   /* light on the top edge */
+  --rim-glass:  var(--catch),
+                inset 0 -1px 0 var(--glass-bounce),
+                inset 0 0 0 1px var(--glass-rim),
+                inset 0 0 16px var(--glass-glow),
+                0 0 0 1px var(--glass-veil);
+  /* Light from above, on the thing the pointer has opened — a 44px-tall
+     capsule gets a top-lit gloss; the rail's tube does not, because the same
+     gradient along 776px is a panel that fades, not a highlight. */
+  --glass-sheen:  linear-gradient(180deg, oklch(100% 0 0 / 0.16), oklch(100% 0 0 / 0) 52%);
+
+  /* ── Room light ────────────────────────────────────────────────────────
+     The room is lit from above, so the sheet casts and sits in light rather
+     than on a flat fill. This is the one gradient in the system that is not
+     a surface: it shifts no hue and carries no content, it only says which
+     way is up. Measured delta: 91.0% → 91.9% lightness, top to edge. */
+  --room-lit:   color-mix(in oklab, var(--backdrop) 88%, var(--card));
+
+  /* ── Motion ────────────────────────────────────────────────────────── */
+  --dur-1:   140ms;
+  --dur-2:   220ms;
+  --dur-3:   350ms;
+  --dur-loop: 1400ms;  /* the one duration that repeats: the loading sweep */
+  --ease:     cubic-bezier(0.16, 1, 0.3, 1);   /* ref S1/S2/S5 — ease-out */
+  --ease-pop: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── Geometry ──────────────────────────────────────────────────────────
+     Two kinds of number live here and they are not interchangeable:
+     a **rung** is a value the scale owns (a control's height, a gap, a
+     radius), and it is always one of the tokens. A **size** is an object's
+     own dimension — a 38px date tile, a 132px gauge — and it is a literal
+     where it is used, because it belongs to that object and no other. */
+  --hit:        32px;    /* the compact control: small pill, segment,
+                            timer, icon button */
+  --pill-h:     40px;    /* the standard pill                                */
+  --pill-h-lg:  46px;    /* the large pill and the duration capsule          */
+  --chip-h:     20px;    /* a micro-object: chip, count badge, keycap        */
+  --disc:       44px;    /* one rail disc — icon only, 44 is the tap floor   */
+  --titlebar-h: 44px;
+  --gutter:     24px;    /* the room around the window                       */
+
+  /* Space reserved for the OS's own window buttons when the window is
+     frameless. A rung, not a size: it is the same 78 on every Mac window
+     because the traffic lights are the same 78 everywhere. Set either to
+     0 in an app that draws its own controls, or that is not frameless. */
+  --titlebar-inset-mac: 78px;
+  --titlebar-inset-win: 138px;
+
+  /* The one measure. Prose stops at 62ch — past it the eye loses the line
+     on the way back. Every other measure in the window is a container. */
+  --prose-measure: 62ch;
+  --rail-w:     88px;    /* the rail's column, discs and pill inset included  */
+  /* SET THIS PER APP. What one label unfolds to, and the only width a disc
+     opens by. Every disc opens to *this* number rather than to its own text,
+     so hovering across the rail cannot make its own left edge jitter — and
+     the rail's column never re-flows, because the pill overflows the column
+     instead of widening it.
+     `70px` is a default fitted to this reference app's longest destination
+     ("Progress", 63px) plus room for a fallback face. An app whose longest
+     destination is wider must raise this, or its label will clip. */
+  --rail-label: 70px;
+  --canvas-max: 1120px;
+}
+
+/* ── Dark — the same room at night, not the same room inverted ───────── */
+[data-theme="dark"] {
+  --backdrop:     oklch(23.0% 0.010 260);
+  --sheet:        oklch(25.0% 0.010 260);
+  --well:         oklch(28.0% 0.010 260);
+  --well-2:       oklch(32.0% 0.010 260);
+  --card:         oklch(30.0% 0.010 260);
+
+  /* L93, not L96: the same pull off the white ceiling the light theme takes,
+     and the direction Material gives dark themes for light text — the surface
+     stays dark grey (never black) so the ink does not have to carry all of the
+     contrast on its own. The room follows the sheet into the 260 family one
+     rung below it, so the two are told apart by lightness alone — same story
+     as the light theme, told in the dark. */
+  --ink:          oklch(93.0% 0.006 260);
+  --ink-2:        oklch(80.0% 0.012 260);
+  --ink-3:        oklch(72.0% 0.012 260);
+  --ink-4:        oklch(58.0% 0.010 260);
+  --ink-inv:      oklch(17.0% 0.010 260);
+
+  --rule:         oklch(34.0% 0.010 260);
+  --rule-strong:  oklch(42.0% 0.012 260);
+
+  --w-mint:       oklch(32.0% 0.045 168);
+  --fg-mint:      oklch(90.0% 0.045 168);
+  --w-lilac:      oklch(32.0% 0.050 305);
+  --fg-lilac:     oklch(90.0% 0.040 305);
+  --w-butter:     oklch(34.0% 0.060  85);
+  --fg-butter:    oklch(93.0% 0.070  85);
+  --w-sky:        oklch(32.0% 0.045 235);
+  --fg-sky:       oklch(90.0% 0.035 235);
+
+  --wash-rose:    oklch(30.0% 0.030  10);
+  --wash-iris:    oklch(30.0% 0.030 275);
+  --wash-peach:   oklch(30.0% 0.030  55);
+
+  --chip-overdue: oklch(33.0% 0.080  18);
+  --on-overdue:   oklch(88.0% 0.090  18);
+  --chip-risk:    oklch(34.0% 0.075  85);
+  --on-risk:      oklch(90.0% 0.080  85);
+  --chip-ok:      oklch(32.0% 0.050 168);
+  --on-ok:        oklch(88.0% 0.060 168);
+  --chip-info:    oklch(32.0% 0.040 275);
+  --on-info:      oklch(88.0% 0.045 275);
+
+  /* Ref S5's embossed clay uses a light-from-above pair. In dark the light
+     comes from the surface instead, so shadows deepen and gain no blur. */
+  --sh-1:   0 1px 1.5px oklch(0% 0 0 / 0.35), 0 2px 6px -2px oklch(0% 0 0 / 0.30);
+  --sh-2:   0 1px 2px oklch(0% 0 0 / 0.40), 0 3px 8px -3px oklch(0% 0 0 / 0.35), 0 12px 28px -12px oklch(0% 0 0 / 0.45);
+  --sh-3:   0 2px 4px oklch(0% 0 0 / 0.40), 0 12px 28px -12px oklch(0% 0 0 / 0.50), 0 48px 96px -32px oklch(0% 0 0 / 0.60);
+  --sh-pop: 0 4px 8px oklch(0% 0 0 / 0.45), 0 24px 56px -16px oklch(0% 0 0 / 0.60), 0 64px 128px -32px oklch(0% 0 0 / 0.70);
+  --sh-ink: 0 1px 2px oklch(0% 0 0 / 0.50), 0 8px 20px -8px oklch(0% 0 0 / 0.60);
+
+  /* Dark glass is *lighter* than what is behind it and carries no sun to
+     catch — the same five rungs, lit by the room's own glow instead of by
+     daylight. Only the strength differs, never the shape: `--rim-glass` is
+     declared once, above, and cannot drift between the themes. The veil needs
+     a higher percentage here than in light — a dark surface has less room
+     above it before the pane starts reading as a panel. */
+  --glass:        color-mix(in oklab, var(--ink) 7%, transparent);
+  --glass-line:   oklch(100% 0 0 / 0.14);
+  --glass-rim:    oklch(100% 0 0 / 0.10);
+  --glass-bounce: oklch(100% 0 0 / 0.06);
+  --glass-glow:   oklch(100% 0 0 / 0.04);
+  --glass-veil:   oklch(0% 0 0 / 0.40);
+  --glass-sheen:  linear-gradient(180deg, oklch(100% 0 0 / 0.06), oklch(100% 0 0 / 0) 52%);
+  /* In dark the light comes from the sheet's own top edge, so the room-lit
+     stop is the *lighter* one here too — a glow above the window. */
+  --room-lit:   color-mix(in oklab, var(--backdrop) 86%, var(--card));
+
+  /* Dark text optically thickens on a light-on-dark surface. A variable
+     face lets us take the weight down 50 units instead of lying about it. */
+  --weight-body: 350;
+}
+
+/* Base styles — the reset, element defaults, the two utilities. It is a
+   separate file on purpose: tokens must be importable without it. */
+/* see base.css */
+

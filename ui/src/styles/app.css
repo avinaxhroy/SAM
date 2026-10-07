@@ -1,0 +1,32 @@
+/*
+ * Application style graph entrypoint (D5, §5, UI_SPEC §2).
+ * Imports design tokens, Tailwind base, design system components, app-level components,
+ * and collection layer extensions in cascade-order.
+ */
+
+@import "tailwindcss";
+@import "../../../design/fonts.css";
+@import "../../../design/tokens.css";
+@import "../../../design/base.css";
+@import "../../../design/tailwind.css";
+@import "../../../design/components.css";
+
+@import "./components.css";
+@import "./collection.css";
+
+/* Panel-specific styling overrides and density registers. */
+@import "./panel-today.css";
+@import "./panel-system.css";
+@import "./panel-settings.css";
+@import "./panel-plan.css";
+@import "./panel-courses.css";
+@import "./panel-reference.css";
+@import "./panel-practice.css";
+@import "./panel-mocks.css";
+@import "./progress.css";
+
+@import "./onboarding.css";
+
+@import "../variants/variants.css";
+
+@import "../shell/chrome.css";

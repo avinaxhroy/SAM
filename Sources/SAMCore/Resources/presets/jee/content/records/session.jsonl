@@ -1,0 +1,5 @@
+{"fields":{"min":90,"note":"Kinematics: lecture, then 12 problems from the chapter bank."},"id":"s.jee.01","links":{"course":["c.jee.physics"],"week":["w.jee.01"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":75,"note":"Atomic structure: Bohr model revised, 15 questions solved."},"id":"s.jee.02","links":{"course":["c.jee.chemistry"],"week":["w.jee.01"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":60,"note":"Sets and relations: equivalence-relation problems."},"id":"s.jee.03","links":{"course":["c.jee.maths"],"week":["w.jee.02"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":105,"note":"Laws of motion: friction and constrained-motion set."},"id":"s.jee.04","links":{"course":["c.jee.physics"],"week":["w.jee.02"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":45,"note":"Chemical bonding: VSEPR shapes recap."},"id":"s.jee.05","links":{"course":["c.jee.chemistry"],"week":["w.jee.03"]},"schemaVersion":1,"type":"session"}

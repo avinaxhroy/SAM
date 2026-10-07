@@ -1,0 +1,4 @@
+{"fields":{"kind":"greeting","source":"Greetings","text":"おはようございます","translation":"Good morning."},"id":"s.ja.ohayou.gozaimasu","links":{"track":["t.listen.01"],"unit":["u.listen.01"]},"schemaVersion":1,"type":"sentence"}
+{"fields":{"kind":"greeting","source":"Greetings","text":"ありがとうございます","translation":"Thank you."},"id":"s.ja.arigatou.gozaimasu","links":{"track":["t.listen.01"],"unit":["u.listen.01"]},"schemaVersion":1,"type":"sentence"}
+{"fields":{"kind":"classroom","source":"Classroom instructions","text":"もう一度お願いします","translation":"One more time, please."},"id":"s.ja.mouichido.onegaishimasu","links":{"track":["t.listen.01"],"unit":["u.listen.02"]},"schemaVersion":1,"type":"sentence"}
+{"fields":{"kind":"classroom","source":"Classroom instructions","text":"ゆっくり話してください","translation":"Please speak slowly."},"id":"s.ja.yukkuri.hanashite","links":{"track":["t.listen.01"],"unit":["u.listen.02"]},"schemaVersion":1,"type":"sentence"}

@@ -1,0 +1,576 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE APP'S OWN COMPONENT LAYER  (D5, UI_SPEC §2.2)
+
+   Since D5 the system's component layer is **imported** (`design/components.css`
+   in `app.css`): the frame, the pills and discs, `.cd-card`, `.cd-task` rows,
+   the chips, the empty object, the skeleton, the toast, the canvas. What is
+   left here are exactly the species the design system does not ship, each
+   rebuilt on the system's primitives and the declared delta:
+
+     · the record table — row species B (32px rows) and its header
+     · the column menu, the column header, the dropdown menu
+     · the forms and cell controls (well field, segment, picker, chips, stars)
+     · the identity pair (§4.8's teaching device, as a component)
+     · the palette's internals (the object itself is the system's `.cd-palette`)
+     · the block layer (`layout` renderers)
+     · the panel species (`.rv`, `.pg`) and the bootstrap flow
+
+   The declared delta (`UI_SPEC.md` §2.2) is the only place an app-layer number
+   is allowed: table metrics, sheet sizes (in `sheets.css`), the z-order ladder,
+   the icon family, and the empty-state title. Nothing below invents a value the
+   token register or that delta does not carry — `node tools/tokenlint.mjs`.
+
+   The one mono face: JSON keys, ids, paths, the source pane and the identity
+   pair's key. Record cells read in the body face at 13px — the table stopped
+   being a spreadsheet of identifiers (R8).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root { --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; }
+
+/* ── 1 · THE FRAME'S TWO OVERRIDES ─────────────────────────────────────────
+   The design system's `.cd-titlebar` carries `-webkit-app-region: drag` for a
+   frameless window. Ours is decorated (`decorations: true`): the platform owns
+   the frame and the drag surface is the explicit `[data-tauri-drag-region]`
+   element in the markup, so a second drag region would swallow pointer events
+   over the buttons. One declaration, neutralised on purpose. */
+.cd-titlebar { -webkit-app-region: initial; }
+
+/* The empty-state title: §2.2 declares `--text-2xl` as the only size above
+   `xl` inside the canvas, and the design's own `.cd-empty__t` is one rung down
+   because the demo's empty sits inside a card. */
+.cd-empty__t { font-size: var(--text-2xl); }
+
+/* A disc that is a state, not a destination: the capture `+` sits quiet until
+   you reach for it. The pressed tool in the titlebar is the ink object the
+   design gives `[aria-current]`, on the same state and one rung quieter. The
+   two rail discs below the hairline — `Add` and the theme toggle — live in
+   `shell/chrome.css` with the rail, so the rail's own states stay in one file. */
+.cd-iconbtn[aria-pressed="true"] { background: var(--ink); color: var(--ink-inv); }
+
+/* The toast's dismiss: the toast is the system's pill, and this is the one
+   control inside it. */
+.cd-toast__x { margin-left: var(--space-2xs); opacity: 0.7; font-size: var(--text-2xs); }
+.cd-toast__x:hover { opacity: 1; }
+
+/*
+   The pill itself is clickable, and its CONTAINER is not.
+
+   The system declares `.cd-toasts { pointer-events: none }` so a stack of
+   receipts never swallows a click aimed at the page beneath it — right — but
+   `pointer-events` is inherited, so the pill inherited the container's refusal
+   and every control inside it was dead: the receipt's **Undo** and its dismiss
+   could be read and never pressed (found by driving the composer: a real click
+   on the Undo pill hit-tested to `.cd-canvas`). The container keeps its
+   pass-through; the pill, which carries controls, takes the pointer back.
+*/
+.cd-toast { pointer-events: auto; }
+
+/* The canvas: §2.2 — at < 1024px the side padding goes before any column hides. */
+@media (max-width: 1024px) {
+  .cd-canvas { padding-left: var(--space-lg); padding-right: var(--space-lg); }
+}
+
+/* ── 2 · THE Z-ORDER LADDER (§2.2) ──────────────────────────────────────────
+   canvas 0 · card 10 · sticky head 20 · menu 30 · scrim 40 · sheet/palette 50 ·
+   toast 60 · drag ghost 70. It fixes the live collision: palette and sheet were
+   both 41, and the toast had no rung at all and rendered under a scrim.
+
+   The rail is NOT on this ladder. It is chrome that outlives every screen, and
+   it sits above all of it (`shell/chrome.css`, Correction 1). A card at rung 10
+   was painting over the rail disc's unfolded name: the tube is a fixed 60px
+   column and an open disc is 114px, so the name lives in the 54px that overhang
+   the tube, straight over the canvas. A rung is a relationship between two
+   things that can touch; here the card only has to get out of the way, and
+   chrome.css does that without disturbing anything this ladder is for. */
+.cd-card { position: relative; z-index: 10; }
+.cd-labels { z-index: 20; }
+.cd-menu { z-index: 30; }
+.cd-scrim { z-index: 40; }
+.cd-sheet, .cd-palette { z-index: 50; }
+.cd-toasts { z-index: 60; }
+
+/* ── 3 · THE RECORD TABLE — row species B (R8) ─────────────────────────────
+   The dense species: 32px rows, 13px cells, hairline measures, a sticky head
+   and a sticky first column, truncation instead of a width table. The columns
+   are laid out by two numbers, min 96px and max 320px (text columns take the
+   free space), instead of the scaffold's per-type px table. */
+.cd-labels {
+  position: sticky; top: 0;
+  display: flex; align-items: center;
+  height: 34px;
+  background: var(--card);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.cd-label, .cd-cellbox {
+  flex: 1 1 0;
+  min-width: 96px;
+  max-width: 320px;
+  overflow: hidden;
+}
+/* A number is right-aligned and asks for nothing but its digits; a date or a
+   select is a short token. These are the delta's two numbers, not a table. */
+.cd-label[data-field-type="number"], .cd-cellbox[data-field-type="number"],
+.cd-label[data-field-type="duration"], .cd-cellbox[data-field-type="duration"],
+.cd-label[data-field-type="rating"], .cd-cellbox[data-field-type="rating"],
+.cd-label[data-field-type="bool"], .cd-cellbox[data-field-type="bool"] {
+  flex: 0 0 96px;
+}
+.cd-label--plus { flex: none; display: flex; align-items: center; gap: var(--space-xs); width: auto; padding-left: var(--space-xs); }
+.cd-hidden { font-size: var(--text-2xs); color: var(--ink-3); padding: 0 var(--space-xs); }
+
+.cd-colmenu { width: 100%; }
+/* The header is a label bar, not a control cluster: 11px caps, no fill. The
+   schema verbs live in its menu (the column's own). */
+.cd-collabel {
+  display: flex; align-items: center;
+  width: 100%; height: 34px;
+  padding: 0 var(--space-xs);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  line-height: 1.15;
+  overflow: hidden;
+}
+.cd-collabel:hover, .cd-collabel:focus-visible { color: var(--ink); }
+.cd-collabel[aria-expanded="true"] { color: var(--ink); }
+.cd-fn { font-size: var(--text-2xs); color: var(--ink-4); }
+
+.cd-rows { list-style: none; margin: 0; padding: 0; }
+.cd-row {
+  display: flex; align-items: center;
+  height: 32px;
+  text-align: left;
+  width: 100%;
+}
+.cd-row + .cd-row { border-top: 1px solid var(--rule); }
+.cd-row:hover { background: var(--well); }
+.cd-row:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.cd-row--selected { background: var(--well-2); }
+/* The first column stays put while the rest scrolls; it needs its own ground,
+   or the columns sliding under it would read through the label. */
+.cd-row > .cd-cellbox:first-child,
+.cd-labels > .cd-label:first-child {
+  position: sticky; left: 0;
+  background: var(--card);
+}
+.cd-row:hover > .cd-cellbox:first-child { background: var(--well); }
+.cd-row--selected > .cd-cellbox:first-child { background: var(--well-2); }
+.cd-cellbox { padding: 0 var(--space-xs); }
+/* A number reads from the right: the cell's control and its editor both end at
+   the column's right edge. */
+.cd-cellbox[data-field-type="number"],
+.cd-cellbox[data-field-type="duration"] { text-align: right; font-variant-numeric: tabular-nums; }
+.cd-cellbox[data-field-type="number"] .cd-cell,
+.cd-cellbox[data-field-type="duration"] .cd-cell,
+.cd-cellbox[data-field-type="number"] .cd-cellinput,
+.cd-cellbox[data-field-type="duration"] .cd-cellinput { justify-content: flex-end; text-align: right; }
+
+/* A cell is a control that does not move the grid: the field's inline height is
+   28px whatever it holds (a chip is 22px), so entering an edit never shifts a
+   row (UI_SPEC §2.2). */
+.cd-cell {
+  display: inline-flex; align-items: center;
+  height: 28px;
+  padding: 0 var(--space-2xs);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+button.cd-cell { width: 100%; }
+.cd-cell--edit:hover { background: var(--well-2); border-radius: var(--r-mini); color: var(--ink); }
+.cd-cell--derived { color: var(--ink-3); }
+.cd-cell--unknown { color: var(--ink-4); }
+.cd-cellinput {
+  width: 100%; height: 28px;
+  padding: 0 var(--space-2xs);
+  border: 0; border-radius: var(--r-mini);
+  background: var(--well-2);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+.cd-rowmenu { list-style: none; position: relative; }
+.cd-label--drop { box-shadow: inset 2px 0 0 var(--ink); }
+
+/* ── 4 · THE MENU — a dropdown in the window (never a fake OS panel) ──────── */
+.cd-menu-wrap { position: relative; display: inline-flex; }
+.cd-menu {
+  position: absolute; top: 100%; left: 0;
+  min-width: 200px; margin-top: var(--space-3xs);
+  display: grid;
+  padding: var(--space-2xs);
+  background: var(--card);
+  border-radius: var(--r-mini);
+  box-shadow: var(--sh-pop);
+  text-align: left;
+  animation: cd-fold var(--dur-2) var(--ease) both;
+}
+.cd-menu button {
+  display: flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--r-mini);
+  text-align: left;
+  font-size: var(--text-xs);
+  color: var(--ink);
+}
+.cd-menu button:hover { background: var(--well); }
+.cd-menu button[disabled] { opacity: 0.45; pointer-events: none; }
+/* A row whose row is an *object* rather than a command carries its own second
+   line: the design list states each design's one-line concept under its name,
+   which is what lets the choice be made where the component stands instead of
+   a trip to Settings. Command menus pass no `note`, so their rows stay one
+   line tall and nothing in the app grows a paragraph by accident. */
+.cd-menu .cd-menu__rowtext { display: grid; gap: var(--space-3xs); min-width: 0; }
+.cd-menu .cd-menu__note { font-size: var(--text-2xs); color: var(--ink-3); line-height: 1.4; }
+.cd-menu button.cd-menu__row--note { align-items: start; }
+.cd-menu hr { border: 0; border-top: 1px dashed var(--rule); margin: var(--space-3xs) 0; }
+/* A destructive row in a menu is red *text* on the menu's own surface: the
+   chip wash is a background, and painting the row with it left `--chip-overdue`
+   text on a `--chip-overdue` pill (measured 1:1 in the composer's frame menu —
+   the Remove row read blank at 100%). `--on-overdue` is the ink that belongs on
+   that wash, and on the card it is the readable red. */
+.cd-menu .cd-danger { background: transparent; color: var(--on-overdue); }
+.cd-menu button[aria-checked="true"], .cd-menu button[aria-checked="true"]:hover { color: var(--ink); font-weight: var(--weight-label); }
+.cd-menu--picker { min-width: 160px; max-height: 240px; overflow: auto; }
+.cd-menu__empty { padding: var(--space-xs) var(--space-sm); font-size: var(--text-2xs); color: var(--ink-3); }
+.cd-menu--context { top: auto; left: auto; }
+/* A popover editor holds real controls, not menu items: a chip stays a chip and
+   a segment keeps its track whatever surface it opens over. */
+.cd-menu .cd-chip {
+  display: inline-flex; align-items: center;
+  height: 22px; padding: 0 var(--space-xs);
+  border-radius: var(--r-pill);
+  font-size: var(--text-2xs);
+}
+.cd-menu .cd-segment { padding: var(--space-3xs); }
+.cd-menu .cd-segment button { display: inline-flex; padding: 0 var(--space-sm); border-radius: var(--r-pill); }
+.cd-menu .cd-pill { display: inline-flex; width: auto; }
+.cd-menu .cd-cellinput { width: 100%; }
+
+/* ── 5 · FORMS — the well field and the key column (C.1/C.8) ──────────────── */
+.cd-form { display: grid; gap: var(--space-sm); }
+.cd-formrow {
+  display: grid; grid-template-columns: 120px 96px minmax(0, 1fr);
+  align-items: center; gap: var(--space-sm);
+}
+.cd-formrow__label { font-size: var(--text-xs); color: var(--ink-2); }
+.cd-formrow__key {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+.cd-formrow__input { min-width: 0; }
+.cd-wellfield {
+  width: 100%; min-width: 0;
+  height: var(--hit);
+  padding: 0 var(--space-sm);
+  border: 0; border-radius: var(--r-mini);
+  background: var(--well);
+  color: var(--ink);
+  font-size: var(--text-xs);
+}
+.cd-wellfield::placeholder { color: var(--ink-4); }
+.cd-wellfield--area { height: auto; padding: var(--space-xs) var(--space-sm); line-height: 1.5; resize: vertical; }
+
+/* A segment is the form-side control for 2–5 exclusive choices (controls.md §2):
+   every option visible, a default always lit. */
+.cd-segment { display: inline-flex; gap: var(--space-3xs); padding: var(--space-2xs); border-radius: var(--r-pill); background: var(--well); }
+.cd-segment button {
+  height: var(--hit);
+  padding: 0 var(--space-md);
+  border-radius: var(--r-pill);
+  background: transparent; color: var(--ink-2);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+}
+.cd-segment button:hover { color: var(--ink); }
+.cd-segment button[aria-checked="true"] { background: var(--ink); color: var(--ink-inv); box-shadow: var(--sh-ink); }
+
+/* A switch is the declared control for yes/no (controls.md §2): never a
+   two-option segment, whose first option is always lit and reads as a default
+   the student did not choose. The track is the well and the knob is the card,
+   so the state reads without colour. */
+.cd-switch {
+  width: 36px; height: 22px;
+  border-radius: var(--r-pill);
+  background: var(--well-2);
+  position: relative; flex: none;
+  transition: background var(--dur-1) var(--ease);
+}
+.cd-switch::after {
+  content: '';
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--sh-1);
+  transition: transform var(--dur-1) var(--ease);
+}
+.cd-switch[aria-checked="true"] { background: var(--ink); }
+.cd-switch[aria-checked="true"]::after { transform: translateX(14px); }
+
+/* ── 6 · CELL CONTROLS (C.1) ──────────────────────────────────────────────── */
+.cd-picker { position: relative; min-width: 0; }
+.cd-chips { display: flex; flex-wrap: wrap; gap: var(--space-3xs); }
+/* The system's chip is a fact; a chip that is a control carries its pressed
+   state on the same object. */
+/* The chip's height is the system's `--chip-h` (20px), and it was overridden to
+   22px here for the record table's sake. That override is 2px wrong everywhere
+   else: a chip in a collection row's meta line is 4px taller than the 16.3px text
+   line it sits on, and the collection layer's row-height derivation
+   (`--sam-row-h`) is computed from `--chip-h` — so every list row in the app came
+   out 2px shorter than the register says, which is 12px of drift down a
+   six-row list and it compounds on every screen that has one.
+
+   So the system's height is restored and the table gets a variant, because the
+   table's 28px inline controls genuinely do want a 22px chip. One number, in one
+   place, and the two dense species cannot disagree. */
+.cd-chip { height: var(--chip-h); }
+.cd-cellbox .cd-chip, .cd-row .cd-chip { height: 22px; }
+.cd-chip[aria-pressed="true"] { background: var(--ink); color: var(--ink-inv); }
+.cd-stars { display: inline-flex; gap: var(--space-3xs); }
+.cd-star { color: var(--ink-4); font-size: var(--text-xs); line-height: 1; }
+.cd-star[aria-checked="true"] { color: var(--ink); }
+.cd-url { display: flex; align-items: center; gap: var(--space-3xs); min-width: 0; }
+.cd-url__text { flex: 1; min-width: 0; }
+.cd-url__open { width: var(--hit); height: var(--hit); }
+
+/* ── 7 · THE IDENTITY PAIR (§4.8's teaching device, as a component) ─────────
+   A friendly label with its monospace key beside it, copyable. It is the one
+   place a schema key is allowed to be read by default — beside the control that
+   owns it — and the census's `data-identity` marker exempts exactly this pair,
+   never page prose. */
+.cd-identity { display: inline-flex; align-items: center; gap: var(--space-2xs); min-width: 0; }
+.cd-identity__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-identity__key {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+  background: transparent;
+  border-radius: var(--r-key);
+  padding: 0 var(--space-3xs);
+}
+button.cd-identity__key:hover { background: var(--well-2); color: var(--ink); }
+
+/* ── 8 · THE BOOTSTRAP FLOW AND THE SETTINGS LIST ─────────────────────────── */
+.cd-planflow { display: grid; place-items: start center; padding: var(--space-2xl); width: 100%; }
+.cd-planflow .cd-card { width: 100%; max-width: var(--canvas-max); display: grid; gap: var(--space-md); }
+.cd-planflow__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); }
+.cd-planflow__plan {
+  width: 100%; display: flex; align-items: center; gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--r-mini);
+  background: var(--well);
+  text-align: left;
+  font-size: var(--text-xs);
+}
+.cd-planflow__plan:hover { background: var(--well-2); }
+.cd-planflow__name { font-weight: var(--weight-label); }
+.cd-planflow__rev { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--ink-3); }
+.cd-settings__rows, .cd-settings__keys { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); }
+.cd-settings__row { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-xs); }
+.cd-settings__value { color: var(--ink-2); }
+.cd-settings__links { display: flex; gap: var(--space-sm); margin-top: var(--space-md); }
+.cd-settings__title { margin-top: var(--space-lg); font-size: var(--text-sm); font-weight: var(--weight-display); }
+.cd-settings__keys li { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-xs); }
+.cd-settings__titleof { color: var(--ink-3); }
+.cd-settings__note { color: var(--ink-3); font-size: var(--text-sm); margin: var(--space-3xs) 0 var(--space-2xs); }
+.cd-danger, .cd-pill.cd-danger { background: var(--chip-overdue); color: var(--ink-inv); }
+
+/* ── 9 · THE PALETTE'S INTERNALS (the object is the system's `.cd-palette`) ─ */
+.cd-palette__params { padding: var(--space-md); display: grid; gap: var(--space-sm); overflow: auto; }
+.cd-palette__cat { font-size: var(--text-2xs); color: var(--ink-4); font-family: var(--font-mono); }
+.cd-palette__cat--blocked { color: var(--chip-overdue); }
+.cd-error { font-size: var(--text-xs); color: var(--chip-risk); }
+.cd-preview {
+  margin: var(--space-sm) 0 0;
+  max-height: 220px; overflow: auto;
+  padding: var(--space-sm);
+  border-radius: var(--r-mini);
+  background: var(--well);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* ── 10 · THE BLOCK LAYER (Phase 5) ────────────────────────────────────────
+   A screen is a stack of blocks; §3.6's vocabulary is closed and every kind has
+   one renderer. These are the classes those renderers share — the vocabulary is
+   here, once, so nine components cannot drift apart on a radius or a gap. */
+.blocks { display: grid; gap: var(--space-xl); width: 100%; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.blocks > * { grid-column: 1 / -1; }
+.blocks > [data-block="stat"] { grid-column: span 4; }
+@media (max-width: 760px) {
+  .blocks > [data-block="stat"] { grid-column: 1 / -1; }
+}
+.blk { min-width: 0; }
+.blk__note {
+  margin: var(--space-sm) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+.blk__card { padding: var(--space-lg); background: var(--card); border-radius: var(--r-card); box-shadow: var(--sh-2); }
+
+/* ── the stated fallback (D8): never a blank screen ──────────────────────── */
+.blk--placeholder { display: flex; align-items: flex-start; gap: var(--space-sm); }
+.blk__fallback {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.blk__fallback code { font-family: var(--font-mono); color: var(--ink); }
+
+/* ── containers ──────────────────────────────────────────────────────────── */
+.blk__cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-lg); align-items: start; }
+.blk__inst { display: grid; gap: var(--space-sm); padding: var(--space-md); background: var(--well); border-radius: var(--r-tile); }
+.blk__insthead { display: flex; align-items: baseline; gap: var(--space-sm); font-size: var(--text-sm); font-weight: var(--weight-display); }
+.blk__instsub { font-size: var(--text-2xs); color: var(--ink-3); }
+.blk__insts { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-md); }
+.blk__spacer { flex: 1; }
+.blk__group { padding: var(--space-xs) 0 var(--space-3xs); font-size: var(--text-2xs); color: var(--ink-3); letter-spacing: var(--track-caps); text-transform: uppercase; }
+.blk__empty { display: block; padding: var(--space-md) 0; font-size: var(--text-xs); color: var(--ink-3); }
+
+/* ── tiles: a cardGrid, and the stat that heads a screen ─────────────────── */
+.blk__stat { display: grid; gap: var(--space-2xs); }
+.blk__value { font-size: var(--text-xl); font-weight: var(--weight-display); letter-spacing: var(--track-title); font-variant-numeric: tabular-nums; line-height: 1; }
+.blk__caption { font-size: var(--text-xs); color: var(--ink-3); }
+.blk__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-md); }
+
+/* ── board: one column per group key ────────────────────────────────────── */
+.blk__board { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-md); align-items: start; }
+.blk__col { display: grid; gap: var(--space-sm); padding: var(--space-md); background: var(--well); border-radius: var(--r-tile); }
+.blk__colhead { display: flex; align-items: baseline; gap: var(--space-sm); font-size: var(--text-2xs); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--ink-3); }
+.blk__colcount { margin-left: auto; font-variant-numeric: tabular-nums; }
+.blk__minicard { padding: var(--space-sm); background: var(--card); border-radius: var(--r-mini); box-shadow: var(--sh-1); display: grid; gap: var(--space-3xs); text-align: left; width: 100%; }
+.blk__minicard:hover { box-shadow: var(--sh-2); }
+.blk__minititle { font-size: var(--text-sm); font-weight: var(--weight-label); }
+.blk__minisub { font-size: var(--text-2xs); color: var(--ink-3); }
+
+/* ── calendar: a month, cells carrying their records ────────────────────── */
+.blk__calhead { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-sm); }
+.blk__calmonth { font-size: var(--text-sm); font-weight: var(--weight-display); letter-spacing: var(--track-title); }
+.blk__calgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-2xs); }
+.blk__caldow { font-size: var(--text-2xs); letter-spacing: var(--track-caps); color: var(--ink-3); text-transform: uppercase; text-align: center; }
+.blk__calday { min-height: 76px; padding: var(--space-2xs); border-radius: var(--r-mini); background: var(--well); display: grid; gap: var(--space-3xs); align-content: start; }
+.blk__calday--out { opacity: 0.45; }
+.blk__calday--today { outline: 1px solid var(--rule-strong); }
+.blk__calnum { font-size: var(--text-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.blk__calitem { font-size: var(--text-2xs); background: var(--card); border-radius: var(--r-mini); padding: var(--space-3xs) var(--space-2xs); text-align: left; width: 100%; overflow-wrap: anywhere; }
+
+/* ── timeline: a spine with a tick per record ───────────────────────────── */
+.blk__spine { list-style: none; margin: 0; padding: 0 0 0 var(--space-lg); border-left: 1px dashed var(--rule-strong); display: grid; gap: var(--space-md); }
+.blk__tick { position: relative; display: grid; gap: var(--space-3xs); }
+.blk__tick::before { content: ''; position: absolute; left: calc(-1 * var(--space-lg) - 3px); top: 6px; width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--ink-3); }
+.blk__tickdate { font-size: var(--text-2xs); color: var(--ink-3); letter-spacing: var(--track-caps); text-transform: uppercase; }
+.blk__ticktitle { font-size: var(--text-sm); font-weight: var(--weight-label); }
+
+/* ── tree: nesting by the declared parent edge ──────────────────────────── */
+.blk__tree { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); }
+.blk__tree .blk__tree { margin: var(--space-2xs) 0 0 var(--space-lg); border-left: 1px dashed var(--rule); padding-left: var(--space-md); }
+.blk__node { font-size: var(--text-sm); }
+.blk__node::before { content: '· '; color: var(--ink-4); }
+.blk__node--branch::before { content: '▸ '; color: var(--ink-3); }
+
+/* ── graph: relation edges between the records a view returned ──────────── */
+.blk__graph { display: grid; gap: var(--space-sm); }
+.blk__graph svg { width: 100%; height: auto; }
+.blk__edge { stroke: var(--rule-strong); stroke-width: 1; fill: none; }
+.blk__dot { fill: var(--well-2); stroke: var(--rule-strong); }
+.blk__dotlabel { font-size: var(--text-2xs); fill: var(--ink-2); }
+
+/* ── chart: stems over buckets, gaps included (R12 keeps the ceiling) ────── */
+.blk__chart { display: grid; gap: var(--space-sm); }
+.blk__bars { display: flex; align-items: flex-end; gap: var(--space-2xs); height: 120px; }
+.blk__bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0; }
+.blk__barfill { background: var(--ink); border-radius: var(--r-mark) var(--r-mark) 0 0; min-height: 2px; }
+.blk__barfill--zero { background: var(--rule); }
+.blk__barlabels { display: flex; gap: var(--space-2xs); }
+.blk__barlabel { flex: 1; font-size: var(--text-2xs); color: var(--ink-3); text-align: center; font-variant-numeric: tabular-nums; overflow: hidden; }
+
+/* ── callout: a wash card, one sentence ─────────────────────────────────── */
+.blk__callout {
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--wash, var(--well));
+  background-image: var(--wash-grad, none);
+  border-radius: var(--r-tile);
+  display: grid;
+  gap: var(--space-3xs);
+}
+.blk__callouttitle { font-size: var(--text-sm); font-weight: var(--weight-display); letter-spacing: var(--track-title); }
+.blk__callouttext { font-size: var(--text-xs); color: var(--ink-2); max-width: 68ch; }
+
+/* ── 12 · THE APPEARANCE CONTROLS (Phase 7) ─────────────────────────────── */
+.cd-swatch {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  padding: var(--space-3xs) var(--space-2xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-card);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+.cd-swatch:hover { border-color: var(--rule-strong); }
+.cd-swatch--on { border-color: var(--ink); }
+.cd-swatch__name { font-size: var(--text-sm); font-weight: var(--weight-label); }
+.cd-swatch__mode { color: var(--ink-3); font-size: var(--text-2xs); letter-spacing: var(--track-caps); text-transform: uppercase; }
+.cd-swatches { display: flex; flex-wrap: wrap; gap: var(--space-2xs); margin: var(--space-2xs) 0; }
+
+/* ── 13 · TODAY'S OWN SPECIES (P2 · U1) ────────────────────────────────────
+   The screen is the design system's: `.cd-focus`, `.cd-tasks`/`.cd-task`,
+   `.cd-days`, `.cd-chart`, `.cd-empty`, `.cd-dashed`. Two species are the
+   app's own — a row's state dot, and the group heading the queue is ruled by
+   (the read states six facts, and a list has to say which fact a row is). */
+
+/* The state dot: the fact a row carries, at a glance, with the chip beside it
+   saying it again in words — never colour alone (a11y: non-colour cues). */
+.cd-state {
+  width: var(--space-xs);
+  height: var(--space-xs);
+  border-radius: var(--r-pill);
+  background: var(--rule-strong);
+  flex: none;
+  justify-self: center;
+}
+.cd-state[data-state='committed'] { background: var(--ink); }
+.cd-state[data-state='late'] { background: var(--chip-overdue); }
+.cd-state[data-state='due'] { background: var(--chip-risk); }
+.cd-state[data-state='upcoming'] { background: var(--chip-info); }
+
+/* The queue's group heading: one line of apparatus between two ruled groups,
+   the count riding it so the group says how much it holds. */
+.td__group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.td__group:first-of-type { margin-top: 0; }
+.td__groupn {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-2xs);
+  color: var(--ink-4);
+}
+
+/* ── 14 · THE ROOM'S COLUMNS (P2) ──────────────────────────────────────────
+   The design system's `.cd-body` is the rail and the canvas. The app added two
+   panes beside the canvas — the source pane (Appendix C.4) and the detail pane
+   (UI_SPEC §2.2's declared panel) — and a two-column grid puts the second one
+   on a new row. Declared here, once, so no screen has to guess: the panes take
+   their own width and the canvas takes the slack. */
+.cd-body { grid-template-columns: var(--rail-w) minmax(0, 1fr) auto auto; }

@@ -1,0 +1,4 @@
+# The journal, staging area and retained before-images are bookkeeping, not
+# content (§4.6): they live outside the content revision, and a plan in a git
+# repo should not carry them in its diffs.
+.sam/

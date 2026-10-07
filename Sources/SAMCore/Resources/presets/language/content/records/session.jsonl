@@ -1,0 +1,3 @@
+{"fields":{"min":25,"note":"Kana cards 1-5, first pass","week":1},"id":"s.ja.session.01","links":{"track":["t.kana.01"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":30,"note":"Everyday nouns plus two dialogues","week":2},"id":"s.ja.session.02","links":{"track":["t.vocab.01"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":20,"note":"Greetings on audio, three replays","week":3},"id":"s.ja.session.03","links":{"track":["t.listen.01"]},"schemaVersion":1,"type":"session"}

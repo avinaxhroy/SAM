@@ -1,0 +1,114 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE PALETTE'S OWN LAYER  (R20, D13 · ported 2026-09-29)
+
+   The object itself is the design system's — `.cd-layer`, `.cd-palette`,
+   `.cd-palette__field`, `.cd-palette__list`, `.cd-palette__item`,
+   `.cd-palette__group`, `.cd-palette__empty` (`design/components.css` §23) —
+   and since the port the three classes' *drawings* live with their designs
+   (`ui/src/variants/palette/{A,B,C}.svelte`), each in its own scoped stylesheet.
+   What is left here is what the shell still draws: **the parameter form**, the
+   one state that is the app's own and not one of the three classes.
+
+     · a parameter row   — a command's own form, its key beside it
+
+   Nothing here invents a colour, a radius or a duration: every value is a
+   token (`node tools/tokenlint.mjs`). The three classes always render in this
+   order — capture · actions · objects — and that order is the shell's, in
+   `ui/src/commands/Palette.svelte`.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── THE LAYER'S ONE MATERIAL ────────────────────────────────────────────
+   The shipped `.cd-layer` carries `backdrop-filter: blur(6px)`. The round-4
+   board banned it and the ban has not been lifted — every stage in the palette's
+   lab turns it off, and the palette is the only surface in the app that draws a
+   layer, so the ban is answered here, in the layer's own stylesheet. Nothing
+   else about the layer changes: the scrim, its padding and its own fade stay the
+   app's. */
+.cd-layer {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ── THE CARD IS CAPPED BY THE ROOM IT IS DRAWN IN ────────────────────────
+   Two of the three designs own no height of their own: "The Index" fills the
+   layer's content box and scrolls its column, and "The Sheet" is a three-row
+   grid whose last row is `minmax(0, 1fr)` — i.e. *made* to shrink. Both ask for
+   it with `height: 100%` on `.cd-palette`, so the percentage resolves against
+   the layer's content box — and the cap below is that box, said once and
+   exactly: `100vh` less the layer's `12vh` top pad and its `--space-lg` bottom
+   pad, 900 − 108 − 20 = 772 at the window the two designs were drawn against.
+
+   The wrapper that used to hold the design-switch arrows stood between the card
+   and the layer and was a content-sized block, so the percentage fell back to
+   the content: measured then, "The Index" drew a 600 × 3900 card in a fixed,
+   non-scrolling layer of 1440 × 900 and the lower half of the list was
+   unreachable rather than merely cut. The wrapper went with the arrows; the cap
+   stays, because it is the layer's own number either way. (`The Plain` caps its
+   own `ul` at 420 and was never affected.) */
+.cd-layer .cd-palette {
+  max-height: calc(88vh - var(--space-lg));
+}
+
+/* ── THE FOOTER, FOR THE FORM ONLY ────────────────────────────────────────
+   The list's own foot — the key legend, the draft's state, the refused write —
+   was refused by all three designs: a legend is instruction text, and the app's
+   own machine state now goes in the design's own quiet line. The rule below
+   survives for the parameter form's own foot, which is the app's form. */
+.cd-palette__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--hit);
+  padding: var(--space-xs) var(--space-lg);
+  border-top: 1px solid var(--rule);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+  flex-wrap: wrap;
+}
+.cd-palette__keys {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* `.cd-error` is painted with `--chip-risk` — a chip *background* used as a text
+   colour. The chip's own foreground token is what it means (`--on-risk`), and a
+   refusal has to be readable; the palette's own layer is where it is answered. */
+.cd-palette .cd-error {
+  color: var(--on-risk);
+}
+
+/* ── A PARAMETER ROW (a command's own form) ───────────────────────────── */
+/* The sentence the registry wrote about the parameter is the label, and its
+   key rides beside it as the identity pair — the one place a key is read on
+   purpose, beside the control that owns it. */
+.cd-palette__param {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.cd-palette__paramlabel {
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+/* The key beside the control that owns it, then the control — one cluster, so a
+   long sentence in the label never pushes the key onto its own line. */
+.cd-palette__paramctl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+.cd-palette__paramctl .cd-wellfield {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+.cd-palette__paramnote {
+  grid-column: 1 / -1;
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}

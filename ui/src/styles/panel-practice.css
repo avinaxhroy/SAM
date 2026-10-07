@@ -1,0 +1,32 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · PRACTICE — the screen's own stylesheet (UI P2 · U2 · S3, port 2026-09-29)
+
+   EMPTY ON PURPOSE, and this note is the record of where its rules went.
+
+   Practice is now a thin data shell around three designs
+   (`ui/src/variants/practice-banks/{A,B,C}.svelte`, chosen in
+   Settings › Component styles), and each design owns its own markup, geometry
+   and drawing. So the species this file used to declare are not merely unused,
+   they are in the wrong place: a rule that draws one design's row must live with
+   that design, or a student who keeps design B is paying for A's CSS and the
+   three designs cannot move independently.
+
+     · `.pr-row`      → A's `.pa-row` / B's `.pb-cell` / C's `.pc-row`
+                        (each in its own component's scoped `<style>`)
+     · `.pr-entry`    → A's `.pa-bench`, B's `.pb-card`, C's `.pc-log`
+     · `.pr-chip`     → A's `.pa-chip`, B's `.pb-chip`, C's `.pc-chip`
+     · `.pr-order`    → gone: Revision 7 of the lab removed the list's ordering
+                        claim, so the head's line is now the count, drawn by the
+                        design from `variants/practice-banks/props.ts`'s
+                        `subLine()`
+     · `.pr-figs`     → gone: the three aggregate `.cd-stat` figures are folded
+                        into that one count line
+
+   The panel itself (`ui/src/panels/Practice.svelte`) declares no styles: what it
+   still renders on its own — the empty state — is the system's own `.cd-empty`
+   inside a `.cd-card`.
+
+   The import in `ui/src/styles/app.css` is kept so the app's stylesheet list
+   still accounts for every screen; the file is the one place to look when a
+   Practice rule appears to be missing.
+   ══════════════════════════════════════════════════════════════════════════ */

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "cadence-dark",
+  "name": "Cadence Dark",
+  "mode": "dark",
+  "description": "The same room at night: the register's own $dark overlay, pinned so a plan keeps its dark room even when the machine is in light mode.",
+  "tokens": {}
+}

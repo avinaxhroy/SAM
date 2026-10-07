@@ -1,0 +1,6 @@
+{"fields":{"est":45,"goal":"Read あ-こ aloud with no romanization","index":1,"label":"Hiragana row 1 (あ-こ)"},"id":"u.kana.01","links":{"track":["t.kana.01"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"est":45,"goal":"Read さ-そ aloud with no romanization","index":2,"label":"Hiragana row 2 (さ-そ)"},"id":"u.kana.02","links":{"track":["t.kana.01"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"est":30,"goal":"Name six things around you from memory","index":1,"label":"Everyday nouns"},"id":"u.vocab.01","links":{"track":["t.vocab.01"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"est":30,"goal":"Introduce yourself and two other people","index":2,"label":"People and places"},"id":"u.vocab.02","links":{"track":["t.vocab.01"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"est":20,"goal":"Recognise three greetings at talking speed","index":1,"label":"Greetings you will hear"},"id":"u.listen.01","links":{"track":["t.listen.01"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"est":20,"goal":"Follow five instructions without the text","index":2,"label":"Classroom instructions"},"id":"u.listen.02","links":{"track":["t.listen.01"]},"schemaVersion":1,"type":"unit"}

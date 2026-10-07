@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "metrics": {
+    "kana.tracked": {
+      "label": "Kana tracked",
+      "reduce": "count",
+      "unit": "cards",
+      "view": "kana.board"
+    },
+    "minutes.logged": {
+      "expr": "min",
+      "label": "Minutes logged",
+      "reduce": "sum",
+      "unit": "min",
+      "view": "sessions.table"
+    },
+    "reviews.waiting": {
+      "label": "Waiting on a first pass",
+      "reduce": "count",
+      "unit": "cards",
+      "view": "reviews.queue"
+    },
+    "sentences.ready": {
+      "label": "Sentences read aloud",
+      "reduce": "count",
+      "unit": "sentences",
+      "view": "sentences.table"
+    },
+    "words.inRotation": {
+      "label": "Words in rotation",
+      "reduce": "count",
+      "unit": "words",
+      "view": "words.queue"
+    },
+    "words.tracked": {
+      "label": "Words tracked",
+      "reduce": "count",
+      "unit": "words",
+      "view": "words.table"
+    }
+  },
+  "pipelines": {
+    "check": {
+      "stages": [
+        "done"
+      ]
+    },
+    "pages": {
+      "counter": true,
+      "stages": [
+        "reading",
+        "read"
+      ]
+    },
+    "srs": {
+      "scheduler": "fsrs",
+      "stages": [
+        "new",
+        "learning",
+        "review",
+        "mature"
+      ]
+    }
+  },
+  "scheduler": {
+    "fixed": {
+      "intervals": [
+        1,
+        7,
+        30
+      ]
+    },
+    "fsrs": {
+      "desiredRetention": 0.9
+    },
+    "name": "fsrs"
+  },
+  "study": {
+    "dailyTargetMin": 60
+  }
+}

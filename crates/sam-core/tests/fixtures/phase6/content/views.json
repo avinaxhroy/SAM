@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "progress.screen": {
+      "layout": "table",
+      "panel": "progress",
+      "type": "topic"
+    },
+    "queue.open": {
+      "filter": "!complete()",
+      "layout": "list",
+      "sort": "est",
+      "type": "topic"
+    },
+    "reviews.screen": {
+      "columns": [
+        "title",
+        "kind",
+        "est"
+      ],
+      "layout": "table",
+      "panel": "reviews",
+      "type": "topic"
+    },
+    "sets.all": {
+      "columns": [
+        "chapter",
+        "solved",
+        "total",
+        "pct"
+      ],
+      "layout": "table",
+      "sort": "chapter",
+      "type": "problemset"
+    },
+    "sets.hard": {
+      "columns": [
+        "chapter",
+        "solved",
+        "total",
+        "pct"
+      ],
+      "filter": "solved >= 10",
+      "layout": "table",
+      "sort": "-solved",
+      "type": "problemset"
+    }
+  }
+}

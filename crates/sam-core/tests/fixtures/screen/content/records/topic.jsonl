@@ -1,0 +1,3 @@
+{"fields":{"est":30,"kind":"watch","title":"Bayes' theorem"},"id":"t.bayes","links":{},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","title":"Naive Bayes"},"id":"t.naive","links":{},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":25,"kind":"practice","title":"Conditional probability"},"id":"t.cond","links":{},"schemaVersion":1,"type":"topic"}

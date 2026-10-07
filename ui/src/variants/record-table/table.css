@@ -1,0 +1,57 @@
+/* Record table column width definitions shared between Rail variant (A.svelte)
+   and ColumnStrip.svelte. Widths scale with --ui-s. */
+.vt-strip[data-tone='a'] {
+  padding: 0 var(--ui-pad-sm);
+  gap: 0;
+}
+.vt-strip[data-tone='a'] .vt-label,
+.va-row .vt-cell {
+  flex: 0 0 calc(128px * var(--ui-s));
+  min-width: 0;
+}
+.vt-strip[data-tone='a'] .vt-label[data-flex='1'],
+.va-row .vt-cell[data-flex='1'] {
+  flex: 1 1 0;
+  min-width: calc(96px * var(--ui-s));
+  max-width: none;
+}
+.vt-strip[data-tone='a'] .vt-label[data-field-type='number'],
+.vt-strip[data-tone='a'] .vt-label[data-field-type='duration'],
+.vt-strip[data-tone='a'] .vt-label[data-field-type='rating'],
+.vt-strip[data-tone='a'] .vt-label[data-field-type='bool'],
+.va-row .vt-cell[data-field-type='number'],
+.va-row .vt-cell[data-field-type='duration'],
+.va-row .vt-cell[data-field-type='rating'],
+.va-row .vt-cell[data-field-type='bool'] {
+  flex: 0 0 calc(72px * var(--ui-s));
+}
+.vt-strip[data-tone='a'] .vt-label[data-field-type='formula'],
+.vt-strip[data-tone='a'] .vt-label[data-field-type='progress'],
+.va-row .vt-cell[data-field-type='formula'],
+.va-row .vt-cell[data-field-type='progress'] {
+  flex: 0 0 calc(88px * var(--ui-s));
+}
+.vt-strip[data-tone='a'] .vt-label[data-field-type='select'],
+.va-row .vt-cell[data-field-type='select'] {
+  flex: 0 0 calc(112px * var(--ui-s));
+}
+.vt-strip[data-tone='a'] .vt-label[data-field-type='date'],
+.va-row .vt-cell[data-field-type='date'] {
+  flex: 0 0 calc(160px * var(--ui-s));
+}
+.vt-strip[data-tone='a'] .vt-label[data-field-type='unknown'],
+.va-row .vt-cell[data-field-type='unknown'] {
+  flex: 0 0 calc(96px * var(--ui-s));
+}
+/* The strip's trailing zone is pinned to exactly the room the row's own two
+   doors take — `--hit` twice with the 4px between them — because the head and
+   the body have to agree about how much free space the flexible column gets.
+   Without this the head's flexible column takes ~68px more than the body's and
+   every label drifts off its cells (the shipped table pins its own trailing zone
+   for the same reason). */
+.vt-strip[data-tone='a'] .cd-label--plus {
+  flex: 0 0 auto;
+  min-width: calc(var(--hit) * 2 + var(--space-3xs));
+  max-width: calc(var(--hit) * 2 + var(--space-3xs));
+  padding-left: 0;
+}

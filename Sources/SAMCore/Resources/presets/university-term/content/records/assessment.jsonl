@@ -1,0 +1,4 @@
+{"fields":{"kind":"assignment","label":"Assignment 1 — data structures"},"id":"a.cs.asg1","links":{"course":["c.cs.dsa"],"week":["w.05"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"final","label":"Final — probability and statistics"},"id":"a.cs.final","links":{"course":["c.cs.ps"],"week":["w.08"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"midterm","label":"Midterm — computer systems"},"id":"a.cs.mid1","links":{"course":["c.cs.sys"],"week":["w.06"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"quiz","label":"Quiz 1 — logic and proofs"},"id":"a.cs.quiz1","links":{"course":["c.cs.dm"],"week":["w.03"]},"schemaVersion":1,"type":"assessment"}

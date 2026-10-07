@@ -1,0 +1,2 @@
+{"fields":{"est":5,"title":"CRLF ok"},"id":"t.1","links":{},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":5,"title":"no final newline"},"id":"t.2","links":{},"schemaVersion":1,"type":"topic"}

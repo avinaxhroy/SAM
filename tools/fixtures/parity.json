@@ -1,0 +1,64 @@
+{
+    "doors": {
+  "plan.new": {
+    "door": "startScreen",
+    "evidence": "ui/src/onboarding/StartPlan.svelte:152",
+    "why": "The room's own press makes the plan (`plan.new`, the blank schema or a preset the bundle ships), and it draws only when no plan is open — every capture state sits in a working plan."
+  },
+        "apply": {
+            "door": "menu",
+            "evidence": "crates/sam-core/src/command_registry.rs:367",
+            "why": "The batch transport: the OS Plan menu names it and each per-kind paste sheet is its UI form, so no destination capture carries its id."
+        },
+        "tx.restore": {
+            "door": "palette",
+            "evidence": "crates/sam-core/src/command_registry.rs:412",
+            "why": "Its declared placement is the palette, which lists every registry command by name (⌘K), and the OS menu names it too — it draws no control of its own until the System surface's Recently-deleted row lands."
+        },
+        "record.new": {
+            "door": "menu",
+            "evidence": "crates/sam-core/src/command_registry.rs:431",
+            "why": "The generic spelling: the app dispatches the per-kind New control and the OS menu names the generic id, so no capture renders this id itself."
+        },
+        "record.paste": {
+            "door": "menu",
+            "evidence": "crates/sam-core/src/command_registry.rs:450",
+            "why": "The generic spelling, shadowed by the per-kind paste ids the UI dispatches; the OS menu names it."
+        },
+        "column.choices": {
+            "door": "menu",
+            "evidence": "ui/src/records/ColumnSheets.svelte:412",
+            "why": "The control exists, but a column menu offers it only on a choice column, and no captured state opened that menu on one."
+        },
+        "column.reorder": {
+            "door": "menu",
+            "evidence": "ui/src/commands/registry.ts:42",
+            "why": "The column menu declares it and is its only door — the header's own Move writes the view's columns instead (U5's deliberate deviation)."
+        },
+        "type.new": {
+            "door": "menu",
+            "evidence": "ui/src/commands/registry.ts:53",
+            "why": "The sidebar's + menu declares it, reached through the list designer's new-kind mode, and a capture only shows the mode it was opened in."
+        },
+        "edit.undo": {
+            "door": "menu",
+            "evidence": "ui/src/App.svelte:168",
+            "why": "The OS Edit menu bar and ⌘Z carry it; the page answers the key without drawing a control."
+        },
+        "edit.redo": {
+            "door": "menu",
+            "evidence": "ui/src/App.svelte:171",
+            "why": "The OS Edit menu bar and ⇧⌘Z carry it; the page answers the key without drawing a control."
+        },
+        "course.paste": {
+            "door": "cli",
+            "evidence": "BUILDLOG.md:1484",
+            "why": "no preset view of `course` is a cell layout (its screen is a card grid), so the table's Paste control never mounts; the toolbar has the per-kind New, and this id is carried by the palette and the CLI"
+        },
+        "unit.paste": {
+            "door": "cli",
+            "evidence": "BUILDLOG.md:1484",
+            "why": "no preset view of `unit` is a cell layout (its screen is a board), so the table's Paste control never mounts; the toolbar has the per-kind New, and this id is carried by the palette and the CLI"
+        }
+    }
+}

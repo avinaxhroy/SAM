@@ -1,0 +1,3 @@
+{"fields":{"code":"PHY","name":"Physics","note":"Mechanics, properties of matter, thermodynamics, electricity and magnetism, optics and modern physics.","order":1,"short":"Phy"},"id":"c.jee.physics","links":{},"schemaVersion":1,"type":"course"}
+{"fields":{"code":"CHE","name":"Chemistry","note":"Physical, inorganic and organic chemistry, including the practical-chemistry principles unit.","order":2,"short":"Chem"},"id":"c.jee.chemistry","links":{},"schemaVersion":1,"type":"course"}
+{"fields":{"code":"MAT","name":"Mathematics","note":"Algebra, calculus, coordinate geometry, vectors, statistics and probability.","order":3,"short":"Math"},"id":"c.jee.maths","links":{},"schemaVersion":1,"type":"course"}

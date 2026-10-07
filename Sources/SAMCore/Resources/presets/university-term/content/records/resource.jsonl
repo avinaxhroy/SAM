@@ -1,0 +1,6 @@
+{"fields":{"kind":"pdf","label":"Discrete mathematics — lecture notes","provider":"Course site","url":"https://example.org/cs101/notes.pdf"},"id":"r.dm.notes","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"article","label":"Proof techniques — worked examples","provider":"Course site","url":"https://example.org/cs101/proofs"},"id":"r.dm.proofs","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"video","label":"Sorting algorithms — walkthrough","provider":"Example Lectures","url":"https://example.org/cs102/sorting"},"id":"r.dsa.video","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"tool","label":"Data structure visualiser","provider":"Example Tool","url":"https://example.org/dsa-visualiser"},"id":"r.dsa.visual","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"book","label":"Computer systems — reading list entry","provider":"Library","url":"https://example.org/cs103/book"},"id":"r.sys.book","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"pdf","label":"Probability — formula sheet","provider":"Course site","url":"https://example.org/cs104/formulas.pdf"},"id":"r.ps.notes","links":{},"schemaVersion":1,"type":"resource"}

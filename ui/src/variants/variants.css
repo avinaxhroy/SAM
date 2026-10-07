@@ -1,0 +1,65 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE PORTED COMPONENTS' FLOOR  (2026-09-29)
+
+   The redesign lab's components are ported into `ui/src/variants/<surface>/`
+   and mounted through `<Variant>`. This file is the one thing every port reads
+   that the design system does not already carry: **the size register**.
+
+   WHY A REGISTER AND NOT FIXED NUMBERS. The lab's designs are drawn at one
+   size; the app is a resizable window and a student who wants bigger rows
+   should get bigger rows — not a zoomed bitmap. So every ported component
+   measures its own structure from these tokens, and the Settings screen's
+   *Interface size* row moves `data-ui-size` on the document root. One choice
+   moves every row, pad, gap and type step together; a component that needs a
+   number the register does not name writes it as `calc(<n>px * var(--ui-s))`,
+   so it still moves with the choice.
+
+   WHAT "RESPONSIVE" MEANS HERE. Two mechanisms, and they are different jobs:
+
+     · `--ui-s` / `--ui-*` — the student's choice, one value for the whole app;
+     · container queries — the component's own answer to the room it is in. A
+       ported surface declares `container-type: inline-size` on a wrapper that
+       does not host `position: fixed` children (containment is a containing
+       block, so a fixed sheet inside it would stop being fixed), and reflows
+       with `@container` rules rather than `@media`: the record panel is 360px
+       wide whatever the window is, and a media query cannot see that.
+
+   The eight tokens are the register. Nothing ported should invent a ninth
+   without saying why in its own header.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Sizing multiplier: scales structural tokens between compact, normal, and spacious displays. */
+  --ui-s: 1;
+
+  /* Structure. */
+  --ui-row-h: calc(40px * var(--ui-s)); /* the floor a row keeps; 32px at compact */
+  --ui-pad-y: calc(10px * var(--ui-s)); /* a row's own vertical padding */
+  --ui-pad: calc(16px * var(--ui-s)); /* a block's body padding */
+  --ui-pad-sm: calc(10px * var(--ui-s));
+  --ui-gap: calc(14px * var(--ui-s)); /* between rows in a stack */
+  --ui-gap-sm: calc(8px * var(--ui-s));
+  --ui-gap-lg: calc(24px * var(--ui-s)); /* between blocks on a screen — the
+                                            same rung as the system's stack */
+
+  /* Type: the three steps a ported component reads. */
+  --ui-text: calc(13px * var(--ui-s));
+  --ui-text-sm: calc(12px * var(--ui-s));
+  --ui-meta: calc(11px * var(--ui-s));
+}
+
+:root[data-ui-size='compact'] {
+  --ui-s: 0.88;
+}
+
+:root[data-ui-size='spacious'] {
+  --ui-s: 1.14;
+}
+
+/* The one helper a port may wear: a component's own container. It is a class
+   rather than a rule on every direct child so the port decides *where* the
+   containment boundary sits — above the part that owns a fixed overlay, never
+   around it. */
+.v-fit {
+  container-type: inline-size;
+}

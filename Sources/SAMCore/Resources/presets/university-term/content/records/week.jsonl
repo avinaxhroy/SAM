@@ -1,0 +1,8 @@
+{"fields":{"index":1,"label":"Week 1"},"id":"w.01","links":{"term":["term.t1"]},"schemaVersion":1,"type":"week"}
+{"fields":{"index":2,"label":"Week 2"},"id":"w.02","links":{"term":["term.t1"]},"schemaVersion":1,"type":"week"}
+{"fields":{"index":3,"label":"Week 3"},"id":"w.03","links":{"term":["term.t1"]},"schemaVersion":1,"type":"week"}
+{"fields":{"index":4,"label":"Week 4"},"id":"w.04","links":{"term":["term.t1"]},"schemaVersion":1,"type":"week"}
+{"fields":{"index":5,"label":"Week 5"},"id":"w.05","links":{"term":["term.t1"]},"schemaVersion":1,"type":"week"}
+{"fields":{"index":6,"label":"Week 6"},"id":"w.06","links":{"term":["term.t1"]},"schemaVersion":1,"type":"week"}
+{"fields":{"index":7,"label":"Week 7"},"id":"w.07","links":{"term":["term.t1"]},"schemaVersion":1,"type":"week"}
+{"fields":{"index":8,"label":"Week 8"},"id":"w.08","links":{"term":["term.t1"]},"schemaVersion":1,"type":"week"}

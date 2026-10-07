@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "types": {
+    "course": {
+      "fields": [
+        {
+          "key": "name",
+          "type": "text"
+        },
+        {
+          "key": "code",
+          "type": "text"
+        }
+      ],
+      "icon": "book"
+    },
+    "problemset": {
+      "fields": [
+        {
+          "key": "chapter",
+          "type": "text"
+        },
+        {
+          "key": "solved",
+          "type": "number"
+        },
+        {
+          "key": "total",
+          "type": "number"
+        },
+        {
+          "expr": "pct(solved, total)",
+          "key": "pct",
+          "type": "formula"
+        },
+        {
+          "key": "done",
+          "type": "progress"
+        }
+      ],
+      "icon": "checklist",
+      "parent": "course",
+      "pipeline": "progress",
+      "trackable": true
+    },
+    "topic": {
+      "fields": [
+        {
+          "key": "title",
+          "type": "text"
+        },
+        {
+          "key": "kind",
+          "options": [
+            "watch",
+            "practice",
+            "read"
+          ],
+          "type": "select"
+        },
+        {
+          "key": "est",
+          "type": "duration"
+        }
+      ],
+      "icon": "bolt",
+      "parent": "course",
+      "pipeline": "flip",
+      "trackable": true
+    }
+  }
+}

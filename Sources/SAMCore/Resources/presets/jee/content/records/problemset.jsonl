@@ -1,0 +1,8 @@
+{"fields":{"attempted":32,"chapter":"Kinematics","difficulty":"medium","solved":26,"total":40},"id":"p.jee.phy.kinematics","links":{"course":["c.jee.physics"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":22,"chapter":"Laws of Motion","difficulty":"hard","solved":15,"total":30},"id":"p.jee.phy.laws","links":{"course":["c.jee.physics"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":20,"chapter":"Electrostatics","difficulty":"hard","solved":12,"total":45},"id":"p.jee.phy.electrostatics","links":{"course":["c.jee.physics"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":35,"chapter":"Atomic Structure","difficulty":"easy","solved":31,"total":35},"id":"p.jee.chem.atomic","links":{"course":["c.jee.chemistry"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":28,"chapter":"Chemical Bonding and Molecular Structure","difficulty":"medium","solved":21,"total":40},"id":"p.jee.chem.bonding","links":{"course":["c.jee.chemistry"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":18,"chapter":"Chemical Kinetics","difficulty":"medium","solved":11,"total":30},"id":"p.jee.chem.kinetics","links":{"course":["c.jee.chemistry"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":30,"chapter":"Sets, Relations and Functions","difficulty":"easy","solved":27,"total":30},"id":"p.jee.math.sets","links":{"course":["c.jee.maths"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":16,"chapter":"Matrices and Determinants","difficulty":"hard","solved":9,"total":35},"id":"p.jee.math.matrices","links":{"course":["c.jee.maths"]},"schemaVersion":1,"type":"problemset"}

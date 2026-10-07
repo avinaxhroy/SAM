@@ -1,0 +1,831 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE ROOM (R11)
+
+   One surface, three screens, and a ground that does not move under them. The
+   room is the frame: one pastel wash with a hairline weave drawn across it —
+   the same texture on all three screens, painted on the room rather than on
+   each slide, because a texture that travelled with the content would be a
+   picture of a surface instead of the surface itself. The wash is the design
+   floor's own warm register (ref S1: the course rooms' four pastels), softened
+   toward the card so a whole window of it stays a pastel, and it is the same
+   ground on all three screens: nothing changes under the reader, only the
+   movement standing on it.
+
+   Texture here means marks the eye can see across an empty window — a weave, at
+   a pitch no type sits at and never finer than a glyph. It does **not** mean a
+   gradient: the three colour fields this file carried (soft radials of the
+   room's other pastels) were diffused, not drawn, and the owner never asked for
+   them. Every earlier attempt is retired with its reason: an 8px dot lattice
+   read as graph paper, a 3px one was invisible, and a generated grain was
+   refused on sight.
+
+   Two ways in, one surface: a machine with no plan draws it edge to edge, and
+   a plan that is already open opens it over the shell (`app.gettingStarted`).
+   The geometry is identical — `inset: var(--titlebar-h) 0 0 0` — which is what
+   keeps the window's own furniture (the traffic lights, the app's name) out of
+   the room's way instead of under it.
+
+   The ink rule (design.md §7): one control per screen is filled with `--ink`,
+   and it is the one that does the screen's work — Continue on the two reading
+   screens, Create plan on the last. Everything else is a quiet pill, a text
+   link or a dot, which is why the step rail's current dot is mixed *from* the
+   ink rather than filled with it: the rail is where you are, not what to press.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.ob-room {
+  /* The room's ground. The floor's warm wash, mixed toward the card so the whole
+     window is a pastel and the ink on it keeps its contrast in both themes —
+     the same colour on all three screens. */
+  --ob-wash: color-mix(in oklab, var(--w-butter) 58%, var(--card));
+  /* The ground's texture is drawn, not diffused: one hairline weave crossed with
+     itself, at a pitch and a strength the eye can read across an empty window
+     (13px, 5% of the ink) and never finer than a glyph. A hairline that repeats
+     is a pattern — cloth, not paper — and it is not a gradient: the three colour
+     fields this rule carried before (soft radials of the room's own pastels)
+     were, and the owner never asked for a gradient ground. */
+  --ob-weave: color-mix(in oklab, var(--ink) 5%, transparent);
+  /* The specimen's own cycle: `--dur-loop` nine times, in three beats of three.
+     The design floor holds exactly one repeating duration, so the demo does not
+     bring a second: the press, the run and the reset are that duration three,
+     eight and one long. */
+  --ob-cycle: calc(var(--dur-loop) * 9);
+  --ob-beat: calc(var(--ob-cycle) / 3);
+  position: fixed;
+  inset: var(--titlebar-h) 0 0 0;
+  /* Above the rail and the titlebar (30), below the palette, the sheets and the
+     toasts (50/60): the room is a destination, and a refusal it caused has to
+     be readable over it. */
+  z-index: 45;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* The wash is the ground and the weave is its tooth; the light is the top
+     layer, and the floor's `--glass-line` is its own name for light itself
+     (defined in both themes — a white veil at 0.55 in light, at 0.14 in dark)
+     so the wash is lit rather than tinted and the dark room does not end up
+     with a shadow where its light should be. The last layer is the corner the
+     light does not reach, which is what gives the room a floor. Those two are
+     light, not texture: they carry no pitch and no repeat. */
+  background-color: var(--ob-wash);
+  background-image:
+    repeating-linear-gradient(45deg, var(--ob-weave) 0 0.75px, transparent 0.75px 13px),
+    repeating-linear-gradient(-45deg, var(--ob-weave) 0 0.75px, transparent 0.75px 13px),
+    radial-gradient(118% 88% at 6% -14%, var(--glass-line), transparent 58%),
+    radial-gradient(140% 120% at 52% 128%, var(--glass-veil), transparent 72%);
+  background-attachment: scroll;
+}
+
+.ob-inner {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-lg);
+  width: 100%;
+  max-width: 1080px;
+  min-height: 100%;
+  margin-inline: auto;
+  padding: var(--space-md) var(--space-2xl) var(--space-xl);
+}
+
+/* ── the head: back, where you are, out ─────────────────────────────────── */
+
+.ob-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.ob-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  justify-self: start;
+  height: var(--hit);
+  padding: 0 var(--space-sm) 0 var(--space-xs);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-xs);
+  transition: color var(--dur-1) var(--ease);
+}
+.ob-back:hover { color: var(--ink); }
+/* The slot holds its place on the first screen: a head whose objects move when
+   its neighbour appears is a head you have to re-read. */
+.ob-back[data-quiet='1'] { visibility: hidden; }
+
+.ob-where {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ob-dots { display: flex; align-items: center; }
+.ob-dot {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: var(--hit);
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.ob-dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--ink) 20%, transparent);
+  transition: width var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease);
+}
+.ob-dot:hover::before { background: color-mix(in oklab, var(--ink) 40%, transparent); }
+.ob-dot[aria-current='step']::before {
+  width: 22px;
+  background: color-mix(in oklab, var(--ink) 58%, transparent);
+}
+
+.ob-name {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ink) 62%, transparent);
+}
+
+.ob-shut {
+  display: grid;
+  place-items: center;
+  width: var(--hit);
+  height: var(--hit);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-2);
+  transition: color var(--dur-1) var(--ease);
+}
+.ob-shut:hover { color: var(--ink); }
+.ob-shut[data-quiet='1'] { visibility: hidden; }
+
+/* The room's own corner: the theme disc (there is no rail behind the room to
+   carry it) and, over a plan, the way out. */
+.ob-out {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  justify-self: end;
+}
+
+/* ── the stage ──────────────────────────────────────────────────────────── */
+
+.ob-stage {
+  display: grid;
+  align-content: center;
+  gap: var(--space-md);
+  padding-block: var(--space-md);
+}
+
+/* One screen at a time, and the direction it was entered from. The exit is
+   instantaneous on purpose: a document whose pages cross-fade invites you to
+   read both, and there is one screen here. */
+.ob-slide { display: grid; gap: var(--space-xl); }
+.ob-slide[data-dir='1'] { animation: ob-in-right var(--dur-3) var(--ease) both; }
+.ob-slide[data-dir='-1'] { animation: ob-in-left var(--dur-3) var(--ease) both; }
+
+@keyframes ob-in-right {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ob-in-left {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ob-refusal {
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--r-item);
+  background: var(--chip-overdue);
+  color: var(--on-overdue);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+}
+
+/* ── the foot ───────────────────────────────────────────────────────────── */
+
+.ob-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: var(--pill-h);
+}
+
+.ob-keys {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--text-xs);
+  color: color-mix(in oklab, var(--ink) 58%, transparent);
+}
+
+.ob-acts { display: flex; align-items: center; gap: var(--space-sm); }
+
+/* ── the shared voice of the three screens ──────────────────────────────── */
+
+.ob-h1 {
+  margin: 0 0 0.14em;
+  max-width: 22ch;
+  font-size: clamp(var(--text-3xl), 5.4vw, var(--text-display));
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-display);
+  line-height: 1.06;
+  color: var(--ink);
+}
+
+.ob-lede {
+  margin: 0;
+  max-width: 52ch;
+  font-size: var(--text-lg);
+  line-height: 1.45;
+  text-wrap: pretty;
+  color: color-mix(in oklab, var(--ink) 80%, transparent);
+}
+
+/* ── I · what it is ─────────────────────────────────────────────────────── */
+
+.ob-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: var(--space-3xl);
+}
+
+.ob-say { display: grid; gap: var(--space-lg); }
+
+.ob-promises {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ob-promise {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+  padding-top: var(--space-sm);
+  border-top: 1px dashed color-mix(in oklab, var(--ink) 22%, transparent);
+}
+
+.ob-promise__n {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps);
+  color: color-mix(in oklab, var(--ink) 48%, transparent);
+  padding-top: 3px;
+}
+
+.ob-promise__t {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-title);
+  color: var(--ink);
+}
+
+.ob-promise__s {
+  margin: 2px 0 0;
+  max-width: 46ch;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  text-wrap: pretty;
+  color: color-mix(in oklab, var(--ink) 72%, transparent);
+}
+
+/* The artwork: the one image in the room, on the paper, with the light's own
+   contact shadow under it rather than a frame around it. */
+.ob-art {
+  margin: 0;
+  display: grid;
+  place-items: center;
+}
+.ob-art img {
+  width: 100%;
+  max-width: 460px;
+  max-height: 58vh;
+  object-fit: contain;
+  filter: drop-shadow(0 var(--space-md) var(--space-xl) color-mix(in oklab, var(--ink) 24%, transparent));
+}
+
+/* ── II · how it works ──────────────────────────────────────────────────── */
+
+.ob-how { display: grid; gap: var(--space-xl); }
+
+/* The two columns are laid out as *two rows* rather than two panels: the heads
+   take the first row and the specimens the second, and `grid-auto-flow: column`
+   fills them a column at a time (head, specimen, head, specimen in the markup,
+   head · head / specimen · specimen on the screen). That is what makes the two
+   cards one size — the specimens share a row, so the taller card sets the
+   height and the shorter one fills it — and what puts them on one line: with a
+   panel per column, the right title's second line pushed its card 90px down
+   and the composer's own card stood 90px tall (Correction 3). `.ob-panel` is
+   `display: contents` so its two children are the grid's own items. */
+.ob-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--space-md) var(--space-lg);
+  align-items: stretch;
+}
+
+/* A panel is a *column*, not a surface: the specimen it holds is already a card
+   (`.cd-card`), and a card inside a card of the same colour reads as a mistake.
+   So the two columns stand on the room's own paper and the only plates on this
+   screen are the two specimens. */
+.ob-panel { display: contents; }
+
+.ob-kick {
+  margin: 0 0 var(--space-2xs);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ink) 52%, transparent);
+}
+
+/* A step down from `--text-xl` (26 → 20): at 26px the longer title — *Or change
+   the line — by hand, or by AI Agent.* — wrapped to two lines and its column's
+   head grew taller than the other's, which is the one thing two columns side by
+   side must not do. At `--text-lg` both titles stand on one line at every width
+   the screen is read at, and the screen's own heading keeps its lead over them
+   (Correction 4). */
+.ob-panel__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-title);
+  line-height: 1.12;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+/* The one sentence in the room that must not be skimmed: "you never have to
+   open a file". It is the floor's own emphasis — the label weight at full ink —
+   and it sits in the join line, because it is the sentence both columns earn
+   (the panels carry their teaching as captions inside their own cards). */
+.ob-join b {
+  font-weight: var(--weight-label);
+  color: var(--ink);
+}
+
+.ob-join {
+  margin: 0 auto;
+  max-width: 72ch;
+  text-align: center;
+  font-size: var(--text-xs);
+  text-wrap: pretty;
+  color: color-mix(in oklab, var(--ink) 72%, transparent);
+}
+
+/* ── the two specimens ──────────────────────────────────────────────────── */
+
+/* The specimen fills its half of the shared row rather than standing at its
+   own height: the file's card is the shorter of the two, so what it fills with
+   is air — and the air is centred, above and below the file and its captions,
+   rather than left as a gap under them (the composer's card already fills its
+   own height: its cell reserves the 56px the catalog's card lands on). */
+.ob-demo { display: grid; align-content: stretch; }
+.ob-demo > .cd-card { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; }
+
+/* A · the app: one press in the composer, from the catalog to the screen.
+   Every part is the floor's own material — `.cd-card` and its padding,
+   `.cmp-bar` with the name of the screen being edited and the two pills,
+   `.cmp-stack`'s cell, `.cmp-frame` with the dashed edge of a component that
+   is not being *used*, only moved, and the catalog's card as `Inserter.svelte`
+   draws it: the structural preview in a well, the name, the note, the Add pill.
+
+   The beat is the whole of the teaching. The catalog's card stands over the
+   cell the component will take; its Add is pressed; the card leaves and the
+   frame is simply there. Nothing travels on a curve — a sheet is dismissed,
+   not thrown, and a component does not slide in from off the screen: it is
+   there the way a line of the file is.
+
+   A press is drawn the way the app draws the control it just lit: the floor's
+   own inset 2px ring, momentary here because a press is — what it makes is
+   what stays.
+
+   Nothing here is a control: each card carries `aria-hidden` whole, and the
+   three captions under them are what a screen reader reads. Every control the
+   specimen draws is inert, which is why the one live-looking thing in the room
+   is the pointer's own hover on a frame — and that is the app's. */
+.ob-stack { padding-bottom: 56px; }
+/* The cell the component lands in: the frame, and — for the first beat of the
+   cycle — the catalog's card standing over it, out of the grid's own flow so
+   the cell's height stays the frame's and the card is free to be a card.
+   The span is the floor's own, taken from `.cmp-cell`/`.cmp-frame`
+   (`grid-column: span var(--cmp-span, 2)`): the component Add writes stands
+   full width, which is what the frame's own width pill reads back — it names
+   the width the *next* press gives (`Half width` while it stands full). */
+.ob-slot {
+  position: relative;
+  grid-column: span var(--cmp-span, 2);
+  display: grid;
+  align-items: start;
+  min-width: 0;
+}
+.ob-slot > .cmp-frame {
+  grid-area: 1 / 1;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+/* The component's own body. The widget is 160×90 on the floor and it is a
+   draggable card, not a screenshot: what the frame holds here is the surface's
+   structural preview, the one drawing the catalog and the composer both use
+   for a surface that is not being read. */
+.ob-body {
+  display: grid;
+  place-items: center;
+  height: 104px;
+  padding: var(--space-2xs);
+  border-radius: var(--r-mini);
+  background: var(--well);
+  color: var(--ink-2);
+}
+.ob-body svg { display: block; width: 100%; height: 100%; }
+
+/* The catalog's card (`.ci-card` in `Inserter.svelte`). Those classes are
+   scoped to that sheet, so its parts are restated here in the same material:
+   the preview in the floor's well, the name, the note, and the Add pill. One
+   difference, and it is the sheet's own: the card is a *plate* here because it
+   is floating over the screen, so it wears the sheet's ground and the sheet's
+   second shadow rung. */
+.ob-pick {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: var(--space-2xs);
+  width: min(100%, 232px);
+  padding: var(--space-xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-card);
+  background: var(--sheet);
+  box-shadow: var(--sh-2);
+}
+.ob-pick__pv {
+  display: grid;
+  place-items: center;
+  padding: var(--space-2xs);
+  border-radius: var(--r-mini);
+  background: var(--well);
+  color: var(--ink-2);
+}
+.ob-pick__pv svg { display: block; width: 100%; height: 100%; }
+.ob-pick__name { font-size: var(--text-xs); font-weight: var(--weight-label); color: var(--ink); }
+.ob-pick__note {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+.ob-pick__add { justify-self: start; box-shadow: inset 0 0 0 2px transparent; }
+
+/* One cycle, three beats: the pick (0–30%), the landing (33–41%), the stand
+   (41–100%) — the same thirds the captions light in, so the picture and its
+   sentence move on one beat, and the same `--ob-cycle` the room's other beat
+   used (`--dur-loop` nine times: the floor holds exactly one repeating
+   duration, and the demo does not bring a second). The card leaves by fading
+   rather than by sliding and the frame is already invisible when it is not
+   there, so neither ever sits half-drawn over the other. */
+@keyframes ob-pick-press {
+  0% { box-shadow: inset 0 0 0 2px var(--ink); }
+  9% { box-shadow: inset 0 0 0 2px var(--ink); }
+  12% { box-shadow: inset 0 0 0 2px transparent; }
+  100% { box-shadow: inset 0 0 0 2px transparent; }
+}
+@keyframes ob-pick {
+  0% { opacity: 1; }
+  30% { opacity: 1; }
+  36% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes ob-land {
+  0% { opacity: 0; }
+  33% { opacity: 0; }
+  41% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* The animations are scoped to `.ob-room`, so the same components can be
+   reused outside it (a harness, a future sheet) without turning into a
+   sideshow. */
+.ob-room .ob-pick { animation: ob-pick var(--ob-cycle) var(--ease) infinite; }
+.ob-room .ob-pick__add { animation: ob-pick-press var(--ob-cycle) var(--ease) infinite; }
+.ob-room .ob-slot > .cmp-frame { animation: ob-land var(--ob-cycle) var(--ease) infinite; }
+
+/* B · the plan's files: the same list, written down, and the line a press
+   appends to it. The block is the file, so it is marked as the app's own
+   developer material: it is allowed to say `surface`, and it is allowed to
+   hold a path — the one place in the room where a path is read. */
+.ob-file {
+  display: grid;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: var(--space-md);
+  border-radius: var(--r-tile);
+  background: var(--w-lilac);
+  color: var(--fg-lilac);
+  /* The floor's code voice (`.cd-code`): one family, heavier, tracked out.
+     There is no monospace token in this design system on purpose, so a code
+     block is the sans at display weight — the same voice the app prints a
+     course code and a formula in. */
+  font-weight: var(--weight-display);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-code);
+  overflow: hidden;
+}
+.ob-file__path { padding: 0 var(--space-xs) var(--space-3xs); opacity: 0.72; }
+.ob-file__line {
+  padding: var(--space-3xs) var(--space-xs);
+  border-radius: var(--r-key);
+  white-space: pre;
+  opacity: 0.42;
+}
+/* The file's own shape is indentation, and it is carried by padding rather
+   than by spaces in the markup: a formatter is free to reindent a template,
+   and the JSON's nesting has to survive that. `d` is the depth of the line
+   inside the block. */
+.ob-file__line[data-d='1'] { padding-left: var(--space-md); }
+.ob-file__line[data-d='2'] { padding-left: var(--space-xl); }
+
+/* The two things a press changes in the file: the line the list gains, and the
+   comma the line before it gains with it — leaving a trailing comma in a JSON
+   array is a syntax error, which is exactly the kind of thing the file is here
+   to show. Both arrive at full strength on the second beat, and they arrive
+   the way a file changes, by being there: nothing in a file moves, it is
+   reread. The comma is a span inside its line, so its own opacity multiplies
+   into that line's dimmed 0.42 while it animates. */
+.ob-file__line.ob-arrive { opacity: 1; }
+
+@keyframes ob-arrive {
+  0% { opacity: 0; }
+  33% { opacity: 0; }
+  41% { opacity: 1; }
+  100% { opacity: 1; }
+}
+.ob-room .ob-arrive, .ob-room .ob-comma { animation: ob-arrive var(--ob-cycle) var(--ease) infinite; }
+
+@keyframes ob-cap {
+  0% { opacity: 1; }
+  30% { opacity: 1; }
+  33% { opacity: 0.4; }
+  100% { opacity: 0.4; }
+}
+
+.ob-caps { display: grid; gap: var(--space-2xs); margin: var(--space-md) 0 0; }
+/* A caption is the key and the sentence about it: the key holds the left
+   column so the three of them line up down the card, and the sentence takes
+   everything else. A caption whose sentence carries a code span wraps that
+   span in a plain `<span>` in the markup, because a third child of this grid
+   would start a row of its own under the *key* column instead of running on
+   inside the sentence. */
+.ob-cap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: baseline;
+  font-size: var(--text-2xs);
+  text-wrap: pretty;
+  color: color-mix(in oklab, var(--ink) 72%, transparent);
+  opacity: 0.4;
+}
+.ob-cap b {
+  font-weight: var(--weight-label);
+  color: var(--ink);
+  letter-spacing: var(--track-code);
+}
+.ob-room .ob-cap[data-key='1'] { animation: ob-cap var(--ob-cycle) var(--ease) infinite; }
+.ob-room .ob-cap[data-key='2'] {
+  animation: ob-cap var(--ob-cycle) var(--ease) infinite;
+  animation-delay: calc(var(--ob-beat) * -1);
+}
+.ob-room .ob-cap[data-key='3'] {
+  animation: ob-cap var(--ob-cycle) var(--ease) infinite;
+  animation-delay: calc(var(--ob-beat) * -2);
+}
+
+/* ── III · get started ──────────────────────────────────────────────────── */
+
+.ob-start { display: grid; gap: var(--space-lg); }
+
+.ob-create {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--sh-2);
+}
+
+.ob-field { display: grid; gap: var(--space-2xs); }
+.ob-label {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ink) 52%, transparent);
+}
+.ob-input {
+  height: var(--pill-h);
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--r-item);
+  background: var(--well-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-title);
+}
+
+/* No focus rule here: `.ob-input` is an `input`, so the field's own ring
+   (`design/base.css`) already applies — the 2px ink ring inside the edge. It
+   used to restate the ring at a 1px offset, which is the corner mismatch the
+   base rule exists to remove. */
+
+/* Where the press will write, said as a place and not as a path: the last two
+   rooms of the folder, which is what tells two destinations apart. */
+.ob-where-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: color-mix(in oklab, var(--ink) 70%, transparent);
+}
+.ob-dest {
+  font-weight: var(--weight-label);
+  color: var(--ink);
+  letter-spacing: var(--track-code);
+}
+
+.ob-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--ink) 30%, transparent);
+  text-underline-offset: 3px;
+  transition: color var(--dur-1) var(--ease);
+}
+.ob-link:hover { color: var(--ink); }
+.ob-link[aria-expanded='true'] svg { transform: rotate(90deg); }
+.ob-link svg { transition: transform var(--dur-2) var(--ease); }
+
+.ob-open { display: grid; gap: var(--space-sm); }
+
+.ob-rows { display: grid; gap: var(--space-2xs); margin: 0; padding: 0; list-style: none; }
+
+.ob-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-radius: var(--r-item);
+  background: var(--card);
+  box-shadow: var(--sh-1);
+  text-align: left;
+  font: inherit;
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.ob-row:hover { transform: translateY(-1px); box-shadow: var(--sh-2); }
+.ob-row__name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-title);
+  color: var(--ink);
+}
+.ob-row__where {
+  grid-column: 1;
+  font-size: var(--text-2xs);
+  color: color-mix(in oklab, var(--ink) 62%, transparent);
+  letter-spacing: var(--track-code);
+}
+/* The chevron is pinned to the second column: it carries its own row span, and a
+   row-spanning item with an auto column lands in column 1 — the plan's own name
+   would then be pushed to the right edge, reading as a different plan's row. */
+.ob-row__go { grid-column: 2; grid-row: 1 / span 2; color: var(--ink-3); }
+
+.ob-presets { display: grid; gap: var(--space-sm); }
+
+.ob-preset {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-md);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-radius: var(--r-item);
+  background: var(--card);
+  box-shadow: var(--sh-1);
+  text-align: left;
+  font: inherit;
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.ob-preset:hover { transform: translateY(-1px); box-shadow: var(--sh-2); }
+.ob-preset__title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-title);
+  color: var(--ink);
+}
+.ob-preset__line {
+  margin: 2px 0 0;
+  font-size: var(--text-2xs);
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--ink) 66%, transparent);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ob-preset__facts {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.ob-busy { font-size: var(--text-xs); color: color-mix(in oklab, var(--ink) 62%, transparent); }
+
+/* The room's footnote voice: the sentence under a screen's own plates that says
+   what they add up to. The specimens' captions (`.ob-cap`) speak in the same
+   voice; the two exist separately because a caption belongs to one plate and
+   lights with it, while this one closes a screen on its own. */
+.ob-note {
+  margin: 0;
+  max-width: 62ch;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  text-wrap: pretty;
+  color: color-mix(in oklab, var(--ink) 72%, transparent);
+}
+.ob-note code { font-size: inherit; }
+
+/* The hand-over: screen III read over a plan that is already open, where the
+   room can no longer make anything and the movement is the three places it
+   happened instead. Same voice as the notes, one paragraph per place. */
+.ob-hand { display: grid; gap: var(--space-sm); max-width: 62ch; }
+.ob-hand p {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: color-mix(in oklab, var(--ink) 70%, transparent);
+}
+.ob-hand b {
+  font-weight: var(--weight-label);
+  color: var(--ink);
+  letter-spacing: var(--track-code);
+}
+
+/* ── narrow ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 960px) {
+  .ob-inner { padding: var(--space-md) var(--space-lg) var(--space-lg); }
+  .ob-hero { grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+  .ob-art { order: -1; }
+  .ob-art img { max-width: 320px; max-height: 34vh; }
+  /* One column: the rows run down the screen a panel at a time — tell, card,
+     tell, card — so the flow goes back to row-major. */
+  .ob-panels { grid-template-columns: minmax(0, 1fr); grid-auto-flow: row; }
+  .ob-name { display: none; }
+}
+
+@media (max-width: 620px) {
+  .ob-h1 { font-size: var(--text-3xl); }
+  .ob-lede { font-size: var(--text-base); }
+  .ob-keys { display: none; }
+  .ob-foot { justify-content: flex-end; }
+  /* The first screen's press has to be on the screen: the bird gives way to it
+     rather than pushing it past the fold on a small window. */
+  .ob-art img { max-width: 240px; max-height: 26vh; }
+}

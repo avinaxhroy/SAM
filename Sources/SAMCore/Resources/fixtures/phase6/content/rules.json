@@ -1,0 +1,73 @@
+{
+  "metrics": {
+    "problems.solved": {
+      "expr": "solved",
+      "label": "Problems solved",
+      "reduce": "sum",
+      "unit": "problems",
+      "view": "sets.all"
+    },
+    "topics.open": {
+      "label": "Open topics",
+      "reduce": "count",
+      "unit": "topics",
+      "view": "queue.open"
+    }
+  },
+  "pipelines": {
+    "check": {
+      "stages": [
+        "done"
+      ]
+    },
+    "flip": {
+      "anchorSkip": {
+        "allowed": true,
+        "requireReason": true
+      },
+      "completeWhen": "anchored",
+      "gates": {
+        "anchored": {
+          "require": "proved"
+        },
+        "proved": {
+          "require": "learned"
+        }
+      },
+      "proof": {
+        "appliesToKinds": [
+          "watch"
+        ],
+        "minProblems": 2
+      },
+      "stages": [
+        "learned",
+        "proved",
+        "anchored"
+      ]
+    },
+    "progress": {
+      "progress": "pct",
+      "stages": [
+        "started",
+        "midway",
+        "done"
+      ]
+    }
+  },
+  "scheduler": {
+    "fixed": {
+      "intervals": [
+        1,
+        7,
+        30
+      ]
+    },
+    "name": "fixed"
+  },
+  "schemaVersion": 1,
+  "study": {
+    "dailyTargetMin": 180
+  },
+  "timezone": "UTC"
+}

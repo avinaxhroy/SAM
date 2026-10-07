@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 1,
+  "types": {
+    "assessment": {
+      "icon": "calendar",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of test",
+          "options": [
+            "quiz",
+            "drill",
+            "project-review",
+            "checkpoint"
+          ]
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        },
+        {
+          "key": "note",
+          "type": "longtext",
+          "label": "Note"
+        },
+        {
+          "key": "score",
+          "type": "number",
+          "label": "Score"
+        }
+      ]
+    },
+    "course": {
+      "icon": "book",
+      "colorRole": "identity",
+      "fields": [
+        {
+          "key": "name",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "short",
+          "type": "text",
+          "label": "Short name"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Subject area",
+          "options": [
+            "systems",
+            "algorithms",
+            "networking",
+            "math",
+            "tools",
+            "other"
+          ]
+        },
+        {
+          "key": "goal",
+          "type": "longtext",
+          "label": "Goal"
+        }
+      ]
+    },
+    "milestone": {
+      "icon": "flag",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "phase",
+          "type": "text",
+          "label": "Phase"
+        },
+        {
+          "key": "target",
+          "type": "number",
+          "label": "Target"
+        }
+      ]
+    },
+    "note": {
+      "icon": "pencil",
+      "private": true,
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "label": "Title"
+        },
+        {
+          "key": "body",
+          "type": "longtext",
+          "label": "Body"
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        }
+      ]
+    },
+    "problemset": {
+      "icon": "checklist",
+      "parent": "course",
+      "trackable": true,
+      "pipeline": "progress",
+      "fields": [
+        {
+          "key": "chapter",
+          "type": "text",
+          "label": "Chapter"
+        },
+        {
+          "key": "difficulty",
+          "type": "select",
+          "label": "Difficulty",
+          "options": [
+            "easy",
+            "medium",
+            "hard"
+          ]
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": "Questions in the set"
+        },
+        {
+          "key": "attempted",
+          "type": "number",
+          "label": "Attempted"
+        },
+        {
+          "key": "solved",
+          "type": "number",
+          "label": "Solved"
+        },
+        {
+          "key": "pct",
+          "type": "formula",
+          "label": "Percent solved",
+          "expr": "pct(solved, total)"
+        },
+        {
+          "key": "source",
+          "type": "url",
+          "label": "Source link"
+        },
+        {
+          "key": "lastAttempt",
+          "type": "date",
+          "label": "Last attempt"
+        },
+        {
+          "key": "focus",
+          "type": "date",
+          "label": "Planned for"
+        }
+      ]
+    },
+    "project": {
+      "icon": "hammer",
+      "fields": [
+        {
+          "key": "name",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "status",
+          "type": "select",
+          "label": "Status",
+          "options": [
+            "planned",
+            "building",
+            "review",
+            "shipped",
+            "paused"
+          ]
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        },
+        {
+          "key": "repo",
+          "type": "url",
+          "label": "Repository link"
+        },
+        {
+          "key": "note",
+          "type": "longtext",
+          "label": "Note"
+        }
+      ]
+    },
+    "resource": {
+      "icon": "trayFull",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Kind",
+          "options": [
+            "video",
+            "pdf",
+            "article",
+            "book",
+            "tool"
+          ]
+        },
+        {
+          "key": "url",
+          "type": "url",
+          "label": "Link"
+        },
+        {
+          "key": "provider",
+          "type": "text",
+          "label": "Provider"
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        }
+      ]
+    },
+    "session": {
+      "icon": "clock",
+      "private": true,
+      "fields": [
+        {
+          "key": "date",
+          "type": "date",
+          "label": "Date"
+        },
+        {
+          "key": "min",
+          "type": "duration",
+          "label": "Minutes"
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        },
+        {
+          "key": "note",
+          "type": "text",
+          "label": "Note"
+        }
+      ]
+    },
+    "topic": {
+      "icon": "bolt",
+      "trackable": true,
+      "pipeline": "flip",
+      "fields": [
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course",
+          "cardinality": "one"
+        },
+        {
+          "key": "unit",
+          "type": "relation",
+          "label": "Unit",
+          "to": "unit",
+          "cardinality": "one",
+          "required": false
+        },
+        {
+          "key": "title",
+          "type": "text",
+          "label": "Title"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of work",
+          "options": [
+            "read",
+            "watch",
+            "practice",
+            "build",
+            "write",
+            "revise"
+          ]
+        },
+        {
+          "key": "est",
+          "type": "duration",
+          "label": "Estimated time"
+        },
+        {
+          "key": "resource",
+          "type": "relation",
+          "label": "Resource",
+          "to": "resource"
+        },
+        {
+          "key": "week",
+          "type": "relation",
+          "label": "Week",
+          "to": "week",
+          "cardinality": "one"
+        },
+        {
+          "key": "focus",
+          "type": "date",
+          "label": "Planned for"
+        }
+      ]
+    },
+    "unit": {
+      "icon": "squareStack",
+      "parent": "course",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "index",
+          "type": "number",
+          "label": "Order"
+        },
+        {
+          "key": "goal",
+          "type": "longtext",
+          "label": "Goal"
+        }
+      ]
+    },
+    "week": {
+      "icon": "calendar",
+      "fields": [
+        {
+          "key": "index",
+          "type": "number",
+          "label": "Order"
+        },
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "focus",
+          "type": "text",
+          "label": "Focus"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,174 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   CADENCE · "Warm Workbench" — tailwind.css  (Tailwind v4)
+   Maps the design tokens onto Tailwind's theme layer so a utility and a
+   component are speaking the same vocabulary. Import AFTER tailwindcss and
+   AFTER tokens.css — and after base.css too, if this page is a Cadence
+   window rather than a page that merely uses Cadence's palette:
+
+     @import "tailwindcss";
+     @import "./tokens.css";
+     @import "./base.css";      — only when the page IS a Cadence window
+     @import "./tailwind.css";
+
+   Every value below is `var(--token)`, not a copy of the token. That is the
+   point: the utility resolves against tokens.css in the element's own scope,
+   so [data-theme="dark"] and [data-w="mint"] keep working without a dark:
+   variant or a duplicate build.
+
+   Three blocks are the exception, and they are literals on purpose:
+   `--text-*`, `--spacing-*` and `--font-*`. Tailwind's theme namespaces for
+   font size, space and font family are *the same names* Cadence uses, so
+   `--text-base: var(--text-base)` would be a cycle — the custom property
+   would fail to compute and every `text-base` utility would be invalid.
+   The values below are therefore copies.
+
+   A copy is a drift risk, so it is not left to inspection: `tools/tokens.mjs`
+   resolves every block in this file against tokens.css and fails if one
+   disagrees. Run `node tools/tokens.mjs` after touching either file.
+   Everything outside those three blocks is `var(--token)`, and the same
+   checker proves it.
+
+   Dark is bound to [data-theme="dark"], NOT `prefers-color-scheme`: the
+   student picks the desk, the OS does not pick it for them.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant hoverable (@media (hover: hover) and (pointer: fine));
+
+@theme {
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --color-backdrop: var(--backdrop);   /* the room */
+  --color-sheet:    var(--sheet);      /* the one cool sheet */
+  --color-card:     var(--card);       /* objects on the sheet */
+  --color-well:     var(--well);       /* recessed inside an object */
+  --color-well-2:   var(--well-2);     /* quiet pills, pressed fills */
+
+  /* ── Ink — also the interaction colour. There is no brand hue. ────────── */
+  --color-ink:     var(--ink);
+  --color-ink-2:   var(--ink-2);
+  --color-ink-3:   var(--ink-3);       /* text floor */
+  --color-ink-4:   var(--ink-4);       /* non-text only */
+  --color-ink-inv: var(--ink-inv);
+  --color-rule:        var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-focus:   var(--focus);
+
+  /* ── Material — the rail's glass, and the room's own light ────────────── */
+  --color-glass:      var(--glass);
+  --color-glass-line: var(--glass-line);
+  --color-room-lit:   var(--room-lit);
+
+  /* ── Identity: four course washes, each with its own deep ink ─────────── */
+  --color-mint:   var(--w-mint);     --color-on-mint:   var(--fg-mint);
+  --color-lilac:  var(--w-lilac);    --color-on-lilac:  var(--fg-lilac);
+  --color-butter: var(--w-butter);   --color-on-butter: var(--fg-butter);
+  --color-sky:    var(--w-sky);      --color-on-sky:    var(--fg-sky);
+  --color-wash-rose:  var(--wash-rose);
+  --color-wash-iris:  var(--wash-iris);
+  --color-wash-peach: var(--wash-peach);
+
+  /* ── State: four chips, wash + deep ink, never an outline ─────────────── */
+  --color-overdue: var(--chip-overdue);  --color-on-overdue: var(--on-overdue);
+  --color-risk:    var(--chip-risk);     --color-on-risk:    var(--on-risk);
+  --color-ok:      var(--chip-ok);       --color-on-ok:      var(--on-ok);
+  --color-info:    var(--chip-info);     --color-on-info:    var(--on-info);
+
+  /* ── Type — one bundled variable face; prose floor 15px ──────────────── */
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans:    "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-weight-body:  var(--weight-body);
+  --font-weight-label: var(--weight-label);
+  --font-weight-display: var(--weight-display);
+
+  --text-2xs: 11px;
+  --text-xs:  13px;
+  --text-sm:  13px;
+  --text-base: 15px;
+  --text-md:  17px;
+  --text-lg:  20px;
+  --text-xl:  26px;
+  --text-2xl: 32px;
+  --text-3xl: 40px;
+  --text-display: 52px;
+
+  --tracking-display: var(--track-display);
+  --tracking-title:   var(--track-title);
+  --tracking-body:    var(--track-body);
+
+  --tracking-code:    var(--track-code);
+  --tracking-caps:    var(--track-caps);
+
+  /* ── Space — the 4pt grid, replacing Tailwind's default scale ─────────── */
+  --spacing: 4px;
+  --spacing-3xs: 2px;  --spacing-2xs: 4px;  --spacing-xs: 8px;
+  --spacing-sm: 12px;  --spacing-md: 16px;  --spacing-lg: 20px;
+  --spacing-xl: 24px;  --spacing-2xl: 32px; --spacing-3xl: 48px;
+  --spacing-4xl: 64px;
+
+  /* ── Radius — one family, one rung per object class, and the class
+     decides. A chip is a pill, not a 14px box. ─────────────────────────── */
+  --radius-window: var(--r-window);
+  --radius-card:   var(--r-card);
+  --radius-tile:   var(--r-tile);
+  --radius-disc:   var(--r-disc);
+  --radius-item:   var(--r-item);
+  --radius-mini:   var(--r-mini);
+  --radius-mark:   var(--r-mark);
+  --radius-key:    var(--r-key);
+  --radius-pill:   var(--r-pill);
+
+  /* ── Depth — two-part contact + ambient, in the room's own hue. The two
+     named glass recipes are the only inset light in the system. ────────── */
+  --shadow-1:    var(--sh-1);
+  --shadow-2:    var(--sh-2);
+  --shadow-3:    var(--sh-3);
+  --shadow-pop:  var(--sh-pop);
+  --shadow-ink:  var(--sh-ink);
+  --shadow-catch:    var(--catch);
+  --shadow-rim-glass: var(--rim-glass);
+
+  /* ── Motion — three durations, one ease-out curve ────────────────────── */
+  --duration-1: var(--dur-1);
+  --duration-2: var(--dur-2);
+  --duration-3: var(--dur-3);
+  --duration-loop: var(--dur-loop);
+  --ease-out: var(--ease);
+  --ease-pop: var(--ease-pop);
+
+  /* ── Geometry a layout needs to know about ───────────────────────────── */
+  --window-gutter:     var(--gutter);
+  --rail-width:        var(--rail-w);
+  --disc-size:         var(--disc);
+  --container-canvas: var(--canvas-max);
+  --container-prose:  var(--prose-measure);
+}
+
+/* Semantic utilities Tailwind cannot express from a single token.
+   Keep this list short — past ~10 entries, it is a component. */
+@layer components {
+  .u-quiet-pill {
+    /* A control that is real but not the screen's one dark object. Reads
+       above the card in both themes, which is why it is well-2, not well. */
+    background: var(--well-2);
+    color: var(--ink);
+    border-radius: var(--r-pill);
+    min-height: var(--pill-h);
+  }
+  .u-num { font-variant-numeric: tabular-nums; }
+  .u-hatch {
+    background-image: repeating-linear-gradient(
+      45deg, transparent 0 4px, color-mix(in oklab, var(--ink-4) 40%, transparent) 4px 8px
+    );
+  }
+  .u-focus-ring:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .u-layer {
+    background: color-mix(in oklab, var(--ink) 32%, transparent);
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Tailwind v3: this becomes `theme.extend` in tailwind.config.js, with the
+   same `var(--token)` values, plus
+   darkMode: ['variant', '&:where([data-theme="dark"], [data-theme="dark"] *)'].
+   ───────────────────────────────────────────────────────────────────────── */

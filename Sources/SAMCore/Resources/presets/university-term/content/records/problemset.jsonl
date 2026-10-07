@@ -1,0 +1,4 @@
+{"fields":{"attempted":5,"chapter":"Proofs","difficulty":"medium","solved":3,"source":"https://example.org/cs101/sets/proofs","total":8},"id":"ps.dm.01","links":{"course":["c.cs.dm"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":10,"chapter":"Arrays and lists","difficulty":"easy","solved":9,"source":"https://example.org/cs102/sets/arrays","total":12},"id":"ps.dsa.01","links":{"course":["c.cs.dsa"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":6,"chapter":"Trees","difficulty":"medium","solved":4,"source":"https://example.org/cs102/sets/trees","total":10},"id":"ps.dsa.02","links":{"course":["c.cs.dsa"]},"schemaVersion":1,"type":"problemset"}
+{"fields":{"attempted":2,"chapter":"Distributions","difficulty":"hard","solved":1,"source":"https://example.org/cs104/sets/distributions","total":6},"id":"ps.ps.01","links":{"course":["c.cs.ps"]},"schemaVersion":1,"type":"problemset"}

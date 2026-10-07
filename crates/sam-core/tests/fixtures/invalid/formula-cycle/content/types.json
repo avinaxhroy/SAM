@@ -1,0 +1,23 @@
+{
+ "schemaVersion": 1,
+ "types": {
+  "t": {
+   "fields": [
+    {
+     "key": "x",
+     "type": "number"
+    },
+    {
+     "key": "f1",
+     "type": "formula",
+     "expr": "pct(f2, x)"
+    },
+    {
+     "key": "f2",
+     "type": "formula",
+     "expr": "pct(f1, x)"
+    }
+   ]
+  }
+ }
+}

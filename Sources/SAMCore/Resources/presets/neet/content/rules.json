@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "pipelines": {
+    "flip": {
+      "stages": [
+        "learned",
+        "proved",
+        "anchored"
+      ],
+      "gates": {
+        "proved": {
+          "require": "learned"
+        },
+        "anchored": {
+          "require": "proved"
+        }
+      },
+      "completeWhen": "anchored",
+      "proof": {
+        "appliesToKinds": [
+          "watch"
+        ],
+        "minProblems": 2
+      },
+      "anchorSkip": {
+        "allowed": true,
+        "requireReason": true
+      }
+    },
+    "progress": {
+      "stages": [
+        "started",
+        "midway",
+        "done"
+      ],
+      "progress": "pct"
+    }
+  },
+  "scheduler": {
+    "name": "fixed",
+    "fixed": {
+      "intervals": [
+        1,
+        7,
+        30
+      ]
+    }
+  },
+  "metrics": {
+    "questions.practised": {
+      "label": "Questions solved",
+      "view": "practice.sets",
+      "expr": "solved",
+      "reduce": "sum",
+      "unit": "questions"
+    },
+    "sets.pending": {
+      "label": "Sets not finished",
+      "view": "practice.pending",
+      "reduce": "count",
+      "unit": "sets"
+    },
+    "topics.open": {
+      "label": "Open topics",
+      "view": "today.topics",
+      "reduce": "count",
+      "unit": "topics"
+    },
+    "minutes.logged": {
+      "label": "Minutes logged",
+      "view": "progress.sessions",
+      "expr": "min",
+      "reduce": "sum",
+      "unit": "min"
+    },
+    "tests.written": {
+      "label": "Tests and mocks",
+      "view": "mocks.list",
+      "reduce": "count",
+      "unit": "tests"
+    }
+  },
+  "study": {
+    "dailyTargetMin": 420
+  },
+  "timezone": "Asia/Kolkata"
+}

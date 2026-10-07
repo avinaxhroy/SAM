@@ -1,0 +1,88 @@
+/* Plan panel shared styling: skeleton sizing and page-level footer.
+   Variant-specific spine rules are scoped to variants/plan-spine/. */
+
+:root {
+  /* Week band skeleton height matching --sam-row-h-tall to prevent layout shift. */
+  --tw-skel-band: var(--sam-row-h-tall);
+}
+
+/* Skeleton matching week band height. */
+.tw-skel-band { height: var(--tw-skel-band); }
+
+/* Page footer: controls for adding weeks and undated plan work. */
+
+.ps-tail {
+  display: grid;
+  gap: var(--ui-gap-lg);
+  margin-top: var(--ui-gap-lg);
+}
+
+/* Interactive footer row with negative inline margin to align content with canvas padding. */
+.ps-write {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-gap-sm);
+  min-height: var(--hit);
+  margin-inline: calc(var(--ui-pad-sm) * -1);
+  padding: 0 var(--ui-pad-sm);
+  border: 0;
+  border-radius: var(--r-item);
+  background: none;
+  font: inherit;
+  font-size: var(--ui-text-sm);
+  color: var(--ink-3);
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.ps-write:hover { color: var(--ink); background: var(--well); }
+.ps-write:active { background: var(--well-2); }
+.ps-write:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+.ps-slip .cd-card__head { margin-bottom: var(--ui-gap-sm); }
+
+/* Undated collection list rows. */
+.ps-colls { display: grid; }
+.ps-row {
+  display: grid;
+  grid-template-columns: var(--sam-mark) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--ui-gap);
+  width: 100%;
+  min-height: calc(56px * var(--ui-s));
+  padding: var(--ui-pad-sm) var(--sam-row-pad-i);
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease);
+}
+.ps-row + .ps-row { border-top: 1px dashed var(--rule-strong); }
+.ps-row:hover { background: var(--well); }
+.ps-row:active { background: var(--well-2); }
+.ps-row:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+/* Place urgency indicator in first column explicitly. */
+.ps-row > .cd-urgency { grid-column: 1; }
+.ps-row__body {
+  grid-column: 2;
+  display: grid;
+  gap: var(--ui-gap-sm);
+  min-width: 0;
+}
+/* Allow titles to wrap to multiple lines. */
+.ps-row__t {
+  font-size: var(--ui-text);
+  letter-spacing: var(--track-title);
+  color: var(--ink-2);
+  white-space: normal;
+}
+.ps-row[data-done] .ps-row__t { color: var(--ink); font-weight: var(--weight-label); }
+.ps-row__m {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-gap-sm);
+  font-size: var(--ui-meta);
+  color: var(--ink-3);
+}

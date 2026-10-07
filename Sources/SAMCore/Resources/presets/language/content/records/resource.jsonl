@@ -1,0 +1,4 @@
+{"fields":{"kind":"deck","label":"Kana chart - hiragana and katakana (example)","provider":"Example","url":"https://example.org/kana"},"id":"r.ja.kana.chart","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"audio","label":"Slow dialogue audio (example)","provider":"Example","url":"https://example.org/audio"},"id":"r.ja.audio.dialogues","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"video","label":"First lesson: greetings (example)","provider":"Example","url":"https://example.org/lesson-1"},"id":"r.ja.video.lesson1","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"book","label":"Beginner grammar reference (example)","provider":"Example","url":"https://example.org/grammar"},"id":"r.ja.book.grammar","links":{},"schemaVersion":1,"type":"resource"}

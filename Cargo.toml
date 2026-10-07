@@ -1,0 +1,39 @@
+# SAM — one Cargo workspace, three crates (D18): `crates/sam-core` (the engine),
+# `crates/sam-cli` (Surface D, the `sam` binary), `src-tauri` (the shell).
+# `ui/` is a pnpm package, not a cargo member.
+#
+# `tauri` is linked by `src-tauri` only and never enters `sam-cli`'s or
+# `sam-core`'s dependency graph — `crates/sam-cli/tests/no_tauri.rs` is what
+# holds that (D18).
+#
+# One consequence of the shell being a member: `tauri::generate_context!`
+# embeds the frontend at compile time, so `ui/dist/` must exist before
+# `cargo build --workspace` — run `pnpm -C ui build` first. §9's gate list has
+# those two commands the other way round; recorded in BUILDLOG.md as a spec fix
+# for the owner rather than patched into the plan.
+
+[workspace]
+resolver = "3"
+members = ["crates/sam-core", "crates/sam-cli", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+
+[workspace.dependencies]
+# §9: phases 0A–5 need exactly three engine dependencies — a JSON codec, a path
+# resolver and (Phase 1) a watcher. `notify` lands in Phase 1, `rusqlite` and
+# `fsrs` in Phase 6. Nothing here is on the list because it is popular.
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+directories = "6.0.0"
+notify = "8.0.0"
+# Phase 6 (§9, D20): the derived index links the vendored SQLite amalgamation,
+# so one version builds on every platform with FTS5 and JSON1 enabled, instead
+# of inheriting whichever library a distribution shipped. Pinned: 0.40.2.
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+# Phase 6 (§9, D11): the required FSRS option. `open-spaced-repetition/fsrs-rs`,
+# the implementation behind Anki. Pinned: 6.6.2.
+fsrs = "6.6.2"

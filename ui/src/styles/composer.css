@@ -1,0 +1,381 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   THE COMPOSER (COMPOSER §5, 2026-09-29)
+
+   The edit mode's own chrome: the bar that says which screen is being edited,
+   the frame each widget wears, and the line a drag will land on. Every value
+   resolves through the token register (D17) — no colour, radius or duration is
+   written here, `tools/tokenlint.mjs` enforces it, and the light/dark and
+   compact/spacious registers move this file with no second palette.
+
+   Two rules from the design system decide the look:
+
+   - **One dark object per screen stays true.** A frame is a hairline, a chip is
+     a hairline, the edit bar is a quiet row with a rule under it — none of them
+     is a filled slab. The only ink is the 2px drop line, which exists for the
+     half-second of a drag and is the one thing on the surface that means
+     *here*.
+   - **The composer draws around a variant, never inside it.** These rules style
+     the frame's own boxes; nothing here reaches the component's own class
+     names, so a widget keeps the design the lab locked.
+
+   Motion is `--dur-1` and belongs to hover and press only: the drag itself is
+   instant, and `prefers-reduced-motion` therefore has nothing to turn off
+   beyond the frame's own shadow transition.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── the screen ─────────────────────────────────────────────────────────── */
+/* Block flow, not grid: the bar's sticky containing block must be this element
+   (as tall as the screen), otherwise it is its own grid row and has no travel —
+   the bar would scroll away with the canvas. The stack keeps the grid and the
+   bar gets the gap as margin. */
+.cmp-screen {
+  display: block;
+  min-width: 0;
+}
+
+/* ── the edit bar (§4.2) ────────────────────────────────────────────────── */
+/* Sticky inside the window's one scroller, and above the cards it scrolls over
+   — the z-ladder's edit-bar rung (20), below menus (30) and sheets (50). */
+.cmp-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-md);
+  background: var(--sheet);
+  border-bottom: 1px solid var(--rule);
+}
+
+.cmp-bar__where {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.cmp-bar__label {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.cmp-bar__title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-title);
+  color: var(--ink);
+}
+
+/* The one quiet sentence a designed screen shows (§4.2): it explains why the
+   student's first change matters without becoming a second headline. */
+.cmp-bar__note {
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+  max-width: 52ch;
+}
+
+.cmp-bar__spacer,
+.cmp-frame__spacer {
+  flex: 1;
+}
+
+/* ── the stack (§4.1, §4.4, §4.6 · two columns since 2026-09-30) ──────────
+   The stack is the canvas's own two columns, and a widget stands at one of two
+   widths: `span 1` is half of it, `span 2` — and the absent member — is all of
+   it. Two half-width widgets therefore stand side by side with no second layout
+   language; the order in the plan's list is still the reading order, row by row.
+   `position: relative` is what the drop line's own coordinates are measured
+   inside. */
+.cmp-stack,
+.cmp-view {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* The row gap is the stack's own beat; the **column** gap is a lane, not a
+     beat: two components side by side each stand flanked by two arrows while
+     editing (`Frame.svelte`), and two 40px lanes plus their air is what the
+     gutter has to hold — measured, because at `--space-md` the left frame's `›`
+     and the right frame's `‹` overlapped in it. */
+  row-gap: var(--space-md);
+  column-gap: calc(2 * (var(--hit) + var(--space-xs)) + var(--space-md));
+  /* **Dense packing** (owner's call, 2026-09-30): a half-width component fills
+     the cell left open beside a taller one instead of starting a new row, so a
+     pair that can sit together always does and the stack has no accidental holes
+     — "there will be no structural weird visual". The plan's list order is still
+     the reading order (it is the DOM order); only the paint is packed. */
+  grid-auto-flow: row dense;
+  position: relative;
+  min-width: 0;
+}
+
+/* A cell in view mode carries the same width the frame sets while editing, so the
+   two modes cannot disagree about the arrangement. **View mode draws no design
+   switch**: a composed screen's widgets are switched by the frame's own arrows
+   while editing (§4.5), and the screen as it reads is the screen as it reads. */
+.cmp-cell,
+.cmp-frame {
+  grid-column: span var(--cmp-span, 2);
+  min-width: 0;
+}
+
+/* ── a component's frame (§4.3) ─────────────────────────────────────────── */
+/* The cursor is the gesture's own promise: the whole frame is the drag's
+   surface (a press on the bar's chrome or over the inert preview starts it), so
+   the whole frame says *grab*. `user-select: none` is the other half — a drag
+   that selects the preview's text as it moves is a drag the browser fights. */
+.cmp-frame {
+  position: relative;
+  padding: var(--space-xs);
+  border: 1px dashed var(--rule);
+  border-radius: var(--r-card);
+  min-width: 0;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: box-shadow var(--dur-1) var(--ease);
+}
+
+/* Hover and focus lift the frame — never hide or reveal its chrome. The drag
+   lifts it further, which is the gesture's only "grab" feedback. */
+.cmp-frame:hover,
+.cmp-frame:focus-within {
+  box-shadow: var(--sh-1);
+}
+
+.cmp-frame.is-lifted {
+  box-shadow: var(--sh-2);
+  cursor: grabbing;
+}
+
+.cmp-frame__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-xs);
+  min-width: 0;
+}
+
+/* Titlebar edit toggle uses subtle well-2 fill when pressed to keep ink focus on content. */
+.cd-titlebar .cd-iconbtn[aria-pressed="true"] {
+  background: var(--well-2);
+  color: var(--ink);
+}
+
+.cmp-bar__done {
+  font-weight: 600;
+}
+
+/* Drag handle: prevents touch scroll and text selection during drag gestures. */
+.cmp-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-size: var(--text-sm);
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--hit);
+  min-height: var(--hit);
+  padding: 0;
+}
+
+.cmp-frame.is-lifted .cmp-handle {
+  cursor: grabbing;
+}
+
+/* Widget frame title and variant indicator (§4.5). */
+.cmp-frame__name {
+  min-width: 0;
+  max-width: 28ch;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmp-frame__design {
+  color: var(--ink-3);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps);
+}
+
+/* The arrows: the card-material chips, and the app's only design switch — they
+   stand in the lane *outside* the frame, `--hit` + `--space-xs`, so the arrow is
+   the same object at the same distance from whatever it moves. The canvas
+   reserves the lane (`shell/chrome.css`); a lane the canvas could not pay for
+   would put a horizontal scrollbar under the whole screen. The arrow overlaps
+   the frame's own 8px inset and lands on the component's edge by design: that is
+   what a carousel's arrows do, and the preview underneath is inert.
+
+   Vertically it is centred on the *body*, not on the frame: the bar above it is
+   `--hit` tall with a `--space-xs` gap, so the body's centre sits exactly
+   `(var(--hit) + var(--space-xs)) / 2` below the frame's own centre. */
+.cmp-frame {
+  --cmp-lane: calc(var(--hit) + var(--space-xs));
+}
+
+.cmp-step {
+  position: absolute;
+  top: calc(50% + (var(--hit) + var(--space-xs)) / 2);
+  transform: translateY(-50%);
+  z-index: 1;
+  font-size: var(--text-md);
+  line-height: 1;
+  /* A chevron alone in the gutter is a mark, not a control; the arrow is the
+     one object in the composer that floats *outside* the frame, so it wears the
+     card's own material — a hairline rim and one shadow rung — and reads as
+     pressable without spending the screen's one dark object. */
+  background: var(--card);
+  box-shadow: var(--sh-1), inset 0 0 0 1px var(--rule);
+}
+
+.cmp-step:hover {
+  /* The chip's own material stays: hover deepens the shadow, it does not swap
+     the surface for the system's wash (which is what left the two arrows
+     wearing different faces while one of them was under the pointer). */
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--sh-2), inset 0 0 0 1px var(--rule-strong);
+}
+
+.cmp-step--prev {
+  left: calc(-1 * var(--cmp-lane));
+}
+
+.cmp-step--next {
+  right: calc(-1 * var(--cmp-lane));
+}
+
+/* A disabled arrow is the stated fact of a one-design surface, so it keeps its
+   place and its target rather than disappearing (`--ink-4` is the system's
+   non-text-only tone — the glyph is the mark, the title is the sentence). The
+   hover wash is cancelled with it: a disabled control must not answer the
+   pointer as if it were live. */
+.cmp-step[disabled],
+.cmp-step[disabled]:hover {
+  background: none;
+  color: var(--ink-4);
+  cursor: default;
+}
+
+/* Removal is on the surface (§4.3): the same quiet icon button at the bar's
+   right edge, so the act the student came to the frame for is visible without
+   opening anything. Its name is spoken (`Remove <component>`) — the glyph is
+   never the only thing that says what it does. */
+.cmp-remove {
+  flex: none;
+  font-size: var(--text-sm);
+  line-height: 1;
+}
+
+/* ── the component's own content ─────────────────────────────────────────── */
+/* Visible as the preview, unreachable as a control: `inert` where the build has
+   it, and the same effect by hand where it does not (the fallback also drops
+   the tab stop — see `Frame.svelte`). */
+.cmp-frame__body {
+  pointer-events: none;
+  min-width: 0;
+}
+
+/* ── the drop line (§4.4) ───────────────────────────────────────────────── */
+/* 2px of ink **standing beside the widget the drop lands before** — a vertical
+   bar, because the stack is two columns wide and a horizontal rule could not
+   say which of the two objects in a row it was aiming at. Its box comes from
+   the engine (`Screen.svelte` measures the target frame's own box), so nothing
+   here guesses a position. Nothing else moves while it is shown. */
+.cmp-dropline {
+  position: absolute;
+  width: 2px;
+  background: var(--ink);
+  border-radius: var(--r-pill);
+  pointer-events: none;
+}
+
+/* ── the icon picker (COMPOSER §4.7) ────────────────────────────────────── */
+/* A small grid of glyph and name, in a sheet, for a screen's rail icon. It is
+   the app's own set (`shell/Icon.svelte` exports it), so a name offered here is
+   a glyph that draws; the name is spoken in words, the key is what is written.
+   The selected one is ink, like the segment beside it — a chosen object, not a
+   slab the composer invented. */
+.cmp-iconpick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-3xs);
+  max-height: 216px;
+  overflow: auto;
+  padding: var(--space-2xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-item);
+}
+
+.cmp-iconpick__one {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--hit);
+  padding: 0 var(--space-xs);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+  text-align: left;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+
+.cmp-iconpick__one:hover {
+  background: var(--well);
+  color: var(--ink);
+}
+
+.cmp-iconpick__one[aria-checked="true"] {
+  background: var(--ink);
+  color: var(--ink-inv);
+}
+
+.cmp-iconpick__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── a surface this build does not carry (§3.2) ─────────────────────────── */
+.cmp-unknown {
+  min-width: 0;
+}
+
+/* ── reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cmp-frame,
+  .cmp-iconpick__one,
+  .cmp-step {
+    transition: none;
+  }
+}
+
+/* Below the system's restack the bar wraps and its own sentence goes under the
+   controls rather than squeezing them. The arrow lane narrows with the canvas
+   it lives in — the canvas's own side padding at each step is the budget, and
+   the lane never spends more than it (`chrome.css`'s reserves are the other
+   half of that arithmetic). */
+@media (max-width: 1080px) {
+  .cmp-frame {
+    --cmp-lane: calc(var(--hit) + var(--space-2xs));
+  }
+}
+
+@media (max-width: 760px) {
+  .cmp-frame {
+    --cmp-lane: var(--space-2xs);
+  }
+  .cmp-bar__note {
+    order: 3;
+    flex-basis: 100%;
+  }
+}

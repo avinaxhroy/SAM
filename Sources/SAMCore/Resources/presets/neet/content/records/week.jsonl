@@ -1,0 +1,6 @@
+{"fields":{"end":"2026-10-11","index":1,"label":"Week 1","start":"2026-10-05"},"id":"w.01","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"end":"2026-10-18","index":2,"label":"Week 2","start":"2026-10-12"},"id":"w.02","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"end":"2026-10-25","index":3,"label":"Week 3","start":"2026-10-19"},"id":"w.03","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"end":"2026-11-01","index":4,"label":"Week 4","start":"2026-10-26"},"id":"w.04","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"end":"2026-11-08","index":5,"label":"Week 5","start":"2026-11-02"},"id":"w.05","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"end":"2026-11-15","index":6,"label":"Week 6","start":"2026-11-09"},"id":"w.06","links":{},"schemaVersion":1,"type":"week"}

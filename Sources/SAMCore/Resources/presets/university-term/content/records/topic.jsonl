@@ -1,0 +1,16 @@
+{"fields":{"est":30,"kind":"watch","part":"1","title":"Propositional logic"},"id":"t.dm.01","links":{"course":["c.cs.dm"],"resource":["r.dm.notes"],"unit":["u.dm.1"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","part":"2","title":"Proof techniques"},"id":"t.dm.02","links":{"course":["c.cs.dm"],"unit":["u.dm.1"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":30,"kind":"read","part":"1","title":"Relations and functions"},"id":"t.dm.03","links":{"course":["c.cs.dm"],"resource":["r.dm.proofs"],"unit":["u.dm.2"],"week":["w.04"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","part":"1","title":"Counting and graphs"},"id":"t.dm.04","links":{"course":["c.cs.dm"],"unit":["u.dm.3"],"week":["w.07"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":35,"kind":"watch","part":"1","title":"Asymptotic notation"},"id":"t.dsa.01","links":{"course":["c.cs.dsa"],"resource":["r.dsa.video"],"unit":["u.dsa.1"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":50,"kind":"practice","part":"2","title":"Arrays, lists and stacks"},"id":"t.dsa.02","links":{"course":["c.cs.dsa"],"unit":["u.dsa.1"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":50,"kind":"practice","part":"1","title":"Trees and heaps"},"id":"t.dsa.03","links":{"course":["c.cs.dsa"],"resource":["r.dsa.visual"],"unit":["u.dsa.2"],"week":["w.03"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":40,"kind":"revise","part":"1","title":"Sorting and complexity"},"id":"t.dsa.04","links":{"course":["c.cs.dsa"],"resource":["r.dsa.video"],"unit":["u.dsa.3"],"week":["w.06"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":30,"kind":"read","part":"1","title":"Data representation"},"id":"t.sys.01","links":{"course":["c.cs.sys"],"resource":["r.sys.book"],"unit":["u.sys.1"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":40,"kind":"watch","part":"2","title":"Machine code and assembly"},"id":"t.sys.02","links":{"course":["c.cs.sys"],"unit":["u.sys.1"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","part":"1","title":"Processes and scheduling"},"id":"t.sys.03","links":{"course":["c.cs.sys"],"unit":["u.sys.2"],"week":["w.05"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","part":"2","title":"Memory and concurrency"},"id":"t.sys.04","links":{"course":["c.cs.sys"],"unit":["u.sys.2"],"week":["w.06"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":30,"kind":"read","part":"1","title":"Probability basics"},"id":"t.ps.01","links":{"course":["c.cs.ps"],"resource":["r.ps.notes"],"unit":["u.ps.1"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":40,"kind":"practice","part":"2","title":"Random variables"},"id":"t.ps.02","links":{"course":["c.cs.ps"],"unit":["u.ps.1"],"week":["w.03"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":35,"kind":"watch","part":"1","title":"Distributions"},"id":"t.ps.03","links":{"course":["c.cs.ps"],"unit":["u.ps.2"],"week":["w.05"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","part":"2","title":"Estimation and inference"},"id":"t.ps.04","links":{"course":["c.cs.ps"],"unit":["u.ps.2"],"week":["w.08"]},"schemaVersion":1,"type":"topic"}

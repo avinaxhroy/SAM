@@ -1,0 +1,3 @@
+{"fields":{"kind":"kana","label":"Kana","note":"Both syllabaries, read aloud until nothing needs decoding.","order":1,"target":92},"id":"t.kana.01","links":{"language":["lang.ja.01"]},"schemaVersion":1,"type":"track"}
+{"fields":{"kind":"vocabulary","label":"Core vocabulary","note":"Nouns and set phrases first; each one is a card in the srs pipeline.","order":2,"target":300},"id":"t.vocab.01","links":{"language":["lang.ja.01"]},"schemaVersion":1,"type":"track"}
+{"fields":{"kind":"listening","label":"Listening","note":"Phrases you must hear at speed, not only read.","order":3,"target":60},"id":"t.listen.01","links":{"language":["lang.ja.01"]},"schemaVersion":1,"type":"track"}

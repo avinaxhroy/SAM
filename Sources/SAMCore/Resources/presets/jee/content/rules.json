@@ -1,0 +1,82 @@
+{
+  "lint": {
+    "rules": {
+      "content.type.views": {
+        "severity": "error"
+      }
+    }
+  },
+  "metrics": {
+    "minutes.logged": {
+      "expr": "min",
+      "label": "Minutes logged",
+      "reduce": "sum",
+      "unit": "min",
+      "view": "progress.sessions"
+    },
+    "questions.solved": {
+      "expr": "solved",
+      "label": "Questions solved",
+      "reduce": "sum",
+      "unit": "questions",
+      "view": "practice.sets"
+    },
+    "topics.open": {
+      "label": "Open topics",
+      "reduce": "count",
+      "unit": "topics",
+      "view": "today.topics"
+    }
+  },
+  "pipelines": {
+    "flip": {
+      "anchorSkip": {
+        "allowed": true,
+        "requireReason": true
+      },
+      "completeWhen": "anchored",
+      "gates": {
+        "anchored": {
+          "require": "proved"
+        },
+        "proved": {
+          "require": "learned"
+        }
+      },
+      "proof": {
+        "appliesToKinds": [
+          "watch"
+        ],
+        "minProblems": 2
+      },
+      "stages": [
+        "learned",
+        "proved",
+        "anchored"
+      ]
+    },
+    "progress": {
+      "progress": "pct",
+      "stages": [
+        "started",
+        "midway",
+        "done"
+      ]
+    }
+  },
+  "scheduler": {
+    "fixed": {
+      "intervals": [
+        1,
+        7,
+        30
+      ]
+    },
+    "name": "fixed"
+  },
+  "schemaVersion": 1,
+  "study": {
+    "dailyTargetMin": 240
+  },
+  "timezone": "Asia/Kolkata"
+}

@@ -1,0 +1,576 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE SHELL'S OWN CHROME  (§4.10, design.md §12)
+
+   The design system owns how a thing looks; this file owns only how the shell
+   composes those things — the body's columns (rail, canvas, source pane,
+   detail), where the tool cluster sits, and one scrollbar per surface at the
+   window edge.
+
+   Nothing here draws window furniture. `decorations: true` means the frame, its
+   controls and its drag belong to the platform; the app's titlebar row carries
+   identity, context and the global tools, which is what `design.md` §12 says a
+   desktop app's titlebar carries.
+
+   The corrections in this file are bugs the captures caught rather than
+   preferences. Each is marked and dated so a later pass does not "simplify"
+   it away.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Titlebar tools container: search pill shrinks as needed while icon buttons maintain 32px targets. */
+.cd-titlebar__tools { display: flex; align-items: center; gap: var(--space-xs); flex: 0 1 auto; min-width: 0; }
+.cd-titlebar__tools .cd-iconbtn { flex: none; }
+
+/* The search pill is the titlebar's one wide object, so it is the one control
+   allowed to take the slack between the identity group and the icon buttons.
+   `flex: 0 1 auto` with a max rather than a fixed width: at 560px (the shell's
+   `minWidth`) the pill gives up its label before the icon buttons lose their
+   targets, because the buttons are 32px each and the pill is the only element
+   here with a width that is a choice rather than a measurement. */
+.cd-titlebar__search {
+  flex: 0 1 auto;
+  width: 320px;
+  max-width: 320px;
+  min-width: 148px;
+  margin-inline-end: var(--space-2xs);
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.cd-titlebar__searchtext { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
+/* The keycap is the one element that must never be squeezed out: it is the only
+   place the app teaches its own shortcut, so it is `flex: none` and the label
+   is what gives way. */
+.cd-titlebar__search .cd-kbd { flex: none; }
+
+/* ── CORRECTION 8 · THE FIELD ON THE HEADER WEARS THE HEADER'S OWN MATERIAL ──
+   `.cd-searchpill` fills with `--well`, a 260-hue neutral — the sheet's own
+   family, which is right on a sheet and wrong on the chrome. The titlebar is
+   `--wash-rose`, so the app's one wide control read as a grey-blue slab glued
+   to a pink bar: measured on the running app, the pill sat two points darker
+   than the bar it was on and carried none of the bar's hue — the sheet's cold
+   neutral against a warm wash. Neither a field nor a chip, and two lamps on
+   one row.
+
+   A field on a surface is that surface one step deeper, and the system already
+   has the recipe: `--glass` is ink at 5% (7% in dark), declared as "a veil of
+   the foreground's own tone … the same recipe darkens the sheet in one theme
+   and lifts it in the other". Mixed over the wash it is the header's own pink,
+   one rung down, in both themes, and the header grows no token of its own.
+
+   The hover is restated for the same reason: `.cd-searchpill:hover` names
+   `--well-2`, and a grey flash on hover is the same bug arriving late. */
+.cd-titlebar__search { background: var(--glass); }
+.cd-titlebar__search:hover { background: color-mix(in oklab, var(--ink) 9%, transparent); }
+
+/* ── CORRECTION 6 · `.cd-body` WAS A FLEX ROW AND SHOULD HAVE BEEN A GRID ──
+   This file used to open the system's grid open into `display: flex` "so the
+   source pane and the detail pane could be siblings rather than extra grid
+   cells". They *are* extra grid cells: `styles/components.css` already declares
+   `grid-template-columns: var(--rail-w) minmax(0, 1fr) auto auto` for exactly
+   those two. Overriding the display silently voided that declaration and, with
+   it, three things the system depends on — all three measured, not guessed:
+
+   1 · The rail's column became its **content's** width, not `--rail-w`. It
+      measured 74px against a declared 88px, and the 14px that went missing is
+      what a hovering disc spent eating the first character of the page headline
+      — the capture reads "ood morning" because the disc's 114px pill overhangs
+      a 74px track and the headline starts 14px too early. A track that is
+      sized by its contents is a track that moves when its contents change,
+      which is the reflow the system's own comment on `.cd-body` was written to
+      prevent.
+   2 · The system's narrow rule (§27, 760px) restacks `.cd-body` onto
+      `grid-template-rows: auto minmax(0, 1fr)` so the rail turns into the top
+      bar. Under flex it stayed a row, so the rail's intrinsic width won: at a
+      700px window — inside the shell's own `minWidth: 560` — the rail measured
+      575.7px and pushed 82% of the canvas off screen.
+   3 · The panes' two `auto` tracks had nothing to sit in, so their widths came
+      from their content too.
+
+   So the override is deleted rather than repaired. The grid is the system's, the
+   four tracks are the app's, and the system's §27 restack now reaches a live
+   declaration. */
+.cd-body { min-height: 0; }
+.cd-body > .cd-scroller { min-width: 0; min-height: 0; }
+.cd-body > .src-pane, .cd-body > .cd-detail { min-width: 0; }
+
+/* Below the system's 760px restack the two panes are no longer side columns —
+   there is no side left — so they join the single column as rows under the
+   canvas. They are never hidden: the source pane is door C and the detail pane
+   is the record a row opens, and D13's rule is that *content* may be revealed
+   on demand while *capability* may not be made unreachable. Narrow is a window
+   size, not a reduced product. */
+@media (max-width: 760px) {
+  .cd-body { grid-template-columns: minmax(0, 1fr) !important; }
+  .cd-body > .src-pane, .cd-body > .cd-detail { max-height: 46vh; overflow: auto; }
+  /* The detail pane is the thing a row opens *instead of* navigating away, so at
+     narrow it earns the one floating layer the system allows and the canvas
+     stays behind it. */
+  .cd-body > .cd-detail {
+    position: absolute;
+    inset: var(--titlebar-h) 0 0 auto;
+    width: min(420px, 100%);
+    z-index: 20;
+    background: var(--sheet);
+    box-shadow: var(--sh-pop);
+  }
+}
+
+/* One scrollbar per surface, at the window edge (design.md §12). The shell's
+   canvas is the scrolling surface; the window itself never scrolls, so the
+   titlebar stays put. */
+.cd-scroller { overflow: auto; min-height: 0; }
+
+/* ── CORRECTION 5 · THE TITLEBAR'S LEFT INSET WAS GUESSED FROM THE OS ──────
+   The system reserves room for the platform's own window controls in exactly
+   two states (`design/components.css:50-51`): an overlay titlebar, where the
+   traffic lights float on the app's own row, and a plain one, where they sit in
+   a bar above the content and the app's row is clear. The app had neither rule
+   wired, so the row drew under the controls on macOS and reserved nothing for
+   them; the only way to have found it is a screenshot of the packaged window,
+   which this machine cannot take (`UI_PLAN.md` §6.5).
+
+   So the shell reports the answer as data (`shell_info` -> `titlebarOverlay` ->
+   `[data-titlebar]`) and the reserve is a rule with two branches, not a guess.
+   `data-titlebar="plain"` is the floor, so a page that never receives the
+   attribute reserves nothing and the browser harness renders the same row the
+   demo does. */
+[data-titlebar='overlay'] .cd-titlebar[data-os='mac'] { padding-left: var(--titlebar-inset-mac); }
+[data-titlebar='overlay'] .cd-titlebar[data-os='win'] { padding-right: var(--titlebar-inset-win); }
+
+/* The reset, and it is not optional. The system's own rule
+   (`design/components.css:50-51`) keys off `[data-os]` alone, so the moment the
+   row carries its platform label it reserves 78px of macOS traffic-light room
+   whether or not there are any traffic lights — which is why every browser-route
+   capture had a 78px hole on the left of the titlebar. `[data-titlebar]` is the
+   fact the system is missing, so the app supplies it and overrides the
+   coarser key in the branch where the controls are somewhere else entirely. */
+[data-titlebar='plain'] .cd-titlebar[data-os='mac'] { padding-left: var(--space-lg); }
+[data-titlebar='plain'] .cd-titlebar[data-os='win'] { padding-right: var(--space-lg); }
+
+/* ── CORRECTION 1 · THE Z-ORDER LADDER COULD NOT SEE THE RAIL ─────────────
+   The ladder below is the app's declared one (`UI_SPEC.md` §2.2) and it is
+   right for everything that floats *over the canvas*. It was wrong for the
+   rail, and the failure was measured rather than guessed: the rail tube is
+   `z-index: 2` (`design/components.css:260`) and every card was given
+   `z-index: 10`, so the canvas painted **over** the rail's breakout label. A
+   hovered disc opens to 114px inside a 60px tube, and the last 54px of it —
+   which is where the destination's *name* is — was being covered by the first
+   card's left edge. The captures showed "Progre", "Practi", "Revie" and the
+   cause was that nothing between the label and the card was clipping it; the
+   card simply sat on top.
+
+   The system's own comment on `.cd-nav` states the requirement: *"Above the
+   canvas: an open item overlaps the gutter, and the scroller is a later
+   sibling, so without a stacking context the card would paint over the name."*
+   The stacking context was there; the rungs were not ordered under it.
+
+   So the rail is lifted above the whole floating ladder, and the card's own
+   `z-index` is kept for the sheets and menus that open *out of* a card. The
+   rail never has to overlap a sheet, a menu or a scrim — those are
+   `position: fixed` and cover it whatever its z-index — so nothing is lost. */
+.cd-nav { z-index: 30; }
+
+/* ── CORRECTION 2 · THE GLASS HAD NO STANDARD PROPERTY ───────────────────
+   `design/components.css:266` declares the rail's blur twice, unprefixed and
+   `-webkit-`. The production build collapses the pair to the prefixed form
+   alone (verified in the emitted stylesheet), and the rail then computes
+   `backdrop-filter: none` in Chromium while the demo — which ships the same
+   rule unminified — computes `blur(26px) saturate(1.6)`. A rail with no blur
+   over a near-uniform sheet has nothing to refract, so the tube reads as a flat
+   grey column instead of a material: the single most visible "this is a web page
+   wearing a design system" tell in the whole window.
+
+   Declaring the pair adjacently does not survive the build: the minifier folds
+   two identical adjacent declarations into the prefixed one, so the emitted rule
+   is `-webkit-backdrop-filter` alone, and Chromium then paints no blur at all —
+   verified by pixel diff, not by reading the computed value, because
+   `getComputedStyle().backdropFilter` reporting `none` was the symptom and the
+   pixels were the evidence. A `@supports` guard puts the two declarations in
+   different blocks, which is the one shape the fold cannot reach, and it
+   degrades in the right order: an engine that cannot parse the standard
+   property never enters the block and keeps the prefixed line. The prefixed
+   line stays because WebKitGTK is one of the three platforms this ships to
+   (`design.md` header) and is the only engine on the list that still needs it. */
+.cd-nav__tube {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+}
+@supports (backdrop-filter: blur(0px)) {
+  .cd-nav__tube {
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  }
+}
+
+/* ── THE RAIL'S MATERIAL IS ONE OBJECT, AND IT MOVES ──────────────────────
+   The column used to *be* the glass: `.cd-nav` carried the veil, the blur, the
+   rim and the contact shadow, so its material was the same object as its
+   geometry and could never leave its box. It now paints nothing, and
+   `.cd-nav__tube` — an absolutely-positioned child, measured from the column's
+   own padding box and from one disc's box — carries all four. `App.svelte`
+   sets its box; this file owns what it looks like.
+
+   A single continuous tube shape morphs and moves between active navigation items
+   rather than rendering multiple layered pill elements.
+
+   The material is **one object on one spring**, integrated per frame in the
+   script (`App.svelte`, k/c per axis, critically damped), and that is why the
+   transition list below has no geometry on it: a CSS transition would
+   interpolate toward every frame's value instead of following it, and — worse —
+   it restarts its curve on every retarget, so a pointer crossing three discs
+   lurched three times. The radius is the one thing the browser still animates,
+   because it is the one thing the script does not integrate: three states, in
+   the order the gesture has them — `--r-pill` (the column), `h/2` (a drop while
+   the material contracts and crawls, `is-flowing`), `--r-disc` (the pill it
+   settles into, `is-hugging`) — and it has to be in the list or the corner
+   snaps under the material.
+
+   At rest the tube is the whole column, which is exactly what `.cd-nav` drew
+   before: same box, same radius, same shadow. */
+.cd-nav {
+  background: none;
+  box-shadow: none;
+  /* Cancelled in the same fold-proof shape Correction 2 established: the two
+     declarations in one block would collapse to the prefixed one and leave the
+     system's standard `backdrop-filter` live — a second blur behind a tube that
+     already blurs, which is exactly the kind of doubling the pixels cannot
+     explain later. */
+  -webkit-backdrop-filter: none;
+}
+@supports (backdrop-filter: blur(0px)) {
+  .cd-nav {
+    backdrop-filter: none;
+  }
+}
+.cd-nav__tube {
+  position: absolute;
+  /* A disc's box arrives as custom properties from `App.svelte` — spring-driven,
+     never transitioned — and the radius lives here with `is-hugging`. The
+     **fallbacks are the rest box**, not a default of last resort: at rest the
+     script *removes* the geometry, because the column stretches with the view
+     and a box measured once at mount goes stale the moment the view's rows land
+     (measured on a cold start: 656 → 733, with the discs 77px down). */
+  left: var(--tube-x, 0);
+  top: var(--tube-y, 0);
+  width: var(--tube-w, 100%);
+  height: var(--tube-h, 100%);
+  border-radius: var(--r-pill);
+  z-index: 0;
+  transition: border-radius var(--dur-2) var(--ease);
+  background: var(--glass);
+  box-shadow: var(--sh-2), var(--rim-glass);
+  pointer-events: none;
+}
+/* Against a disc the material wears the disc's own corner, because that is the
+   shape it is sitting in. */
+.cd-nav.is-hugging .cd-nav__tube { border-radius: var(--r-disc); }
+/* Travelling — contracting to a disc's square or crawling between two of them —
+   it is a *drop*: the corner opens to half the height. On the 44px square that
+   is a sphere; on the column it is nothing at all (h/2 of 785px is clamped to
+   the column's own 30px cap, the same value `--r-pill` clamps to), so the enter
+   contracts the column into a drop and the extend opens it into the pill, with
+   the radius in the transition list above doing both at the beat's speed. */
+.cd-nav.is-flowing .cd-nav__tube { border-radius: calc(var(--tube-h, 999px) / 2); }
+
+/* Reduced motion: the script *jumps* the material instead of integrating it, so
+   the only thing left that the browser animates here — the radius — is dropped
+   as well. */
+@media (prefers-reduced-motion: reduce) {
+  .cd-nav__tube {
+    transition: none;
+  }
+}
+
+/* ── THE MATERIAL'S EDGE IS THE NAME'S EDGE, AND THE COLUMN IS THE ONLY RAIL
+   THAT HAS ONE ─────────────────────────────────────────────────────────────
+   Hovering *is* the material arriving, so a name is not opened by a rule at a
+   moment: its clip is a function of the material's box against that disc's own
+   label region, computed in the script every frame and written as `--reveal`
+   (`App.svelte`, *"the name is revealed where the material covers it"*). The
+   clip is the definition — the name's box stays a fixed `--rail-label` and the
+   name is clipped to the material's edge — so the text is laid out once and
+   never re-shapes as the pill opens, and the clipped-away tail is not
+   hit-testable (`clip-path` governs pointer events too: a bared disc's hit area
+   is its visible pill and no more).
+
+   The disc's *own* width follows the reveal for one reason: the count rides the
+   disc's right edge (`design/components.css`: *"the count rides the glyph, not
+   the disc"* — it is pinned to the disc's padding box), so a badge on a disc
+   being approached slides out with the material's edge instead of standing 70px
+   out over bare rail. That width is written per frame, so it cannot be in a
+   transition list — which is why the bared rule restates one.
+
+   A disc that has been left stays `is-bared` at `--reveal: 0px`: its width is
+   back to `--disc`, its glass is still cancelled (a closed disc paints nothing
+   anyway) and its name is clipped to nothing, so it is the same pixels as a disc
+   the material never visited. Removing the class instead would replay the
+   system's 220ms width transition and 140ms fade *after* the edge had already
+   closed the name — a name flashing open on a disc the material had left.
+
+   The bar (`max-width: 760px` in the system) has no tube and no labels: the
+   script still tracks where the pointer is, but nothing in this block paints
+   there, and the discs keep the system's own tap-stuck-hover rules. */
+@media (min-width: 761px) {
+  /* While the tube is against a disc, that disc does not paint its own glass —
+     the tube *is* its pill. A selected disc is exempt: `--ink` is solid, it is
+     the one dark object the chrome is allowed, and the label inside it is
+     already `--ink-inv` by the system's own rule. */
+  .cd-nav.is-hugging > .cd-disc.is-bared:not([aria-current='page']) {
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+  }
+  .cd-nav.is-hugging > .cd-disc.is-bared {
+    width: calc(var(--disc) + var(--reveal, 0px));
+    z-index: 1;                      /* above the tube, and above the ink */
+    transition: background-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease),
+                color var(--dur-1) var(--ease);
+  }
+  .cd-nav.is-hugging > .cd-disc.is-bared .cd-disc__label {
+    flex: none;
+    width: var(--rail-label);
+    padding-inline-start: var(--space-2xs);
+    /* The name's gate, and it is geometry, not a delay: the script writes the
+       fraction of the label the material has covered, so a drawer that is a
+       fifth open is *invisible* rather than showing a glyph cut in half — the
+       script's `revealOpacity` carries the reference's own numbers (held at 0
+       until the clip covered all but the last tenth, then a fade across it).
+       No transition on either property: they are the eased edge itself,
+       resampled per frame, and a transition would lag the edge they are one
+       with — the 70ms delay this replaces outlived the edge on a fast pass and
+       reopened names the material had already left. */
+    opacity: var(--reveal-o, 0);
+    clip-path: inset(0 calc(100% - var(--reveal, 0px)) 0 0);
+    transition: none;
+  }
+
+  /* ── AND WHILE THE MATERIAL IS UNDER WAY, NOTHING IT PASSES IS OPEN ──────
+     `is-hugging` is on from the first aim until the pointer leaves the rail,
+     and it holds every disc the pointer merely *passes* closed. The disc being
+     aimed at is `is-bared` and exempt — the material is already its background
+     — so what this gates is the disc under a pointer that is only crossing it.
+     That is what makes a sweep down the rail one movement instead of a
+     flurry: nothing opens and closes under a pointer that is passing through,
+     and the material is visibly between two discs while it is.
+
+     The **disc** is gated, not only its label, because the count rides the
+     disc's right edge: a badge standing 70px out over bare rail is a pill that
+     is not there. */
+  .cd-nav.is-hugging > .cd-disc:hover:not(.is-bared),
+  .cd-nav.is-hugging > .cd-disc:focus-visible:not(.is-bared) {
+    width: var(--disc);
+  }
+  .cd-nav.is-hugging > .cd-disc:hover:not(.is-bared) .cd-disc__label,
+  .cd-nav.is-hugging > .cd-disc:focus-visible:not(.is-bared) .cd-disc__label {
+    width: 0;
+    padding-inline-start: 0;
+    opacity: 0;
+  }
+}
+
+/* On its side the rail is a bar: the system turns the discs into plain keys,
+   hides the labels and makes the column `position: static`, so there is no
+   hover to answer and nothing for an absolutely-positioned tube to resolve
+   against. The material goes back onto the column and the tube is not drawn —
+   the same pixels the rail had before it learned to move. */
+@media (max-width: 760px) {
+  .cd-nav {
+    background: var(--glass);
+    box-shadow: var(--sh-2), var(--rim-glass);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  }
+  .cd-nav__tube {
+    display: none;
+  }
+}
+@supports (backdrop-filter: blur(0px)) {
+  @media (max-width: 760px) {
+    .cd-nav {
+      backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+    }
+  }
+}
+
+/* ── CORRECTION 3 · THE RAIL'S PILL LANDS ON THE CANVAS'S LEFT EDGE ──────
+   `--rail-label` is 70px, and that is not an arbitrary width: it is the width
+   at which an open disc's right edge lands **exactly** on the left edge of the
+   canvas's content. Measured at 1180px, window margin 24:
+
+     tube           38 ..  98   absolute
+     disc, closed   46 ..  90
+     disc, open     46 .. 160   (22 + --disc 44 + --rail-label 70, rel. window)
+     content       160          (--rail-w 88 + --space-2xl 32, rel. window)
+
+   160 == 160. The system's comment on `.cd-nav` — *"the pill overflows it into
+   the gutter beside the canvas, which is why the page underneath never moves
+   while you read a name"* — is therefore a precise statement, and the two
+   numbers are tuned as a pair. Widening `--rail-label` for longer plan-authored
+   destination names ("Assessments" measures 86px) moves the pill's edge 20px
+   right and costs 20px of every screen's leftmost content, on every screen,
+   forever, to save an ellipsis on one name that the page head already spells in
+   full. So the token stands, and the long name truncates: the disc carries the
+   full string in its `aria-label` and its `title`, and the destination's own
+   title is the page head's 52px word, three inches away.
+
+   The label clamps to the token rather than opening wider, and the disc's open
+   width stays `calc(var(--disc) + var(--rail-label))` exactly — a max-width
+   would let each name move the pill's own left edge under a pointer travelling
+   straight down the rail, which is the reflow the system's comment exists to
+   prevent. */
+.cd-disc__label { text-overflow: ellipsis; }
+
+/* ── CORRECTION 7 · THE GUTTER WAS 16px SHORT ──────────────────────────────
+   Correction 3 lands the pill's right edge on the canvas's *left edge* (x=112).
+   It says nothing about the content's left edge, which sits one `--space-2xl`
+   further in at x=144 — so the pill covers the first 16px of every screen's
+   content, and the page head is a 52px word whose first character is exactly
+   what gets eaten. Measured on six screens: "**G**ood evening", "**8** weeks ·
+   97 things", the first figure tile's left shoulder. The design system's own
+   comment promises *"the pill overflows it into the gutter beside the canvas"*;
+   the gutter is 16px too small for the promise, in the system as shipped.
+
+   So the reserve is made explicit, once, in the shell, as the difference the
+   measurement found — and only on the left, because only the left is where the
+   rail is. A symmetric reserve would shift every screen's content 8px the wrong
+   way to fix 16px of one edge, and this canvas is already `margin: 0 auto`
+   inside a `minmax(0, 1fr)` track, so an asymmetric padding costs width where
+   there is slack and costs nothing where there is not. */
+:root { --rail-overhang: 16px; }
+.cd-canvas { padding-left: calc(var(--space-2xl) + var(--rail-overhang)); }
+
+/* ── THE DESIGN SWITCH'S LANE ─────────────────────────────────────────────
+   The composer's frames carry the app's design switch — two arrows that stand
+   *outside* the frame (`styles/composer.css`: `--hit` + `--space-xs` = 40px a
+   side) — and the composed screen is drawn in this canvas, so the lane is paid
+   for here. On the left the rail's overhang sits above it, on the right this
+   reserve — for the same reason the rail's overhang exists: a control that
+   escaped the canvas would put a horizontal scrollbar under the whole screen,
+   and one that was clipped would be a capability the window can hide.
+
+   The right reserve steps with the canvas's own padding at each breakpoint, so
+   it is never smaller than the lane (`styles/components.css` narrows the side
+   padding below 1024px and below 760px; both are answered here). */
+.cd-canvas { padding-right: calc(var(--space-2xl) + var(--space-xs)); }
+@media (max-width: 1080px) { .cd-canvas { padding-right: calc(var(--space-xl) + var(--space-md)); } }
+@media (max-width: 1024px) { .cd-canvas { padding-right: calc(var(--space-lg) + var(--space-lg)); } }
+@media (max-width: 760px) { .cd-canvas { padding-right: var(--space-lg); } }
+
+/* ── CORRECTION 4 · THE RAIL IS A COLUMN OF PLACES, AND ITS BAND IS NOT ────
+   System moved up out of the hairline band (it is a destination, `App.svelte`),
+   so the band now holds exactly the two things the system reserves it for:
+   `Add` — quiet, never ink, because chrome must not spend a screen's one dark
+   object twice — and the theme disc, whose glyph is the mode the press
+   *switches to*. Both are `flex: none` so the spacer above them is what
+   absorbs the height, and the band's hairline sits tight under the last
+   destination instead of floating in the middle of the column. */
+.cd-disc--add { color: var(--ink-3); }
+.cd-disc--add:hover,
+.cd-disc--add:focus-visible { color: var(--ink); }
+.cd-disc--theme { color: var(--ink-3); }
+.cd-disc--theme:hover,
+.cd-disc--theme:focus-visible { color: var(--ink); }
+
+/* ── ONE BODY: THE ROOM LIES UNDER THE SHEET ───────────────────────────────
+   The window is flush (`App.svelte` carries `data-window="flush"`) — UI_SPEC
+   R1's edge-to-edge, deviation S1: no gutter, no app-drawn corner, the opaque
+   sheet covers `--backdrop`/`--room-lit` on html/body completely (the demo and
+   print pages still run in the gap). Two notes that used to lean on the room
+   being visible, restated so neither gets "fixed" back:
+
+   1 · The margin trap `base.css:40-48` documents — a last child's `--gutter`
+       margin escaping `body`'s height — cannot fire here: flush sets
+       `margin: 0`, so there is no margin to escape. The demo page keeps the
+       gutter margin and keeps the trap; the warning about not "fixing" that
+       margin into a padding belongs to that page, and stays there.
+
+   2 · The rail's glass never sampled the room: the tube sits 14px inside the
+       sheet in both modes, and the sheet is opaque in both. What makes the
+       material legible is the veil, the five edge rungs and Correction 2's
+       real standard property blurring what actually is behind the tube — the
+       sheet, and whatever the open pill reaches past the column's edge. The
+       room was never the ingredient; the missing standard property was. */
+
+/* Shell frame chrome: rail, titlebar, and picker styling (Appendix C.5).
+   The rail uses frosted surface styling over the window sheet. */
+
+/* Titlebar elevation above canvas content.
+   z-index without position: relative is intentional: as a grid item of .cd-window,
+   it honors z-index without establishing a positioning context for floor bar docks. */
+.cd-titlebar { z-index: 30; }
+
+/* Toast exit animation. */
+.cd-toast.is-leaving {
+  animation: none;
+  opacity: 0;
+  transform: translateY(6px) scale(0.98);
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-toast.is-leaving {
+    transition: none;
+  }
+}
+
+/* ── THE RAIL'S SELECTION INDICATOR ───────────────────────────────────────
+   `refs/uselayouts/registry/default/example/gooey-navbar.tsx`, mechanic only:
+   ONE flat capsule whose box is measured from the discs' own boxes and set in
+   two phases — out of the disc it was on until the capsule spans both, then onto
+   the disc pressed (`--dur-2` + `--ease`, driven from `App.svelte`). The
+   reference's tangent-arc neck, its SVG contour, its spring and its neighbour
+   push are refused: Cadence is flat, and the rail's tube is fixed for the life
+   of the window, so no disc moves — only the ink travels.
+
+   Whatever the pill covers inverts, measured per frame while the stretch is in
+   flight (`App.svelte`), so a label is never ink on ink. The system's own ink
+   background on `aria-current` is cancelled here and re-stated by `.is-inked`,
+   which the pill's own arrival sets: the glyphs invert when the ink reaches
+   them, never a beat earlier. */
+.cd-nav__ind {
+  position: absolute;
+  z-index: 0;
+  border-radius: var(--r-disc);
+  background: var(--ink);
+  pointer-events: none;
+}
+.cd-nav > .cd-disc { position: relative; z-index: 1; }
+.cd-nav > .cd-disc[aria-current='page'] { background: transparent; color: var(--ink); }
+.cd-nav > .cd-disc[aria-current='page'].is-inked { color: var(--ink-inv); }
+/* A selected disc that OPENS (hover, or keyboard focus — both open the pill)
+   paints that pill with the ink, which is the app's own resolution
+   (`design/components.css`'s aria-current rule sits after the hover rule, so a
+   hovered current disc stays ink there). Without this, the open label runs past
+   the 44px indicator onto the light glass and measures 1.17:1. */
+.cd-nav > .cd-disc[aria-current='page']:hover,
+.cd-nav > .cd-disc[aria-current='page']:focus-visible {
+  background-color: var(--ink);
+  background-image: none;
+  color: var(--ink-inv);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE RUNNING SESSION — the floor bar's reservation.
+
+   `timer-chrome` C docks a bar at the window's floor (`variants/timer-chrome/`).
+   The lab's C is the frame's own last flow row, so the floor it takes is floor
+   the layout gives up rather than floor it covers; the shell's `.cd-window` is
+   not the dock's to restructure, so the reservation is made explicit instead:
+   the dock measures itself and writes `--dock-h` on the window, and the window
+   pays exactly that much.
+
+   It is paid as the WINDOW's own bottom padding rather than the body's: the
+   window's second grid row is already `minmax(0, 1fr)`, so the shrink reaches
+   the scroller, whereas padding on `.cd-body` (whose implicit row is `auto`)
+   would leave the canvas overflowing straight through the reserved band. The
+   dock's own `bottom: 0` is unaffected — absolute positioning resolves against
+   the padding box, whose bottom edge is still the window's floor. `:has()`
+   keeps the rule out of the way on every screen where nothing is docked.
+   ══════════════════════════════════════════════════════════════════════════ */
+.cd-window:has(.vtcc__dock) { padding-bottom: var(--dock-h, 0px); }
+/* …and the body has to FIT its own box for that reservation to be felt. An
+   auto row is sized by its content, so a tall canvas would overflow straight
+   through the reserved band and sit behind the dock; the system's own narrow
+   restack (§27) already declares `grid-template-rows` for exactly this reason.
+   One explicit row, only while the dock is up, and the scroller scrolls inside
+   it — which is what `.cd-scroller { overflow: auto }` is for. */
+.cd-window:has(.vtcc__dock) .cd-body { grid-template-rows: minmax(0, 1fr); }

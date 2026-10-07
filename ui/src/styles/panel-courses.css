@@ -1,0 +1,177 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · SUBJECTS / COURSES (UI P2 · U2, S2)
+
+   The identity layer. The tiles are the design system's own `.cd-tile` at the
+   system's own `.cd-tiles` grid, in the four washes, and this file adds the
+   three things that arrangement needed and the system does not ship: the
+   meter's own place in a tile's foot, the "this opens" mark, and one tile
+   modifier for the figure a tile holds when the plan has a date for it.
+
+   NOT ONE CLASS HERE REDEFINES A SYSTEM CLASS. `crs__tile`, `crs__meter`,
+   `crs__open` and `crs__cap` are app-layer classes; every other selector below
+   is a system class being *placed*, never re-spelled. In particular
+   `.cd-tile` keeps the system's own `min-height: 152px`
+   (`components.css:458`) and the system's own `--r-card` and `--sh-1` — the
+   tiles are not 380×270 boxes with a 3px bar, and this file does not make them
+   so. Where a value here is a number rather than a token, it is in the density
+   register and carries the rule it derives from.
+
+   `node tools/tokenlint.mjs` is the gate.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 0 · THE DENSITY REGISTER ─────────────────────────────────────────────
+   One number, and it is a size rather than a rung (`design.md` §7.5: "A size
+   is an object's own dimension … it is a literal where it is used, because it
+   belongs to that object and no other"). */
+
+:root {
+  /* THE OPEN MARK. 30px is the system's own `.cd-round` disc
+     (`components.css:110`) — the mark is taken at its own dimension so it
+     measures the same as the disc it replaces, minus the ink. */
+  --crs-mark: 30px;
+}
+
+/* ── 1 · THE TILE ────────────────────────────────────────────────────────
+   Nothing here changes the tile's surface: the wash, the `--wash-grad`, the
+   24px corner and the `--sh-1` all come from `components.css:455-469` and are
+   untouched. Three things are arranged inside it.
+
+   The tile's ONE NUMBER. §8.2's rule is "the top-right chip is always a
+   fraction, because a fraction is a fact and a percentage is a claim" — and
+   `collection.css:624` extends it: one figure, one home. So the fraction lives
+   in the meter's own `__frac` beside the bar that draws it, the top-right chip
+   carries a DIFFERENT datum (the next dated thing, in words), and no percentage
+   is printed anywhere on this screen. Three prints of one claim is the defect
+   the collection layer documents; this is the fix applied. */
+.crs__tile { align-items: stretch; }
+/* The foot's meter takes the slack; the mark keeps its 30px. `--space-xs` 8 is
+   the meter's own gap (`components.css:508`) and is not restated — this only
+   says the meter is the flexible child, which `.cd-meter__track`'s own
+   `flex: 1` already does. */
+.crs__meter { flex: 1 1 auto; min-width: 0; }
+/* THE TRACK ON A WASH. `.cd-meter--wash` recolours the FILL and nothing else
+   (`components.css:523`), so the track is still `--well-2` — a light neutral
+   pill on a pastel wash, which at 0% reads as a FULL bar in a lighter colour
+   beside a figure saying `0 / 9`. The system's own answer to "a surface that has
+   to sit on something it was not designed for" is `--pane`: the 5% veil of ink
+   that `.cd-chip--onwash` (`:504`) and `.cd-complete__cell` (`:730`) both use
+   for exactly this. It is the WRONG answer here and was tried first: `--pane`
+   is a veil of `--ink-inv` (`tokens.css:135`), which in the light theme is the
+   near-white, so on mint it is a BRIGHTER bar rather than a deeper one — the
+   defect it was meant to fix, inverted.
+
+   The system's own "one step off this wash, downward" is `--wash-lo`, which
+   `[data-w]` already composes from the wash and its own deep ink
+   (`components.css:12`), so it is theme-automatic for the same reason `--pane`
+   is. So the track on a wash is the wash one step deeper, and an empty bar
+   reads as an empty groove rather than a full one. */
+.crs__meter .cd-meter__track { background-color: var(--wash-lo); }
+/* The fraction sits on a wash, so it takes the wash's own deep ink rather than
+   `--ink-2` (which is a sheet-relative grey and would go muddy on a pastel).
+   `--text-xs` 13 is the step the ramp gives a figure's denominator
+   (`collection.css`, the figure tile) — not the tile numeral's `--text-xl`, or
+   the tile would carry two figures. */
+.crs__meter .cd-meter__frac {
+  color: var(--onwash);
+  font-weight: var(--weight-label);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 2 · THE OPEN MARK ───────────────────────────────────────────────────
+   `.cd-round` is solid `--ink` (`components.css:109`), and three tiles
+   carrying three of them is three dark objects on one screen — §6 rule 4 calls
+   that a poster. So the tile keeps the MARK and drops the ink, which is what
+   the system's own comment on `.cd-round` says the object is for: "a mark that
+   says 'this opens' rather than a second thing to press".
+
+   It is a `<span>`, not a button: the tile itself is the control, and a
+   button inside a button is not a control. Colour is `--onwash` at FULL
+   strength — the wash's own deep ink, the same ink the tile's title is set in,
+   so the mark is legible on mint and on butter alike without becoming a second
+   surface. It carries no `background`: a pill on a wash needs a pane to be
+   seen, and a third surface on a tile that already has a chip and a meter is
+   one too many. */
+.crs__open {
+  width: var(--crs-mark);
+  height: var(--crs-mark);
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--onwash);
+  transition: transform var(--dur-1) var(--ease), opacity var(--dur-1) var(--ease);
+}
+/* Grading a recall and ticking a row are several-times-a-session controls and
+   this is their neighbour: instant, one step, no choreography. The transform is
+   the system's own tile-lift direction (`components.css:470`). */
+.crs__tile:hover .crs__open,
+.crs__tile[aria-pressed="true"] .crs__open { transform: translateX(2px); opacity: 1; }
+
+/* A tile carrying a figure states the figure's label at the caption step, which
+   is the system's own `.cd-tile__cap` on the tile's own wash. Declared here
+   only for the fraction the meter prints, so the two never disagree. */
+.crs__cap { color: var(--onwash); opacity: 0.72; }
+
+/* ── 3 · THE MASTERY CARD'S OWN COLUMN ───────────────────────────────────
+   `.cd-meterrow` is the collection layer's species and is used whole: the
+   dashed rule between courses, the 320px cap on the bar, and the figure beside
+   it are all already declared there (`collection.css:738-762`). The one thing
+   this file adds is the course's own code, which is a `.cd-chip--code` in the
+   course's wash — the identity system reaching into a list the way it reaches
+   into a tile, so a course is the same colour here as it is above. */
+.cd-meterrow .cd-chip { flex: none; }
+.cd-meterrow .cd-meterrow__say b {
+  font-weight: var(--weight-display);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+/* THE COURSE'S NAME, beside its code. A three-letter code does not name a course
+   to a student holding three of them, and a 1120px card holding three 320px bars
+   and a six-word sentence is mostly air — the name is the fact that fills it,
+   and it is a fact no other element on this screen states. `--text-base` 15 is
+   the step the ramp gives prose; the collection layer's `.cd-coll__title` is
+   `--text-md` 17 and this is not a row, it is a label inside a meter row whose
+   figure is the content. `min-width: 0` + `text-overflow` because three names
+   plus three bars plus three figures is 1040px and something has to give way
+   before the canvas does. */
+.crs__who {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-base);
+  color: var(--ink-2);
+}
+
+/* ── 4 · A SECTION INSIDE THE OPENED COURSE ──────────────────────────────
+   The course's own work is gathered under its chapters, and each chapter needs
+   a heading. `.cd-sec` is the collection layer's one legal section head
+   (`collection.css:792`) — a rule and a micro-caps label, no card, no fill, no
+   radius — and it exists for exactly this. Its own `margin-block` already
+   separates one chapter from the last, so there is nothing to add here and
+   nothing to restate.
+
+   WHAT WAS HERE AND IS NOT: `.cd-coll + .cd-sec { margin-block: … }`, an
+   override tightening the head's top margin because the chapter groups sit
+   closer together than a page's sections do. It was removed rather than kept,
+   because the one thing an app layer must never do is quietly re-spell a system
+   class's spacing — `design.md:7` makes `design/` win on every conflict, and a
+   4px difference nobody can see is not worth a conflict.
+
+   The group headings used to be `.wk__group`, a class in
+   `ui/src/styles/work.css` that NOTHING imports — so they have been rendering
+   as unstyled `<h3>`s at body size and weight for as long as this screen has
+   existed. Reported, not silently merged: `work.css` is not this file's. */
+
+/* ── 5 · NARROW ──────────────────────────────────────────────────────────
+   §27: the grid reflows first (the system's own `.cd-tiles` rule at 760px
+   already takes one column), and nothing is removed while a column is still
+   affordable. The mastery card is the first thing to give way, because its bar
+   is the least load-bearing of its three columns and it is the illustration of
+   the words, not the words. */
+@media (max-width: 760px) {
+  .cd-meterrow { flex-wrap: wrap; }
+  .cd-meterrow .cd-meter { width: 100%; }
+  .cd-meterrow .cd-chip { min-width: 4ch; }
+}

@@ -1,0 +1,4 @@
+{"fields":{"date":"2026-10-18","kind":"chapter-test","label":"Biology chapter test — Cell Structure and Function","note":"NCERT-based MCQs, one sitting"},"id":"a.bio.cell.01","links":{"course":["c.bio"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"date":"2026-11-01","kind":"chapter-test","label":"Physics chapter test — Kinematics and Laws of Motion","note":"Numericals first, then theory"},"id":"a.phy.mech.01","links":{"course":["c.phy"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"date":"2026-11-08","kind":"full-mock","label":"Full mock 1","note":"Whole syllabus in one sitting"},"id":"a.mock.01","links":{},"schemaVersion":1,"type":"assessment"}
+{"fields":{"date":"2026-11-15","kind":"full-mock","label":"Full mock 2","note":"Whole syllabus in one sitting"},"id":"a.mock.02","links":{},"schemaVersion":1,"type":"assessment"}

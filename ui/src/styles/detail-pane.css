@@ -1,0 +1,615 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE DETAIL PANE (UI_SPEC §2.2: width 360px, full height, own scroll).
+
+   Sidebar panel housing the record detail view across three variants
+   (A · The Diagram, B · The Counter Bank, C · The Band). Uses container
+   queries (`.rp-fit`) and the UI scale register (`--ui-s`) for responsive
+   reflow at fixed panel width.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cd-detailpane {
+  width: 360px;
+  flex: none;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(24px * var(--ui-s)) calc(20px * var(--ui-s)) calc(32px * var(--ui-s));
+  background: var(--card);
+  box-shadow: var(--sh-1);
+  display: grid;
+  align-content: start;
+  gap: calc(24px * var(--ui-s));
+  z-index: 10;
+}
+
+/* A live region a script shows and hides: `display` on these species would
+   out-rank the UA's `[hidden] { display: none }` (equal specificity, author
+   wins), so the attribute is made to win here — a closed editor must not paint,
+   and must not hold a focusable control. */
+.cd-detailpane [hidden] { display: none !important; }
+
+.cd-detailpane__head {
+  display: flex;
+  align-items: start;
+  gap: calc(12px * var(--ui-s));
+}
+.cd-detailpane__title {
+  font-size: calc(17px * var(--ui-s));
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-title);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.cd-detailpane__sub {
+  margin-top: var(--space-3xs);
+  font-size: calc(13px * var(--ui-s));
+  color: var(--ink-3);
+}
+.cd-detailpane__head > :last-child { margin-left: auto; flex: none; }
+
+/* A stated nothing — the panel's own sentence, not a grey shrug (R19). */
+.cd-detailpane__note {
+  margin: 0;
+  font-size: calc(13px * var(--ui-s));
+  color: var(--ink-2);
+  max-width: 44ch;
+}
+
+/* ── THE VOCABULARY ALL THREE DESIGNS SHARE ─────────────────────────────── */
+/* The component's own container: containment sits here, above nothing fixed —
+   the delete sheet is the shell's, not the column's. */
+.rp-fit { container-type: inline-size; }
+.rp-panel { display: grid; align-content: start; gap: calc(24px * var(--ui-s)); min-width: 0; }
+
+/* the column's key, in mono: the reading half of the identity pair (§4.8) */
+.rp-keycap {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  color: var(--ink-3);
+  background: var(--well);
+  border-radius: var(--r-key);
+  padding: 1px var(--space-2xs);
+}
+/* the derived mark (`ƒ`) rides the key line it belongs to */
+.rp-fn {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  color: var(--ink-2);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* the app's own three words at the value they were about, and the engine's own
+   sentence when it refuses — both with the address it was about */
+.rp-writer { display: grid; gap: var(--ui-gap-sm); justify-items: start; min-width: 0; }
+.rp-state { flex: none; }
+.rp-state:not([hidden]) { animation: rp-chip-in var(--dur-1) var(--ease); }
+@keyframes rp-chip-in { from { opacity: 0; transform: scale(0.94); } }
+.rp-say { display: grid; gap: var(--space-3xs); justify-items: start; min-width: 0; }
+.rp-say__why { margin: 0; font-size: var(--ui-meta); color: var(--on-risk); }
+.rp-say__at {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.rp-after { margin: 0; font-size: var(--ui-text); color: var(--ink-2); }
+.rp-addr {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+/* the two buttons every design carries: the file door is the ink object, the
+   delete is quiet and carries the system's own danger wash */
+.rp-ink,
+.rp-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: var(--hit);
+  padding: 0 calc(12px * var(--ui-s));
+  border-radius: var(--r-pill);
+  font-family: var(--font-display);
+  font-size: var(--ui-meta);
+  font-weight: var(--weight-label);
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.rp-ink { background: var(--ink); color: var(--ink-inv); }
+.rp-ink:hover { box-shadow: var(--sh-ink); }
+.rp-quiet { background: var(--well-2); color: var(--ink); }
+.rp-quiet:hover { box-shadow: var(--sh-1); }
+.rp-danger { background: var(--chip-overdue); color: var(--on-overdue); }
+.rp-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-gap-sm); }
+
+/* the editor family at the value (`design/controls.md` §4), inline in the
+   column: the chips the app offers, the exact field, the unit's own keycap */
+.rp-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs); }
+.rp-unit { display: inline-flex; align-items: center; gap: var(--space-2xs); flex: none; }
+.rp-chipbtn {
+  min-height: var(--hit);
+  padding: 0 calc(10px * var(--ui-s));
+  border-radius: var(--r-pill);
+  background: var(--well);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--ui-meta);
+  font-weight: var(--weight-label);
+  transition: transform var(--dur-1) var(--ease);
+}
+.rp-chipbtn[aria-pressed="true"] { background: var(--ink); color: var(--ink-inv); }
+.rp-chipbtn:hover { box-shadow: var(--sh-1); }
+.rp-plus {
+  width: var(--hit);
+  height: var(--hit);
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--well);
+  color: var(--ink);
+  transition: transform var(--dur-1) var(--ease);
+}
+.rp-num,
+.rp-date {
+  height: var(--hit);
+  min-width: 0;
+  width: calc(76px * var(--ui-s));
+  padding: 0 var(--ui-gap-sm);
+  border-radius: var(--r-key);
+  background: var(--well);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+}
+.rp-date { width: calc(130px * var(--ui-s)); }
+
+/* PRESSED — every control answers the press, in the app's own two idioms: a
+   pill or icon control scales, a plate, terminal, row or wheel deepens into
+   `--well-2` (`collection.css:303`). */
+.rp-ink:active, .rp-quiet:active, .rp-chipbtn:active, .rp-item__v:active { transform: scale(0.97); }
+.rp-plus:active { transform: scale(0.94); }
+.rp-pad__b:active { background: var(--well-2); box-shadow: inset 0 0 0 1px var(--ink-3); }
+.rp-term:active { background: var(--well-2); }
+button.rp-wheel:active { background: var(--well-2); box-shadow: inset 0 1px 2px var(--rule-strong); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   A · THE DIAGRAM — the record is a box on a drafting plate, its relations are
+   plates beside it, and the wires are routed from the boxes' own geometry.
+   ══════════════════════════════════════════════════════════════════════════ */
+.rp-plate {
+  position: relative;
+  background: var(--well);
+  border-radius: var(--r-tile);
+  padding: calc(12px * var(--ui-s));
+}
+.rp-plate::before,
+.rp-plate::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--rule-strong);
+}
+.rp-plate::before { top: 5px; left: 5px; border-right: 0; border-bottom: 0; }
+.rp-plate::after { bottom: 5px; right: 5px; border-left: 0; border-top: 0; }
+.rp-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ui-pad);
+  padding: calc(14px * var(--ui-s)) calc(14px * var(--ui-s)) calc(14px * var(--ui-s)) calc(20px * var(--ui-s));
+}
+.rp-wires { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: visible; }
+.rp-wires path { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linecap: round; }
+.rp-wires path[data-live="true"] { stroke: var(--ink); stroke-width: 2.5; }
+.rp-box {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 1;
+  background: var(--card);
+  border-radius: var(--r-mini);
+  box-shadow: inset 0 0 0 1px var(--rule-strong), var(--sh-1);
+  padding: calc(12px * var(--ui-s)) var(--ui-pad) calc(12px * var(--ui-s)) calc(20px * var(--ui-s));
+  display: grid;
+  gap: var(--ui-gap-sm);
+}
+/* the box's terminal pad: the wire meets the box's left face at its own
+   vertical centre (the wrap route's `start_y`), so the mark sits there */
+.rp-box::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: calc(50% - 3px);
+  width: 6px;
+  height: 6px;
+  background: var(--rule-strong);
+}
+.rp-box__stamp {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+/* the pads: the box's own face — each a pressed plate carrying its key and its
+   value, laid out as objects, never as key/value rows */
+.rp-pads { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2xs); }
+.rp-pad { min-width: 0; display: grid; grid-template-rows: auto 1fr; align-content: stretch; gap: var(--space-3xs); }
+.rp-pad__k { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-3xs); min-width: 0; }
+/* The pad's stamp is the identity pair (D2, §4.8): the app's own word for the
+   column beside the key it is stored under — micro, mono and tracked, so a pad
+   reads as a plate with a part number on it and the key is still copyable. The
+   label wraps rather than ellipsising: a stamp that says `QUESTIONS IN T…` names
+   nothing. */
+.rp-pad__k .cd-identity { flex-wrap: wrap; min-width: 0; }
+.rp-pad__k .cd-identity__label,
+.rp-counter__key .cd-identity__label {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.rp-pad__k .cd-identity__key,
+.rp-counter__key .cd-identity__key { min-height: calc(20px * var(--ui-s)); }
+.rp-pad__b {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  min-height: calc(50px * var(--ui-s));
+  width: 100%;
+  padding: var(--ui-gap-sm);
+  background: var(--well);
+  border-radius: var(--r-key);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  text-align: left;
+  transition: background var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.rp-pad__b:hover { box-shadow: inset 0 0 0 1px var(--ink-3); }
+.rp-pad__v { font-size: var(--ui-text); font-weight: var(--weight-label); color: var(--ink); overflow-wrap: anywhere; }
+.rp-pads__editors { display: grid; gap: var(--ui-gap-sm); }
+
+.rp-term {
+  position: relative;
+  z-index: 1;
+  background: var(--card);
+  border-radius: var(--r-mini);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  padding: var(--ui-gap-sm);
+  display: grid;
+  gap: var(--space-3xs);
+  min-height: calc(52px * var(--ui-s));
+  align-content: center;
+  text-align: left;
+  width: 100%;
+  transition: background var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.rp-term:hover { box-shadow: inset 0 0 0 1px var(--ink-3), var(--sh-1); }
+.rp-term__s {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.rp-term__t { font-size: var(--ui-text); font-weight: var(--weight-label); color: var(--ink); overflow-wrap: anywhere; }
+.rp-term--none {
+  grid-column: 1 / -1;
+  color: var(--ink-3);
+  font-size: var(--ui-text);
+  min-height: var(--hit);
+  display: grid;
+  align-content: center;
+  text-align: center;
+  box-shadow: none;
+  background: transparent;
+}
+.rp-term__code { font-size: var(--ui-text); color: var(--ink-2); }
+
+/* the drawing's title block: the sheet's line, then the record's dates as
+   stamps on one plate each, then the rungs and the doors */
+.rp-titleblock {
+  margin-top: var(--ui-gap-sm);
+  display: grid;
+  background: var(--card);
+  border-radius: var(--r-mini);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  overflow: hidden;
+}
+.rp-sheet {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: baseline;
+  margin: 0;
+  padding: var(--ui-gap-sm);
+  border-bottom: 1px solid var(--rule);
+}
+.rp-sheet__k {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  flex: none;
+}
+.rp-sheet__v {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.rp-stamps { list-style: none; margin: 0; padding: 0 calc(12px * var(--ui-s)) var(--ui-gap-sm); display: flex; gap: var(--space-2xs); }
+.rp-stamp {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  padding: var(--space-2xs) var(--ui-gap-sm);
+  background: var(--well);
+  border-radius: var(--r-key);
+}
+.rp-stamp__k,
+.rp-rung__s,
+.rp-hist__k,
+.rp-bank__s,
+.rp-counter__key,
+.rp-item__k {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.rp-stamp__v { font-size: var(--ui-meta); color: var(--ink); overflow-wrap: anywhere; }
+.rp-rungs { display: flex; gap: var(--space-2xs); padding: var(--ui-gap-sm); border-top: 1px solid var(--rule); }
+.rp-rung {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  padding: var(--space-2xs) var(--ui-gap-sm);
+  border-radius: var(--r-key);
+  background: var(--well);
+}
+.rp-rung[data-state="done"] { background: var(--chip-ok); color: var(--on-ok); }
+.rp-rung[data-state="now"] { background: var(--card); box-shadow: inset 0 0 0 1px var(--ink-3); }
+.rp-rung__n { font-size: var(--ui-meta); font-weight: var(--weight-label); overflow-wrap: anywhere; }
+.rp-rung[data-state="done"] .rp-rung__s { color: var(--on-ok); }
+.rp-rung[data-state="now"] .rp-rung__s { color: var(--ink-2); }
+.rp-tb__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-gap-sm);
+  align-items: center;
+  padding: var(--ui-gap-sm);
+  border-top: 1px solid var(--rule);
+}
+.rp-tb__say { display: grid; gap: var(--space-3xs); padding: var(--ui-gap-sm); border-top: 1px solid var(--rule); }
+.rp-tb__say .rp-after { font-size: var(--ui-meta); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   B · THE COUNTER BANK — the kind's quantity columns are drums, each digit
+   place a hard window holding all ten numerals.
+   ══════════════════════════════════════════════════════════════════════════ */
+.rp-bank {
+  background: var(--card);
+  border-radius: var(--r-tile);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  padding: var(--ui-pad);
+  display: grid;
+  gap: var(--ui-pad);
+}
+.rp-bank__id { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2xs); }
+.rp-bank__tags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs); }
+.rp-bank__none { margin: 0; font-size: var(--ui-text); color: var(--ink-2); }
+.rp-bank__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ui-gap); align-items: start; }
+.rp-counter { display: grid; gap: var(--space-2xs); min-width: 0; }
+.rp-counter[data-span="2"] { grid-column: 1 / -1; }
+.rp-counter__win {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: stretch;
+  min-height: var(--hit);
+  background: var(--well);
+  border-radius: var(--r-key);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px var(--rule-strong), inset 0 -1px 0 var(--card);
+}
+.rp-wheel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  min-height: var(--hit);
+  min-width: 0;
+  padding: 2px calc(6px * var(--ui-s));
+  background: transparent;
+  transition: background var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.rp-wheel + .rp-wheel { border-left: 1px solid var(--rule); }
+button.rp-wheel:hover { background: var(--well-2); }
+button.rp-wheel:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.rp-wheel__u {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  color: var(--ink-3);
+  align-self: flex-end;
+  padding-bottom: 2px;
+}
+.rp-wheel__none { font-size: var(--ui-text); color: var(--ink-3); }
+.rp-nums { display: flex; align-items: center; gap: 1px; }
+.rp-drum { position: relative; display: inline-block; overflow: hidden; line-height: 1.15; }
+.rp-drum__pad,
+.rp-drum__n {
+  font-family: var(--font-mono, ui-monospace);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(17px * var(--ui-s));
+  font-weight: var(--weight-label);
+}
+.rp-drum__pad { display: block; visibility: hidden; }
+.rp-drum__n {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  transition: transform var(--dur-2) var(--ease);
+}
+.rp-drum__sep {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: calc(17px * var(--ui-s));
+  color: var(--ink-3);
+  align-self: center;
+}
+.rp-counter__keys { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--space-2xs); }
+.rp-counter__key { display: flex; align-items: baseline; justify-content: center; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.rp-counter__key .cd-identity { justify-content: center; }
+.rp-counter__foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs); }
+.rp-counter .rp-ctl, .rp-counter .rp-writer { grid-column: 1 / -1; }
+.rp-counter .rp-writer { justify-items: start; }
+
+/* the record's own dates as three stamped plates, then the ladder's rungs */
+.rp-hist { display: grid; gap: var(--ui-gap-sm); }
+.rp-hist__row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--space-2xs); }
+.rp-hist__c {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  min-width: 0;
+  padding: var(--space-2xs) var(--ui-gap-sm);
+  background: var(--well);
+  border-radius: var(--r-key);
+}
+.rp-hist__v { font-size: var(--ui-meta); color: var(--ink); overflow-wrap: anywhere; }
+.rp-term--tag {
+  display: inline-flex;
+  width: auto;
+  min-height: var(--hit);
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: 0 var(--ui-gap-sm);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   C · THE BAND — two lines per pair, only the region between them inked, split
+   at the crossing; the second line stroked on top.
+   ══════════════════════════════════════════════════════════════════════════ */
+.rp-vplate {
+  background: var(--card);
+  border-radius: var(--r-tile);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  padding: calc(12px * var(--ui-s));
+  display: grid;
+  gap: var(--ui-gap-sm);
+}
+.rp-vplate__top { display: flex; align-items: baseline; gap: var(--ui-gap-sm); flex-wrap: wrap; }
+.rp-rule__k {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.rp-rule__u { font-family: var(--font-mono, ui-monospace); font-size: var(--ui-meta); color: var(--ink-3); }
+.rp-chart { display: block; width: 100%; height: auto; }
+.rp-chart .rp-grid-line { stroke: var(--rule); stroke-width: 1; }
+.rp-chart .rp-axis { stroke: var(--rule-strong); stroke-width: 1; }
+.rp-chart .rp-tick { font-family: var(--font-mono, ui-monospace); font-size: var(--text-2xs); fill: var(--ink-2); }
+.rp-chart .rp-wash-up { fill: var(--w-mint); }
+.rp-chart .rp-wash-down { fill: var(--chip-overdue); }
+.rp-chart .rp-plan-line { fill: none; stroke: var(--ink-3); stroke-width: 1.5; }
+.rp-chart .rp-log-line { fill: none; stroke: var(--ink); stroke-width: 2; }
+.rp-chart .rp-span-line { fill: none; stroke: var(--ink-3); stroke-width: 1.5; }
+.rp-chart .rp-elapsed-line { fill: none; stroke: var(--ink); stroke-width: 2; }
+.rp-chart .rp-dot { fill: var(--ink); }
+.rp-chart .rp-dot--open { fill: var(--card); stroke: var(--ink-3); stroke-width: 1.5; }
+.rp-chart .rp-flag-line { stroke: var(--ink-3); stroke-width: 1; }
+.rp-chart .rp-flag-t { font-family: var(--font-mono, ui-monospace); font-size: var(--text-2xs); fill: var(--ink-2); }
+.rp-legend { display: grid; gap: var(--space-2xs); }
+.rp-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--ui-gap-sm);
+  min-height: var(--hit);
+  text-align: left;
+  width: 100%;
+  padding: 0 var(--space-2xs);
+  border-radius: var(--r-item);
+}
+.rp-item:hover { background: var(--well); }
+.rp-item--read:hover { background: transparent; }
+.rp-item__s { width: 10px; height: 10px; background: var(--ink-3); }
+.rp-item__s--ink { background: var(--ink); }
+.rp-item__s--plan { background: var(--ink-3); }
+.rp-item__n { font-size: var(--ui-text); color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+.rp-item__v {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: var(--hit);
+  padding: 0 var(--space-2xs);
+  border-radius: var(--r-key);
+  font-size: var(--ui-text);
+  font-weight: var(--weight-label);
+  color: var(--ink);
+  transition: transform var(--dur-1) var(--ease);
+}
+.rp-item__v:hover { background: var(--well-2); }
+.rp-item__ro { font-size: var(--ui-text); color: var(--ink); padding: 0 var(--space-2xs); font-variant-numeric: tabular-nums; }
+.rp-inkkey { display: flex; flex-wrap: wrap; gap: var(--space-2xs); }
+.rp-tags { display: flex; flex-wrap: wrap; gap: var(--space-2xs); }
+.rp-tags .rp-term__s { margin-right: var(--space-3xs); }
+.rp-flags { display: flex; flex-wrap: wrap; gap: var(--space-3xs); }
+.rp-flagin {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3xs);
+  padding: 1px var(--space-2xs);
+  border-radius: var(--r-key);
+  background: var(--well);
+  font-size: var(--ui-meta);
+  color: var(--ink-2);
+}
+.rp-flagin::before { content: ''; width: 8px; height: 8px; background: var(--rule-strong); align-self: center; }
+.rp-flagin--mint::before { background: var(--w-mint); box-shadow: inset 0 0 0 1px var(--fg-mint); }
+.rp-flagin--overdue::before { background: var(--chip-overdue); box-shadow: inset 0 0 0 1px var(--on-overdue); }
+.rp-flagin b { font-family: var(--font-mono, ui-monospace); font-weight: var(--weight-label); color: var(--ink); }
+.rp-flagin[data-state="done"] { background: var(--chip-ok); color: var(--on-ok); }
+.rp-flagin[data-state="done"] b { color: var(--on-ok); }
+
+/* ── NARROW — the column's own reflow ────────────────────────────────────
+   The pane is 360px whatever the window is, so this fires only when the
+   component is given less room than the column ever is: the box's two-column
+   pad row and the bank's two-column grid fold to one, the terminals stack, and
+   the title block's three stamps wrap. Nothing clips and nothing overflows. */
+@container (max-width: 280px) {
+  .rp-grid { grid-template-columns: minmax(0, 1fr); }
+  .rp-pads { grid-template-columns: minmax(0, 1fr); }
+  .rp-term--none { grid-column: 1; }
+  .rp-bank__grid { grid-template-columns: minmax(0, 1fr); }
+  .rp-counter[data-span="2"] { grid-column: 1; }
+  .rp-stamps, .rp-hist__row { flex-wrap: wrap; }
+  .rp-stamp { flex: 1 1 40%; }
+  .rp-hist__row { grid-auto-flow: row; }
+  .rp-rungs { flex-wrap: wrap; }
+  .rp-rung { flex: 1 1 40%; }
+}
+
+/* ── REDUCED MOTION — the state changes are states, not transitions ────── */
+@media (prefers-reduced-motion: reduce) {
+  .rp-term, .rp-pad__b, .rp-ink, .rp-quiet, .rp-item, .rp-item__v, .rp-chipbtn,
+  .rp-plus, .rp-wheel, .rp-drum__n { transition: none; }
+  .rp-state:not([hidden]) { animation: none; }
+}

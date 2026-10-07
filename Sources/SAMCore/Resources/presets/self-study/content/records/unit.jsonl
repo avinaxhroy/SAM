@@ -1,0 +1,7 @@
+{"fields":{"goal":"Toolchain, build, and a first program end to end.","index":1,"label":"Fundamentals"},"id":"u.sys.1","links":{"course":["c.sys"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"goal":"Stack versus heap, lifetimes, and the borrow checker.","index":2,"label":"Memory & Ownership"},"id":"u.sys.2","links":{"course":["c.sys"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"goal":"Threads, channels, and shared state without data races.","index":3,"label":"Concurrency"},"id":"u.sys.3","links":{"course":["c.sys"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"goal":"Arrays, dynamic arrays, stacks and queues from scratch.","index":1,"label":"Linear Structures"},"id":"u.dsa.1","links":{"course":["c.dsa"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"goal":"Traversals, priority queues, and shortest paths.","index":2,"label":"Trees & Graphs"},"id":"u.dsa.2","links":{"course":["c.dsa"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"goal":"A TCP client and a server you wrote yourself.","index":1,"label":"Sockets & Protocols"},"id":"u.net.1","links":{"course":["c.net"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"goal":"Parse a request, answer it, and frame the bytes.","index":2,"label":"HTTP & Serialization"},"id":"u.net.2","links":{"course":["c.net"]},"schemaVersion":1,"type":"unit"}

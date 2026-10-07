@@ -1,0 +1,4 @@
+{"schemaVersion": 1, "types": {
+  "topic": {"fields": [{"key":"title","type":"text"}]},
+  "topic": {"fields": [{"key":"title","type":"longtext"}]}
+}}

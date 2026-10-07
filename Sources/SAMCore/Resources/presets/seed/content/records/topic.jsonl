@@ -1,0 +1,4 @@
+{"fields":{"est":30,"kind":"watch","part":"1-3","title":"Demo topic: first pass"},"id":"t.demo.01","links":{"course":["c.demo.a"],"resource":["r.demo.vid"],"unit":["u.a.1"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","title":"Demo topic: problem drill"},"id":"t.demo.02","links":{"course":["c.demo.a"],"unit":["u.a.1"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":25,"kind":"read","title":"Demo topic: reading"},"id":"t.demo.03","links":{"course":["c.demo.b"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":20,"kind":"revise","title":"Demo topic: recap"},"id":"t.demo.04","links":{"course":["c.demo.b"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}

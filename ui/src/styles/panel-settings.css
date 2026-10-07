@@ -1,0 +1,1093 @@
+/*
+ * SETTINGS — the settings grammar (S12). `panel-settings.css` is the whole of
+ * it, and this screen is its only consumer.
+ *
+ * WHAT THIS FILE IS. The screen shipped as an accordion of five groups, each
+ * group a grid of bordered "object" cards: a name, a key chip, a value line, a
+ * sentence and a control per card. Read whole it was a wall of near-identical
+ * boxes — a person scanning for "the clock this plan counts days in" had to
+ * read every card's prose to find the one row they wanted, and the controls
+ * inside (a 20px chip, a 25px swatch, a 22px switch) were drawn below the
+ * system's own hit floor. This file is the rewrite: **a settings page, not a
+ * page of settings objects.**
+ *
+ * THE GRAMMAR, in five parts.
+ *
+ *   1 · THE RAIL — one entry per place, carrying that place's live value in the
+ *       app's own words (`4 h a day · Asia/Kolkata · fixed gaps`). The screen
+ *       answers "what is set?" without a click, which is the one thing an
+ *       accordion cannot do: a closed group there is a summary at best, and the
+ *       summary was buried in the head's own line.
+ *
+ *   2 · THE PANE — the open place only, as a sheet of **rows**. A row is the
+ *       app's name for a setting, its key beside it, one sentence of consequence
+ *       where the sentence teaches something, and **the one control its type
+ *       declares** at the row's right edge, on the label's own baseline. Nothing
+ *       else repeats the value: the control carries it. (The old design printed
+ *       the value twice — once as a line, once again inside the control, which is
+ *       how "4 h" and "240 min" came to sit on the same card.)
+ *
+ *   3 · THE CONTROLS — the four shapes this screen needs, drawn once here so a
+ *       row is one line of markup wherever it appears:
+ *         · `.st-seg`   a 2–5 way exclusive choice; the chosen option is a card
+ *                       pill inside the well, ringed by a hairline. It is NOT
+ *                       the system's ink-filled segment: this screen can show
+ *                       a dozen of them at once (one per component style), and
+ *                       a dozen solid-ink pills would be a dozen "primary"
+ *                       objects on a screen with no primary action.
+ *         · `.st-steps` an exact number: one well track holding the minus, the
+ *                       field and the plus, with the unit inside the field. The
+ *                       field is a text field that keeps the native spinner out
+ *                       — a spinner and a stepper in one track is two controls
+ *                       for one number, and the spinner's hit target is 8px.
+ *         · `.st-tile` a theme: its own name, the mode it pins, and a ring when
+ *                       it is the one in force. There is no colour preview —
+ *                       the app reads four themes' own names, and painting one
+ *                       theme's palette on another's tile would be a drawing of
+ *                       something that does not exist.
+ *         · `.cd-wellfield` for text, `.st-keycap` for a key, `.cd-switch` for
+ *                       yes/no — the system's own shapes for the three controls
+ *                       it already declares, reused and never redrawn here.
+ *
+ *   4 · THE FIND — the field filters this page's own table and, while a query
+ *       is live, the pane's body shows the matches instead of the settings, out
+ *       of the same table. A floating results bar over a full page (the old
+ *       design) reads as a second screen; replacing the body reads as one
+ *       filter.
+ *
+ *   5 · THE CHANGE STRIP — docked at the pane's foot, one line per accepted
+ *       write, each reversible, strikethrough when taken back. It is the page's
+ *       account of the session and it is the only place this screen says "this
+ *       changed".
+ *
+ * THE INK BUDGET. One solid-ink object may exist on any captured state. This
+ * screen holds its pressed states as card pills with a hairline ring, its
+ * current rail entry as a raised card and its chosen theme as a ringed tile, so
+ * a settings screen in its default state shows the app zero primary objects —
+ * a settings page has no primary action, and `design.md` §5 says so.
+ *
+ * NARROW. Below 1000px the rail becomes a strip of pills over the pane and the
+ * summaries move under the pane's own title; below 760px a row stacks — label,
+ * then control at its own left edge — because a 430px window cannot hold a label
+ * and a five-option segment on one line. Both are the same rules re-flowed, not
+ * a second layout.
+ */
+
+/* ══ 1 · THE PAGE ═════════════════════════════════════════════════════════ */
+
+.st-page {
+  display: grid;
+  gap: var(--space-lg);
+  align-content: start;
+  max-width: 1060px;
+}
+
+.st-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.st-head__title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+}
+
+.st-head__say {
+  margin: var(--space-2xs) 0 0;
+  max-width: 62ch;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.st-head__tally {
+  display: block;
+  margin: var(--space-3xs) 0 0;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.st-head__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* ══ 2 · THE FIND FIELD ═══════════════════════════════════════════════════ */
+
+.st-find {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  height: var(--hit);
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  background: var(--well);
+  color: var(--ink-3);
+  transition: border-color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+.st-find:focus-within {
+  border-color: var(--ink-3);
+  background: var(--card);
+}
+
+.st-find__field {
+  width: 168px;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.st-find__field:focus {
+  outline: none;
+}
+
+.st-find__field::placeholder {
+  color: var(--ink-4);
+}
+
+/* The field is `type="search"`; WebKit draws its own clear button inside it,
+   which would sit beside this screen's own. */
+.st-find__field::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.st-find__count {
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.st-find__clear {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-pill);
+  color: var(--ink-3);
+}
+
+.st-find__clear:hover {
+  background: var(--well-2);
+  color: var(--ink);
+}
+
+/* ══ 3 · THE BODY — rail and pane ═════════════════════════════════════════ */
+
+.st-body {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.st-rail {
+  display: grid;
+  gap: 2px;
+  position: sticky;
+  top: var(--space-md);
+}
+
+.st-rail__item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: var(--space-2xs) var(--space-xs);
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--r-item);
+  text-align: left;
+  color: var(--ink-2);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+
+.st-rail__item:hover {
+  background: var(--well-2);
+  color: var(--ink);
+}
+
+/* The open place: a card, raised off the rail. Never an ink fill — the rail is
+   navigation, and the screen's one ink object is not spent here. */
+.st-rail__item[aria-current="true"] {
+  background: var(--card);
+  border-color: var(--rule);
+  color: var(--ink);
+  box-shadow: var(--sh-1);
+}
+
+.st-rail__ico {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+
+.st-rail__item[aria-current="true"] .st-rail__ico {
+  color: var(--ink);
+}
+
+.st-rail__name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-label);
+  color: inherit;
+}
+
+.st-rail__sum {
+  grid-column: 2;
+  font-size: var(--text-2xs);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.st-pane {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.st-pane__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.st-pane__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-title);
+  color: var(--ink);
+}
+
+.st-pane__sum {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.st-pane__lead {
+  margin: 0;
+  max-width: 72ch;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* The sheet the rows live on. */
+.st-sheet {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-card);
+  background: var(--card);
+  overflow: hidden;
+}
+
+/* A band head inside a sheet: it separates one register of rows from the next
+   (the three component families, the kinds that stay behind) without opening a
+   second card. */
+.st-band {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: 0;
+  padding: var(--space-md) var(--space-md) 0;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.st-band__count {
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  letter-spacing: var(--track-body);
+  text-transform: none;
+  color: var(--ink-4);
+}
+
+.st-band__lead {
+  margin: var(--space-3xs) 0 0;
+  padding: 0 var(--space-md);
+  max-width: 72ch;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+/* The first band of a sheet follows a block of rows, and needs the hairline the
+   rows would have drawn between them. */
+.st-rows + .st-band {
+  border-top: 1px solid var(--rule);
+  margin-top: var(--space-xs);
+}
+
+.st-rows + .st-store {
+  border-top: 1px solid var(--rule);
+}
+
+/* ══ 4 · THE ROW ══════════════════════════════════════════════════════════ */
+
+.st-rows {
+  display: grid;
+}
+
+.st-row {
+  display: grid;
+  /* The label keeps the room and the control is bounded: a segment of three
+     pills or a switch never eats the sentence it belongs to. Controls that need
+     more than 340px are registers, and a register takes `--wide`. */
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 340px);
+  align-items: center;
+  gap: var(--space-xs) var(--space-md);
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-md);
+  transition: background var(--dur-1) var(--ease);
+}
+
+.st-row + .st-row,
+.st-rows + .st-row,
+.st-row + .st-rows {
+  border-top: 1px solid var(--rule);
+}
+
+.st-row:hover {
+  background: var(--well-2);
+}
+
+/* A row whose control is a field or a register of its own: the label holds the
+   full width and the control sits under it. */
+.st-row--wide {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.st-row__label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.st-row__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-label);
+  color: var(--ink);
+}
+
+.st-row__name label,
+.st-row__name > span {
+  font: inherit;
+  color: inherit;
+}
+
+.st-row__help {
+  max-width: 68ch;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+/* A row whose subject is a document: the file's own name in the mono every
+   other address on this screen wears, with its plan-relative path beside it in
+   the identity pair. Plain, not bold — a path is an address, not a setting.
+   Two classes so it outranks the `.st-row__name > span` reset above. */
+.st-row__name .st-file__name {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.st-row__ctl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.st-row:not(.st-row--wide) .st-row__ctl {
+  justify-self: end;
+}
+
+/* In a wide row the control is the full width of the sheet and reads from the
+   left edge, under the label it belongs to. */
+.st-row--wide .st-row__ctl {
+  justify-self: stretch;
+  flex-wrap: wrap;
+  margin-top: var(--space-2xs);
+}
+
+.st-row--wide .st-overrides,
+.st-row--wide .st-doctor {
+  justify-items: start;
+}
+
+.st-row--wide .st-findings {
+  justify-self: start;
+}
+
+/* The row a find hit jumped to. The jump *focuses* the row's control, so the
+   wash is `:focus-within` — it marks where the keyboard went and it leaves on
+   its own when the student moves on. A timer-driven flash would say the same
+   thing and forget it whether or not anyone was still there. */
+.st-row:focus-within {
+  background: var(--well-2);
+  box-shadow: inset 2px 0 0 var(--ink-3);
+}
+
+/* A machine-owned row: the value, one sentence, and where the control that
+   owns it lives. Not a disabled control — a statement with a door. */
+.st-owned {
+  display: grid;
+  gap: var(--space-3xs);
+}
+
+.st-owned__value {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.st-owned__where {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+
+/* The state of a boolean row, in the row's own words beside the setting's name:
+   `personal` / `shared`. A switch's side is not a state anyone can read. */
+.st-state {
+  padding: 0 var(--space-2xs);
+  border-radius: var(--r-mini);
+  background: var(--well-2);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* A switch and its own sentence, side by side: the help line above states the
+   setting, and this states what the switch itself takes. */
+.st-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.st-choice__say {
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+
+/* ══ 5 · THE CONTROLS ═════════════════════════════════════════════════════ */
+
+/* 5a · Segment — 2–5 exclusive choices. */
+.st-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  background: var(--well);
+}
+
+.st-seg__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  height: 28px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  white-space: nowrap;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease),
+    box-shadow var(--dur-1) var(--ease);
+}
+
+.st-seg__pill:hover {
+  color: var(--ink);
+}
+
+.st-seg__pill[aria-checked="true"] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--rule-strong), var(--sh-1);
+}
+
+.st-seg__pill:disabled {
+  color: var(--ink-4);
+}
+
+/* 5b · Stepper — an exact number, one track. */
+.st-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  background: var(--well);
+}
+
+.st-steps__btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+
+.st-steps__btn:hover:not(:disabled) {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--sh-1);
+}
+
+.st-steps__btn:disabled {
+  color: var(--ink-4);
+}
+
+/* The number's own box: a field that reads as the segment's chosen pill, so the
+   three shapes (choice, number, switch) share one visual weight. */
+.st-steps__box {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  height: 28px;
+  padding: 0 var(--space-xs);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--rule-strong), var(--sh-1);
+}
+
+.st-steps__field {
+  width: 3.5ch;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  appearance: textfield;
+}
+
+.st-steps__field:focus {
+  outline: none;
+}
+
+/* The native spinner is a second stepper with an 8px target. */
+.st-steps__field::-webkit-outer-spin-button,
+.st-steps__field::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.st-steps__unit {
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+/* 5b · Budget — the one magnitude control. A slider with its exact number and
+   its four usual answers beside it: `controls.md` §2's shape for a
+   magnitude-first number and §8's rule that a slider never stands without a
+   numeric box. The track is the well, the knob is the card wearing the strong
+   rule — the same two surfaces the segment's chosen pill and the stepper's box
+   are drawn with, so the three controls read as one family. */
+.st-budget {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.st-budget__track {
+  flex: 1 1 220px;
+  min-width: 180px;
+  height: var(--hit);
+  margin: 0;
+  background: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.st-budget__track::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--well-2);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+.st-budget__track::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--rule-strong), var(--sh-1);
+}
+
+.st-budget__track:disabled {
+  cursor: default;
+}
+
+.st-budget__track:disabled::-webkit-slider-thumb {
+  background: var(--well-2);
+}
+
+/* The preset pills: the same segment grammar, chosen state by state rather than
+   `aria-checked`, because they are four doors to one value and not a field with
+   four values. */
+.st-seg__pill[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--rule-strong), var(--sh-1);
+}
+
+/* 5c · Keycap — a key the plan binds, at the 28px floor. */
+.st-keycap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--space-2xs);
+  border-radius: var(--r-key);
+  background: var(--well-2);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+/* 5d · Overrides — the one register of rows inside a row. A token, its value,
+   and the reset that takes it back. The token itself is an identity pair, so
+   the pane's prose never speaks the vocabulary. */
+.st-overrides {
+  display: grid;
+  gap: var(--space-2xs);
+  justify-items: end;
+}
+
+.st-override {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-3xs) var(--space-2xs) var(--space-3xs) var(--space-xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-item);
+  background: var(--well-2);
+}
+
+.st-override--new {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  background: none;
+  border-style: dashed;
+}
+
+.st-override__key {
+  width: 15ch;
+}
+
+.st-override__value-field {
+  width: 17ch;
+}
+
+.st-override__value {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-2);
+}
+
+/* 5d · The doctor — a read, its count, and the findings the read produced.
+   Each finding prints its severity, the path it is about, and the engine's
+   sentence, in the engine's own words. */
+.st-doctor {
+  display: grid;
+  gap: var(--space-xs);
+  justify-items: end;
+  width: 100%;
+}
+
+.st-rows .st-doctor .st-findings {
+  justify-self: end;
+}
+
+/* 5e · The component-style pick: a letter and the design's own name, so the
+   choice is readable without opening the lab. */
+.st-pick b {
+  font-weight: var(--weight-label);
+  color: var(--ink-3);
+}
+
+.st-seg__pill[aria-checked="true"] b {
+  color: var(--ink);
+}
+
+/* 5f · Theme tiles — the theme's own name and the mode it pins. Four of them
+   fill the sheet's width; on a narrow window they reflow to two and two. */
+.st-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-2xs);
+  width: 100%;
+}
+
+.st-tile {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-item);
+  background: var(--card);
+  text-align: left;
+  transition: border-color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+
+.st-tile:hover {
+  border-color: var(--rule-strong);
+}
+
+.st-tile[aria-checked="true"],
+.st-tile--on {
+  border-color: var(--ink-3);
+  box-shadow: inset 0 0 0 1px var(--ink-3), var(--sh-1);
+}
+
+.st-tile__name {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  color: var(--ink);
+}
+
+.st-tile__mode {
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ══ 6 · THE FIND HITS ════════════════════════════════════════════════════ */
+
+.st-hits {
+  display: grid;
+}
+
+.st-hits__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 0 var(--space-md) var(--space-sm);
+}
+
+.st-hits__say {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+
+.st-hits__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  min-height: 40px;
+  text-align: left;
+  transition: background var(--dur-1) var(--ease);
+}
+
+.st-hits__row + .st-hits__row {
+  border-top: 1px solid var(--rule);
+}
+
+.st-hits__row:hover {
+  background: var(--well-2);
+}
+
+.st-hits__name {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.st-hits__name mark {
+  background: none;
+  color: var(--ink);
+  font-weight: var(--weight-label);
+}
+
+.st-hits__where {
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.st-hits__none {
+  margin: 0;
+  padding: var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+
+/* ══ 7 · THE CHANGE STRIP ═════════════════════════════════════════════════ */
+
+.st-strip {
+  display: grid;
+  gap: var(--space-2xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--rule);
+}
+
+.st-strip__top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.st-strip__title {
+  margin: 0;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.st-strip__count {
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.st-strip__empty {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+
+.st-strip__lines {
+  display: grid;
+  gap: var(--space-3xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.st-strip__line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 28px;
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+
+.st-strip__line[data-taken] {
+  color: var(--ink-4);
+}
+
+.st-strip__line[data-taken] .st-strip__move {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.st-strip__what {
+  font-weight: var(--weight-label);
+  color: inherit;
+}
+
+.st-strip__move b {
+  font-weight: var(--weight-label);
+  color: inherit;
+}
+
+.st-strip__arrow {
+  color: var(--ink-4);
+}
+
+.st-strip__undo {
+  height: 24px;
+  padding: 0 var(--space-xs);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.st-strip__undo:hover {
+  background: var(--card);
+  color: var(--ink);
+}
+
+/* ══ 8 · THE DOCTOR'S FINDINGS ════════════════════════════════════════════ */
+
+.st-findings {
+  display: grid;
+  gap: var(--space-2xs);
+  width: 100%;
+}
+
+.st-finding {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--r-mini);
+  background: var(--well-2);
+}
+
+.st-finding__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.st-finding__say {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.st-mark {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.st-mark[data-sev='error'] {
+  color: var(--on-risk);
+}
+
+/* ══ 9 · THE STORE ════════════════════════════════════════════════════════ */
+
+.st-store {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs) var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border-top: 1px solid var(--rule);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+.st-store__say {
+  color: var(--ink-3);
+}
+
+.st-store__open {
+  color: var(--ink-2);
+  font-weight: var(--weight-label);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 2px;
+}
+
+.st-store__open:hover {
+  color: var(--ink);
+}
+
+/* ══ 10 · NARROW ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 1000px) {
+  .st-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+
+  .st-rail {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .st-rail__item {
+    grid-template-columns: 18px auto;
+    border-radius: var(--r-pill);
+    padding: var(--space-2xs) var(--space-sm);
+  }
+
+  .st-rail__item[aria-current="true"] {
+    border-radius: var(--r-pill);
+  }
+
+  .st-rail__sum {
+    display: none;
+  }
+
+  .st-pane__sum {
+    text-align: left;
+  }
+}
+
+@media (max-width: 760px) {
+  .st-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .st-head__tools {
+    justify-content: space-between;
+  }
+
+  .st-find {
+    flex: 1;
+  }
+
+  .st-find__field {
+    width: 100%;
+  }
+
+  .st-row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .st-row:not(.st-row--wide) .st-row__ctl {
+    justify-self: start;
+  }
+
+  .st-pane__head {
+    display: grid;
+  }
+
+  .st-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+}

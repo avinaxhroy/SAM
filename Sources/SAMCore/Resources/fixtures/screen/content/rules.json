@@ -1,0 +1,1 @@
+{"schemaVersion": 1, "pipelines": {"flip": {"stages": ["learned", "proved", "anchored"], "completeWhen": "anchored"}}}

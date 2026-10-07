@@ -1,0 +1,16 @@
+[package]
+name = "sam-cli"
+description = "SAM — Surface D (§4.9): the terminal projection of the same engine."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+# The binary is `sam`, not `sam-cli` (§4.5: `target/release/sam --selfcheck`).
+[[bin]]
+name = "sam"
+path = "src/main.rs"
+
+[dependencies]
+sam-core = { path = "../sam-core" }
+serde_json = { workspace = true }

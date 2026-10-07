@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "navigation": [
+    {
+      "title": "Today",
+      "view": "today.screen",
+      "icon": "date"
+    },
+    {
+      "title": "Vocabulary",
+      "view": "vocab.screen",
+      "icon": "character"
+    },
+    {
+      "title": "Kana",
+      "view": "kana.screen",
+      "icon": "waveform"
+    },
+    {
+      "title": "Plan",
+      "view": "plan.screen",
+      "icon": "calendar"
+    },
+    {
+      "title": "Reviews",
+      "view": "reviews.panel",
+      "icon": "refresh"
+    },
+    {
+      "title": "Progress",
+      "view": "progress.panel",
+      "icon": "chart"
+    },
+    {
+      "title": "Media",
+      "view": "media.library",
+      "icon": "play"
+    },
+    {
+      "title": "Notes",
+      "view": "notes.all",
+      "icon": "pencil"
+    }
+  ],
+  "commands": [],
+  "keybindings": [
+    {
+      "command": "edit.undo",
+      "key": "mod+z"
+    },
+    {
+      "command": "edit.redo",
+      "key": "mod+shift+z"
+    },
+    {
+      "command": "app.palette",
+      "key": "mod+k"
+    },
+    {
+      "command": "app.toggleSourcePane",
+      "key": "mod+shift+j"
+    },
+    {
+      "command": "app.openSettings",
+      "key": "mod+comma"
+    }
+  ]
+}

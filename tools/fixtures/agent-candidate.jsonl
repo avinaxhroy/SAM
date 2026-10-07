@@ -1,0 +1,3 @@
+{"fields":{"est":30,"kind":"watch","title":"Agent: Bayes' theorem"},"id":"t.agent.01","links":{"course":["c.demo.a"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":45,"kind":"practice","title":"Agent: naive Bayes drill"},"id":"t.agent.02","links":{"course":["c.demo.a"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":20,"kind":"read","title":"Agent: conditional independence"},"id":"t.agent.03","links":{"course":["c.demo.b"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}

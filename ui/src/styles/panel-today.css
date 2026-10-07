@@ -1,0 +1,86 @@
+/*
+ * Today panel styles (P2 · U1, design.md §8.3).
+ * Text clamping for focus card titles and geometry-matched loading skeleton states.
+ */
+
+/* ── THE FOCUS TITLE, AT REAL CONTENT LENGTHS ───────────────────────────── */
+.tw-focus__text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: initial;
+}
+
+/* ══ LOADING ═════════════════════════════════════════════════════════════ */
+
+/* The session card's skeleton, added up from the type ramp and the space
+   scale, with every number a token:
+
+       32 × 2  = 64    the card's own padding            --space-2xl
+        20     = 20    the eyebrow's chip                 --chip-h
+        16     = 16    eyebrow → title                    --space-md
+     32 × 1.08 × 2 = 69.1  the title, two lines at the card's own step
+        12     = 12    title → why                        --space-sm
+      13 × 1.25 = 16.3  the why line                      --sam-meta-line
+        24     = 24    why → the control row              --space-xl
+        46     = 46    the control row                    --pill-h-lg
+       16     = 16    the card's own grid gap            --space-md
+       ──────
+              283.4   → the session card's measured height */
+.tw-focus-skel {
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--sh-2);
+  padding: var(--space-2xl);
+  min-height: calc(
+    var(--space-2xl) * 2 + var(--chip-h) + var(--space-md) + var(--text-2xl) * 1.08 * 2 + var(--space-sm) +
+      var(--text-xs) * var(--sam-meta-line) + var(--space-xl) + var(--pill-h-lg) + var(--space-md)
+  );
+  display: grid;
+  gap: var(--space-md);
+  align-content: start;
+}
+
+/* A queue row's own arriving height (see the header). */
+.tw-skel-tall {
+  height: var(--sam-row-h-tall);
+}
+
+.tw-focus-skel__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xl);
+}
+
+/* ══ THE FIRST RUN, AND THE PLAN JUST CREATED ═════════════════════════════
+   Card styling for initial setup and empty plan states. */
+.tw-first {
+  display: grid;
+  gap: var(--space-md);
+  justify-items: start;
+}
+.tw-first .cd-card__sub {
+  color: var(--ink-2);
+  max-width: 56ch;
+  line-height: 1.55;
+}
+.tw-first__acts {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-xs);
+}
+.tw-first__lead {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  margin-top: var(--space-xs);
+}
+.tw-first__starts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}

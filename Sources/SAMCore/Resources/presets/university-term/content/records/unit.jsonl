@@ -1,0 +1,10 @@
+{"fields":{"index":1,"label":"Weeks 1-3 · Logic, sets and proofs","weekEnd":3,"weekStart":1},"id":"u.dm.1","links":{"course":["c.cs.dm"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":2,"label":"Weeks 4-6 · Relations, functions and induction","weekEnd":6,"weekStart":4},"id":"u.dm.2","links":{"course":["c.cs.dm"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":3,"label":"Weeks 7-9 · Counting and graphs","weekEnd":9,"weekStart":7},"id":"u.dm.3","links":{"course":["c.cs.dm"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":1,"label":"Weeks 1-3 · Asymptotics, arrays and lists","weekEnd":3,"weekStart":1},"id":"u.dsa.1","links":{"course":["c.cs.dsa"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":2,"label":"Weeks 4-6 · Trees, heaps and hashing","weekEnd":6,"weekStart":4},"id":"u.dsa.2","links":{"course":["c.cs.dsa"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":3,"label":"Weeks 7-9 · Graphs, sorting and complexity","weekEnd":9,"weekStart":7},"id":"u.dsa.3","links":{"course":["c.cs.dsa"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":1,"label":"Weeks 1-4 · Data representation and machine code","weekEnd":4,"weekStart":1},"id":"u.sys.1","links":{"course":["c.cs.sys"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":2,"label":"Weeks 5-8 · Processes, memory and concurrency","weekEnd":8,"weekStart":5},"id":"u.sys.2","links":{"course":["c.cs.sys"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":1,"label":"Weeks 1-4 · Probability and random variables","weekEnd":4,"weekStart":1},"id":"u.ps.1","links":{"course":["c.cs.ps"]},"schemaVersion":1,"type":"unit"}
+{"fields":{"index":2,"label":"Weeks 5-8 · Distributions and inference","weekEnd":8,"weekStart":5},"id":"u.ps.2","links":{"course":["c.cs.ps"]},"schemaVersion":1,"type":"unit"}

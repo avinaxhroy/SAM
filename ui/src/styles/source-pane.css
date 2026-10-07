@@ -1,0 +1,43 @@
+/*
+ * Source editor pane styles (Appendix C.4).
+ * Layout rules for the raw JSON/JSONL editor drawer, responsive width scaling, and cross-table row highlighting.
+ */
+
+/* 1 · The pane's own column: a declared width, moving with the size register. */
+.cd-body > .src-pane {
+  width: calc(380px * var(--ui-s));
+  min-width: 0;
+}
+
+/* 2 · The system's restack (§27, 760px): the pane has no side column left, so it
+   joins the single column as a full-width row. `chrome.css` owns the row's own
+   height and scroll there; this is only the width it should take. */
+@media (max-width: 760px) {
+  .cd-body > .src-pane {
+    width: 100%;
+  }
+}
+
+/* 3 · The hover → highlight pair, on elements the pane does not own: a row of the
+   open table (the design flags the row, because a `.jsonl` finding is about the
+   record on a line), and a cell when the engine's pointer named one. One class,
+   one wash, no second selection mechanism. */
+[data-record-id].is-flagged,
+[data-column].is-flagged {
+  background: var(--chip-risk);
+  color: var(--on-risk);
+  border-radius: var(--r-mini);
+  box-shadow: var(--sh-1);
+}
+
+/* 4 · The pane being open is a pressed state, and it is quiet: the pane's own
+   action is this screen's solid ink. */
+.cd-iconbtn[data-command="app.toggleSourcePane"][aria-pressed="true"] {
+  background: var(--well-2);
+  color: var(--ink);
+}
+
+/* The app mark needed no stepping back while the source pane was open: it
+   carries its own plate, and `.cd-titlebar` is outside gate 8's ink count
+   (`tools/gates.mjs` skips it by ancestor). The recipe that lived here muted a
+   drawn mark's ink fill, which no longer exists. */

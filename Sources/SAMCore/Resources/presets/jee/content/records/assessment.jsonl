@@ -1,0 +1,4 @@
+{"fields":{"kind":"weekly test","label":"Weekly test 1: kinematics and atomic structure"},"id":"a.jee.weekly.01","links":{"course":["c.jee.chemistry","c.jee.physics"],"week":["w.jee.02"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"weekly test","label":"Weekly test 2: laws of motion, bonding and series"},"id":"a.jee.weekly.02","links":{"course":["c.jee.chemistry","c.jee.maths","c.jee.physics"],"week":["w.jee.03"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"part test","label":"Part test 1: mechanics"},"id":"a.jee.part.01","links":{"course":["c.jee.physics"],"week":["w.jee.08"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"full mock","label":"Full mock 1: all three subjects"},"id":"a.jee.mock.01","links":{"course":["c.jee.chemistry","c.jee.maths","c.jee.physics"],"week":["w.jee.26"]},"schemaVersion":1,"type":"assessment"}

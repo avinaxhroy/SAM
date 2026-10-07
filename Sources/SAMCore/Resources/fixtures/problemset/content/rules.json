@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "pipelines": {
+    "progress": {
+      "stages": [
+        "started",
+        "midway",
+        "done"
+      ],
+      "progress": "pct"
+    }
+  }
+}

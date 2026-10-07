@@ -1,0 +1,2 @@
+{"fields":{"kind":"conversation","lines":6,"title":"Self-introduction","topic":"Name, country, work"},"id":"d.ja.jikoshoukai","links":{"track":["t.vocab.01"],"unit":["u.vocab.02"]},"schemaVersion":1,"type":"dialogue"}
+{"fields":{"kind":"roleplay","lines":8,"title":"Asking the price","topic":"Numbers and いくら"},"id":"d.ja.kaimono","links":{"track":["t.vocab.01"],"unit":["u.vocab.01"]},"schemaVersion":1,"type":"dialogue"}

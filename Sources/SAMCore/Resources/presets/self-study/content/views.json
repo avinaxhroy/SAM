@@ -1,0 +1,388 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "library.byKind": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.resources": {
+      "columns": [
+        "label",
+        "kind",
+        "provider",
+        "url"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Resources",
+          "reduce": "count",
+          "view": "library.resources"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "library.byKind"
+        },
+        {
+          "kind": "table",
+          "title": "Everything",
+          "view": "library.resources"
+        }
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource",
+      "panel": "library"
+    },
+    "milestones.all": {
+      "columns": [
+        "label",
+        "phase",
+        "target"
+      ],
+      "layout": "table",
+      "sort": "phase",
+      "type": "milestone"
+    },
+    "notes.all": {
+      "columns": [
+        "title",
+        "course",
+        "body"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note"
+    },
+    "notes.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Notes",
+          "reduce": "count",
+          "view": "notes.all"
+        },
+        {
+          "kind": "table",
+          "title": "Everything you wrote down",
+          "view": "notes.all"
+        }
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note",
+      "panel": "notes"
+    },
+    "plan.assessments": {
+      "columns": [
+        "label",
+        "kind",
+        "course"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "assessment"
+    },
+    "plan.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Stages",
+          "reduce": "count",
+          "view": "plan.units"
+        },
+        {
+          "kind": "timeline",
+          "title": "Each track, in order",
+          "view": "plan.units"
+        },
+        {
+          "kind": "table",
+          "title": "Weeks",
+          "view": "plan.weeks"
+        },
+        {
+          "kind": "table",
+          "title": "Checkpoints",
+          "view": "plan.assessments"
+        }
+      ],
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit",
+      "panel": "plan"
+    },
+    "plan.units": {
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit"
+    },
+    "plan.weeks": {
+      "columns": [
+        "index",
+        "label",
+        "focus"
+      ],
+      "layout": "table",
+      "sort": "index",
+      "type": "week"
+    },
+    "practice.screen": {
+      "blocks": [
+        {
+          "expr": "solved",
+          "kind": "stat",
+          "label": "Problems solved",
+          "reduce": "sum",
+          "view": "practice.table"
+        },
+        {
+          "kind": "stat",
+          "label": "Sets",
+          "reduce": "count",
+          "view": "practice.table"
+        },
+        {
+          "kind": "table",
+          "title": "Practice sets",
+          "view": "practice.table"
+        }
+      ],
+      "columns": [
+        "chapter",
+        "difficulty",
+        "solved",
+        "total",
+        "pct"
+      ],
+      "layout": "table",
+      "sort": "chapter",
+      "type": "problemset",
+      "panel": "practice"
+    },
+    "practice.table": {
+      "columns": [
+        "chapter",
+        "difficulty",
+        "solved",
+        "total",
+        "pct",
+        "source"
+      ],
+      "layout": "table",
+      "sort": "chapter",
+      "type": "problemset"
+    },
+    "progress.screen": {
+      "blocks": [
+        {
+          "expr": "min",
+          "kind": "stat",
+          "label": "Minutes studied",
+          "reduce": "sum",
+          "view": "progress.sessions"
+        },
+        {
+          "kind": "chart",
+          "reduce": "sum",
+          "title": "Minutes by track",
+          "view": "progress.sessions",
+          "x": "course.short",
+          "y": "min"
+        },
+        {
+          "kind": "table",
+          "title": "Sessions",
+          "view": "progress.sessions"
+        }
+      ],
+      "columns": [
+        "min",
+        "course",
+        "note"
+      ],
+      "layout": "table",
+      "panel": "progress",
+      "sort": "-min",
+      "type": "session"
+    },
+    "progress.sessions": {
+      "columns": [
+        "min",
+        "course",
+        "note"
+      ],
+      "layout": "table",
+      "limit": 30,
+      "sort": "-min",
+      "type": "session"
+    },
+    "projects.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Projects",
+          "reduce": "count",
+          "view": "projects.table"
+        },
+        {
+          "kind": "table",
+          "title": "By status",
+          "view": "projects.table"
+        }
+      ],
+      "columns": [
+        "name",
+        "status",
+        "course"
+      ],
+      "layout": "table",
+      "sort": "status",
+      "type": "project"
+    },
+    "projects.table": {
+      "columns": [
+        "name",
+        "status",
+        "course"
+      ],
+      "layout": "table",
+      "sort": "status",
+      "type": "project"
+    },
+    "reviews.queue": {
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "sort": "est",
+      "type": "topic"
+    },
+    "reviews.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Not finished yet",
+          "reduce": "count",
+          "view": "reviews.queue"
+        },
+        {
+          "kind": "callout",
+          "text": "A topic is finished when it is proved and anchored — two problems solved, then a spaced review. The queue below is the shortest unproved work first.",
+          "title": "How this queue is ordered"
+        },
+        {
+          "kind": "table",
+          "view": "reviews.queue"
+        }
+      ],
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "panel": "reviews",
+      "sort": "est",
+      "type": "topic"
+    },
+    "today.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Open topics",
+          "reduce": "count",
+          "view": "today.topics"
+        },
+        {
+          "expr": "est",
+          "kind": "stat",
+          "label": "Minutes planned",
+          "reduce": "sum",
+          "view": "today.topics"
+        },
+        {
+          "kind": "list",
+          "title": "Next up",
+          "view": "today.topics"
+        }
+      ],
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "panel": "today",
+      "sort": "est",
+      "type": "topic"
+    },
+    "today.topics": {
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "sort": "est",
+      "type": "topic"
+    },
+    "tracks.board": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "name",
+      "type": "course"
+    },
+    "tracks.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Tracks",
+          "reduce": "count",
+          "view": "tracks.board"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "tracks.board"
+        },
+        {
+          "kind": "table",
+          "title": "All tracks",
+          "view": "tracks.table"
+        }
+      ],
+      "group": "kind",
+      "layout": "board",
+      "sort": "name",
+      "type": "course",
+      "panel": "subjects"
+    },
+    "tracks.table": {
+      "columns": [
+        "name",
+        "short",
+        "kind"
+      ],
+      "layout": "table",
+      "sort": "name",
+      "type": "course"
+    }
+  }
+}

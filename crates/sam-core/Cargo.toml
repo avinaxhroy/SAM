@@ -1,0 +1,15 @@
+[package]
+name = "sam-core"
+description = "SAM engine — content model, resource resolution, plan loading. No windowing."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+directories = { workspace = true }
+notify = { workspace = true }
+rusqlite = { workspace = true }
+fsrs = { workspace = true }

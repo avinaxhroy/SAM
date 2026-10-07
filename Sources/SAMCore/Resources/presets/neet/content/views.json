@@ -1,0 +1,482 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "library.all": {
+      "columns": [
+        "label",
+        "kind",
+        "provider",
+        "url"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.byKind": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Resources",
+          "reduce": "count",
+          "view": "library.all"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "library.byKind"
+        },
+        {
+          "kind": "table",
+          "title": "Everything",
+          "view": "library.all"
+        }
+      ],
+      "columns": [
+        "label",
+        "kind",
+        "provider",
+        "url"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource",
+      "panel": "library"
+    },
+    "mocks.calendar": {
+      "layout": "calendar",
+      "sort": "date",
+      "type": "assessment"
+    },
+    "mocks.list": {
+      "columns": [
+        "label",
+        "kind",
+        "date",
+        "course",
+        "note"
+      ],
+      "layout": "table",
+      "sort": "date",
+      "type": "assessment"
+    },
+    "mocks.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Tests and mocks",
+          "reduce": "count",
+          "view": "mocks.list"
+        },
+        {
+          "kind": "calendar",
+          "title": "The mock calendar",
+          "view": "mocks.calendar"
+        },
+        {
+          "kind": "table",
+          "title": "Everything scheduled",
+          "view": "mocks.list"
+        }
+      ],
+      "layout": "calendar",
+      "sort": "date",
+      "type": "assessment",
+      "panel": "mocks"
+    },
+    "notes.all": {
+      "columns": [
+        "title",
+        "course",
+        "body"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note"
+    },
+    "notes.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Notes",
+          "reduce": "count",
+          "view": "notes.all"
+        },
+        {
+          "kind": "table",
+          "title": "What you wrote down",
+          "view": "notes.all"
+        }
+      ],
+      "columns": [
+        "title",
+        "course",
+        "body"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note",
+      "panel": "notes"
+    },
+    "plan.assessments": {
+      "layout": "calendar",
+      "sort": "date",
+      "type": "assessment"
+    },
+    "plan.milestones": {
+      "columns": [
+        "label",
+        "month",
+        "target"
+      ],
+      "layout": "table",
+      "sort": "month",
+      "type": "milestone"
+    },
+    "plan.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Chapters",
+          "reduce": "count",
+          "view": "plan.units"
+        },
+        {
+          "kind": "timeline",
+          "title": "The chapter spine, in order",
+          "view": "plan.units"
+        },
+        {
+          "kind": "calendar",
+          "title": "Tests and mocks",
+          "view": "plan.assessments"
+        },
+        {
+          "kind": "table",
+          "title": "Weeks",
+          "view": "plan.weeks"
+        },
+        {
+          "kind": "table",
+          "title": "Milestones",
+          "view": "plan.milestones"
+        },
+        {
+          "kind": "table",
+          "title": "Every topic",
+          "view": "plan.topics"
+        }
+      ],
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit",
+      "panel": "plan"
+    },
+    "plan.topics": {
+      "columns": [
+        "title",
+        "course",
+        "unit",
+        "kind",
+        "est",
+        "week"
+      ],
+      "layout": "table",
+      "sort": "course.name, unit.index, est",
+      "type": "topic"
+    },
+    "plan.units": {
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit"
+    },
+    "plan.weeks": {
+      "columns": [
+        "index",
+        "label",
+        "start",
+        "end"
+      ],
+      "layout": "table",
+      "sort": "index",
+      "type": "week"
+    },
+    "practice.board": {
+      "group": "difficulty",
+      "layout": "board",
+      "sort": "chapter",
+      "type": "problemset"
+    },
+    "practice.pending": {
+      "columns": [
+        "chapter",
+        "difficulty",
+        "solved",
+        "total",
+        "pct",
+        "lastAttempt"
+      ],
+      "filter": "solved < total",
+      "layout": "table",
+      "sort": "course.name, chapter",
+      "type": "problemset"
+    },
+    "practice.screen": {
+      "blocks": [
+        {
+          "expr": "solved",
+          "kind": "stat",
+          "label": "Questions solved",
+          "reduce": "sum",
+          "view": "practice.sets"
+        },
+        {
+          "kind": "stat",
+          "label": "Sets not finished",
+          "reduce": "count",
+          "view": "practice.pending"
+        },
+        {
+          "kind": "callout",
+          "text": "pct is derived from solved and total and is never typed in. A set stays on this screen while solved is below total; the board groups the same rows by difficulty so a hard set is visibly different from an unfinished easy one.",
+          "title": "Read the percentage, not the count"
+        },
+        {
+          "kind": "table",
+          "title": "Problem sets",
+          "view": "practice.sets"
+        },
+        {
+          "kind": "board",
+          "title": "By difficulty",
+          "view": "practice.board"
+        }
+      ],
+      "columns": [
+        "chapter",
+        "difficulty",
+        "total",
+        "attempted",
+        "solved",
+        "pct",
+        "source",
+        "lastAttempt"
+      ],
+      "layout": "table",
+      "sort": "course.name, chapter",
+      "type": "problemset",
+      "panel": "practice"
+    },
+    "practice.sets": {
+      "columns": [
+        "chapter",
+        "difficulty",
+        "total",
+        "attempted",
+        "solved",
+        "pct",
+        "source",
+        "lastAttempt"
+      ],
+      "layout": "table",
+      "sort": "course.name, chapter",
+      "type": "problemset"
+    },
+    "progress.screen": {
+      "blocks": [
+        {
+          "days": 14,
+          "kind": "chart",
+          "label": "Minutes per day, last 14 days",
+          "reduce": "sum",
+          "view": "progress.sessions",
+          "x": "date",
+          "y": "min"
+        },
+        {
+          "expr": "solved",
+          "kind": "stat",
+          "label": "Questions solved",
+          "reduce": "sum",
+          "view": "practice.sets"
+        },
+        {
+          "kind": "stat",
+          "label": "Sets not finished",
+          "reduce": "count",
+          "view": "practice.pending"
+        },
+        {
+          "kind": "table",
+          "title": "Sessions",
+          "view": "progress.sessions"
+        }
+      ],
+      "columns": [
+        "date",
+        "min",
+        "course",
+        "note"
+      ],
+      "layout": "table",
+      "panel": "progress",
+      "sort": "-date",
+      "type": "session"
+    },
+    "progress.sessions": {
+      "columns": [
+        "date",
+        "min",
+        "course",
+        "note"
+      ],
+      "layout": "table",
+      "limit": 30,
+      "sort": "-date",
+      "type": "session"
+    },
+    "reviews.queue": {
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "reviews.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Not anchored yet",
+          "reduce": "count",
+          "view": "reviews.queue"
+        },
+        {
+          "kind": "callout",
+          "text": "learned → proved → anchored. A watch topic cannot be proved without two solved problems, and an anchor can only be skipped with a written reason. Backtracking invalidates the stages that depended on the one you undo.",
+          "title": "How the flip loop runs"
+        },
+        {
+          "kind": "table",
+          "view": "reviews.queue"
+        }
+      ],
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "panel": "reviews",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "subjects.board": {
+      "group": "subject",
+      "layout": "board",
+      "sort": "name",
+      "type": "course"
+    },
+    "subjects.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Subjects",
+          "reduce": "count",
+          "view": "subjects.board"
+        },
+        {
+          "kind": "stat",
+          "label": "Topics",
+          "reduce": "count",
+          "view": "subjects.topics"
+        },
+        {
+          "kind": "board",
+          "title": "Biology, Physics, Chemistry",
+          "view": "subjects.board"
+        },
+        {
+          "kind": "table",
+          "title": "Topics by subject",
+          "view": "subjects.topics"
+        }
+      ],
+      "group": "subject",
+      "layout": "board",
+      "sort": "name",
+      "type": "course",
+      "panel": "subjects"
+    },
+    "subjects.topics": {
+      "columns": [
+        "title",
+        "course",
+        "unit",
+        "kind",
+        "est",
+        "week"
+      ],
+      "layout": "table",
+      "sort": "course.name, unit.index, est",
+      "type": "topic"
+    },
+    "today.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Open topics",
+          "reduce": "count",
+          "view": "today.topics"
+        },
+        {
+          "expr": "est",
+          "kind": "stat",
+          "label": "Minutes planned",
+          "reduce": "sum",
+          "view": "today.topics"
+        },
+        {
+          "kind": "callout",
+          "text": "Open topics only, oldest week first, shortest session first. A watch topic is finished when it is proved — two problems solved — and then anchored. A day that slips is not a debt, and nothing here is scored as one.",
+          "title": "How this list is ordered"
+        },
+        {
+          "kind": "list",
+          "title": "The work still open",
+          "view": "today.topics"
+        }
+      ],
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "panel": "today",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "today.topics": {
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    }
+  }
+}

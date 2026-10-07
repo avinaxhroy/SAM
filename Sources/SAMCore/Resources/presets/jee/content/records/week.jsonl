@@ -1,0 +1,8 @@
+{"fields":{"index":1,"label":"Week 1","phase":"Foundation"},"id":"w.jee.01","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"index":2,"label":"Week 2","phase":"Foundation"},"id":"w.jee.02","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"index":3,"label":"Week 3","phase":"Foundation"},"id":"w.jee.03","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"index":4,"label":"Week 4","phase":"Foundation"},"id":"w.jee.04","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"index":8,"label":"Week 8","phase":"Build"},"id":"w.jee.08","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"index":26,"label":"Week 26","phase":"Build"},"id":"w.jee.26","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"index":52,"label":"Week 52","phase":"Practice"},"id":"w.jee.52","links":{},"schemaVersion":1,"type":"week"}
+{"fields":{"index":104,"label":"Week 104","phase":"Revision"},"id":"w.jee.104","links":{},"schemaVersion":1,"type":"week"}

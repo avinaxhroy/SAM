@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "screen.demo": {
+      "type": "topic",
+      "layout": "list",
+      "sort": "est",
+      "blocks": [
+        { "kind": "stat", "label": "Minutes to cover", "expr": "est", "reduce": "sum" },
+        { "kind": "callout", "title": "A screen is data", "text": "Blocks compose saved views; nothing here is a hand-built screen." },
+        {
+          "kind": "columns",
+          "blocks": [
+            { "kind": "sparkline", "expr": "est" },
+            { "kind": "stat", "label": "Topics", "reduce": "count" }
+          ]
+        },
+        { "kind": "table" },
+        { "kind": "graph", "view": "screen.demo" }
+      ]
+    },
+    "topics.byKind": {
+      "type": "topic",
+      "layout": "board",
+      "group": "kind"
+    }
+  }
+}

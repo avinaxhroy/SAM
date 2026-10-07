@@ -1,0 +1,2 @@
+{"fields":{"code":"EX101","credits":4,"instructor":"Dr. Example","name":"Example Course A","note":"","short":"EX-A"},"id":"c.demo.a","links":{"term":["term.demo"]},"schemaVersion":1,"type":"course"}
+{"fields":{"code":"EX102","credits":3,"instructor":"Dr. Sample","name":"Example Course B","note":"","short":"EX-B"},"id":"c.demo.b","links":{"term":["term.demo"]},"schemaVersion":1,"type":"course"}

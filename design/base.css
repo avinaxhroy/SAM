@@ -1,0 +1,168 @@
+/* ════════════════════════════════════════════════════════════════════════
+   CADENCE · BASE
+   The reset, element defaults, and the two utilities (`.num`, `.cd-scroll`).
+   ────────────────────────────────────────────────────────────────────────
+   WHY THIS IS NOT IN tokens.css:
+
+   tokens.css must be safe to import on its own. A token file that also
+   declares `html, body { height: 100%; overflow: hidden }` has decided how
+   the consuming app's page scrolls, and an app that needs a scrolling page
+   cannot use the tokens without taking a shell it did not ask for.
+
+   So the two jobs are two files:
+
+     tokens.css  — custom properties only. No selectors beyond :root and
+                   [data-theme]. Import it anywhere, change nothing.
+     base.css    — the assumptions a Cadence *window* needs on the page.
+                   Import it when your page is a Cadence window.
+
+   The three rules below are the design system's own, and they are the reason
+   each block exists rather than being left to the browser:
+     1 · The page is the room. Its background is the backdrop plus the room's
+         light from above — the same two values every surface in the window
+         is lit by, so the sheet reads as sitting in this room and not on it.
+     2 · Motion collapses, it does not get shorter. See the reduced-motion
+         block at the end for why the delay is zeroed too.
+     3 · Type defaults are element defaults. A heading is a heading in the
+         markup, not a class someone has to remember.
+   ════════════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--backdrop);
+  background-image: radial-gradient(125% 90% at 50% 0%, var(--room-lit) 0%, var(--backdrop) 64%);
+  background-attachment: fixed;
+}
+
+/* The page is the room, and a room does not slide. `overflow: hidden` belongs
+   on **html**, not only on body: the window's own 24px bottom margin is the
+   last child's margin and it escapes body's height, so the document element
+   ends up one gutter taller than the viewport. With html left at `visible`
+   the page scrolls that 24px and the room's top edge goes off screen — the
+   one thing this file's premise says cannot happen. Body's `overflow` alone
+   does not stop it, because it is html that is scrollable. The content that
+   *does* scroll is `.cd-scroller`, one per surface, at the window edge. */
+html { overflow: hidden; }
+
+body {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-body);
+  line-height: 1.45;
+  letter-spacing: var(--track-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+h1, h2, h3, h4, p, dl, dd, dt, figure, blockquote { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+svg { display: block; flex: none; }
+a { color: inherit; text-decoration: none; }
+
+/* Display type earns negative tracking; body text does not. */
+h1, h2, .t-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: var(--track-display);
+  line-height: 1.04;
+  text-wrap: balance;
+}
+h3, h4, .t-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: var(--track-title);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+/* Numbers are the one place a geometric sans misbehaves: it kerns wide and
+   proportional digits wobble in a column. Tabular figures fix both —
+   measured on this face, a proportional `1` is 5.48px at 15px and a tabular
+   one is 8.92px, the same as every other digit.
+   This is the whole recipe, and it is the same one the metric rules in
+   components.css declare, so a number in the markup and a number in a rule
+   can never be set two ways. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus { outline: none; }
+/* No `border-radius: inherit` here. Browsers draw the outline along the
+   element's own radius, so the declaration only ever overrode it with the
+   *parent's* — which breaks every object whose corner is unlike its parent's
+   (a capsule cap inside a squared wrapper drew a rectangle). */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ── A FIELD WEARS ITS RING INSIDE ITS OWN EDGE ──────────────────────────
+   The ring above is drawn *outside* the shape with 2px of surface showing
+   through as a gap, which is what makes it read as a ring — and it is right
+   for a control that *stands* on a surface: a button, a disc, a chip. A
+   **field** is the other kind of object: it is a recessed well in the
+   surface, and the ring outside it goes wrong twice, in the two ways the
+   owner hit in one afternoon (2026-10-06).
+
+   First, the corner. Chromium draws an offset outline on the element's *own*
+   radius rather than on the inflated one, so a 12px field (`--r-mini`, i.e.
+   every `.cd-wellfield`, `.cd-cellinput`, `.cd-sheet__well`) met a
+   nearly-square ring: the gap stayed 2px along the edges and widened to
+   ~5.6px on the diagonal, and the field read as *a rectangle wearing a
+   rounded face* — "it look like a rectangular box at the corner".
+
+   Second, the frame. An outline is painted outside the border box, so the
+   first ancestor that clips eats it: a field in a scroller, a sheet or a row
+   (`.cd-scroller`, `.cd-sheet`, `.cd-row` all clip) shows a ring sliced off
+   at the edge — `box-shadow: inset …` patches exist in three files for
+   exactly this reason.
+
+   The offset is the whole fix, and it inverts to `-2px`: the same 2px ink
+   ring, drawn inside the field's own edge, where an outline follows the
+   element's radius exactly (a corner cannot disagree with itself), where no
+   ancestor can clip it, and where it says what it means — this well is the
+   one taking your keystrokes. It is the same trick the system already uses
+   for every fused control (`.cd-row`, `panel-mocks`, `panel-plan`), so the
+   fields simply join it. Controls that are not fields keep the outer ring.
+   (`design.md` §7.5 states the rule in words.) */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: -2px;
+}
+
+::selection { background: var(--w-butter); color: var(--fg-butter); }
+
+/* Scrollbars: present but quiet, and only when there is something to scroll. */
+.cd-scroll { scrollbar-width: thin; scrollbar-color: var(--rule-strong) transparent; }
+.cd-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.cd-scroll::-webkit-scrollbar-track { background: transparent; }
+.cd-scroll::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border: 3px solid transparent;
+  border-radius: var(--r-pill);
+  background-clip: content-box;
+}
+.cd-scroll::-webkit-scrollbar-thumb:hover { background: var(--ink-4); background-clip: content-box; }
+
+/* Motion collapses to instant state changes, not a chain of short fades.
+   The delay is zeroed too: a staggered arrival is still a sequence, and a
+   120ms-delayed pop inside a 1ms duration is an invisible state that then
+   changes — the one shape of motion this block exists to remove. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

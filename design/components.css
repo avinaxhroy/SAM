@@ -1,0 +1,1036 @@
+
+/* ── 1 · IDENTITY MAPPING ─────────────────────────────────────────────── */
+/* The fallback is declared first so the four named rooms win the cascade:
+   equal specificity, later rule takes it. */
+/* Any element that names a room also gets that room's *fill gradient*,
+   computed from whatever --wash resolves to — so the four rooms and the
+   neutral fallback all light the same way without four more token pairs.
+   A wash is a lit surface, not a flat swatch: it runs lighter at the top
+   where the room's light falls and deeper at the bottom where it turns. */
+[data-w]          { --wash: var(--well);     --onwash: var(--ink);
+                    --wash-hi: color-mix(in oklab, var(--wash) 82%, var(--card));
+                    --wash-lo: color-mix(in oklab, var(--wash) 90%, var(--onwash));
+                    --wash-grad: linear-gradient(158deg, var(--wash-hi) 0%, var(--wash) 54%, var(--wash-lo) 100%); }
+[data-w="mint"]   { --wash: var(--w-mint);   --onwash: var(--fg-mint); }
+[data-w="lilac"]  { --wash: var(--w-lilac);  --onwash: var(--fg-lilac); }
+[data-w="butter"] { --wash: var(--w-butter); --onwash: var(--fg-butter); }
+[data-w="sky"]    { --wash: var(--w-sky);    --onwash: var(--fg-sky); }
+
+/* ── 2 · WINDOW ───────────────────────────────────────────────────────── */
+.cd-window {
+  height: calc(100dvh - var(--gutter) * 2);
+  margin: var(--gutter);
+  display: grid;
+  grid-template-rows: var(--titlebar-h) minmax(0, 1fr);
+  background: var(--sheet);
+  border-radius: var(--r-window);
+  /* The sheet is an object in a lit room: a deep contact/ambient pair below,
+     and the room's light catching its top edge. */
+  box-shadow: var(--sh-3), var(--catch);
+  overflow: hidden;
+  position: relative;
+}
+/* Frameless mode — for a real native wrapper there is no desktop gap and no
+   app-drawn corner, because the OS draws both. The demo runs in the gap. */
+.cd-window[data-window="flush"] { height: 100dvh; margin: 0; border-radius: 0; box-shadow: none; }
+
+/* ── 3 · TITLEBAR ─────────────────────────────────────────────────────── */
+.cd-titlebar {
+  /* The window's own chrome, so it carries the colour the room gave up (v4.8):
+     `--wash-rose` at full strength, the same wash that tints an icon tile.
+     It is opaque, and an opaque child covers the parent's inset light-catch —
+     so the window's 1px top catch is restated here, on the surface that now
+     owns the top edge. Both themes, one recipe: `--glass-line` is the same
+     white in each. */
+  background: var(--wash-rose);
+  box-shadow: inset 0 1px 0 var(--glass-line);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md) 0 var(--space-lg);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+.cd-titlebar__group { display: flex; align-items: center; gap: var(--space-xs); -webkit-app-region: no-drag; }
+.cd-titlebar__spacer { flex: 1; }
+/* Room for the OS's own window buttons. Reserved, never drawn — a fake red
+   dot is the fastest way to make a desktop app look like a mockup. */
+.cd-titlebar[data-os="mac"] { padding-left: var(--titlebar-inset-mac); }
+.cd-titlebar[data-os="win"] { padding-right: var(--titlebar-inset-win); }
+
+/* The app mark is the artwork, not a drawing: the same glossy S the bundle ships,
+   at 3x the 26px tile (`mark-light.png` / `mark-dark.png`, cut from the icon
+   sources). It brings its own squircle, so the tile only has to clip it, and it
+   picks the plate that reads on the room it is in. `data-theme` is the RESOLVED
+   mode, which follows the in-app switch as well as the OS, so the mark cannot
+   disagree with the sheet behind it. */
+.cd-mark {
+  width: 26px; height: 26px;
+  border-radius: var(--r-mark);
+  overflow: hidden;
+  flex: none;
+}
+.cd-mark img { width: 100%; height: 100%; display: block; }
+.cd-mark img[data-mark='dark'] { display: none; }
+[data-theme='dark'] .cd-mark img[data-mark='light'] { display: none; }
+[data-theme='dark'] .cd-mark img[data-mark='dark'] { display: block; }
+.cd-appname { font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--text-sm); letter-spacing: var(--track-title); }
+.cd-term { font-size: var(--text-xs); color: var(--ink-3); }
+
+/* ── 4 · BUTTONS ──────────────────────────────────────────────────────── */
+.cd-pill {
+  height: var(--pill-h);
+  padding: 0 var(--space-lg);
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--ink-inv);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  white-space: nowrap;
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.cd-pill:hover { transform: translateY(-1px); box-shadow: var(--sh-ink); }
+.cd-pill:active { transform: scale(0.97); }
+.cd-pill--ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+}
+.cd-pill--ghost:hover { background: var(--card); box-shadow: inset 0 0 0 1.5px var(--ink-4), var(--sh-1); }
+/* The quiet pill is still a button you can hit: it carries a fill, it just
+   does not carry the ink. On a white card the well is enough to read. */
+.cd-pill--quiet { background: var(--well-2); color: var(--ink); }
+.cd-pill--quiet:hover { box-shadow: var(--sh-1); }
+.cd-pill--sm { height: var(--hit); padding: 0 var(--space-md); font-size: var(--text-2xs); }
+.cd-pill--lg { height: var(--pill-h-lg); padding: 0 var(--space-xl); font-size: var(--text-base); }
+.cd-pill[disabled], .cd-pill[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+
+.cd-iconbtn {
+  width: var(--hit); height: var(--hit);
+  border-radius: var(--r-pill);
+  display: grid; place-items: center;
+  color: var(--ink-2);
+  position: relative;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+.cd-iconbtn:hover { background: var(--well); color: var(--ink); }
+.cd-iconbtn:active { transform: scale(0.94); }
+.cd-iconbtn[aria-current="true"], .cd-iconbtn.is-active { background: var(--ink); color: var(--ink-inv); }
+/* A span, not a button: it sits inside a tile that is itself the control, so
+   it is a mark that says "this opens" rather than a second thing to press.
+   Type can be the only voice it is allowed — no restatement of the tile's
+   own label, and no words, because the tile around it already has them. */
+.cd-round {
+  width: 30px; height: 30px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--ink-inv);
+  display: grid; place-items: center;
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.cd-round:hover { transform: translateY(-1px) scale(1.04); box-shadow: var(--sh-ink); }
+
+/* ── 4b · DURATION — one capsule that splits into its parts ───────────── */
+/* A session length is a number the student owns, so it is editable where it
+   is read. It fuses into one capsule that says "45 min" and splits into its
+   own parts when opened — the split IS the affordance, so nothing else about
+   the control changes: same fill, same type, same height as the pill beside
+   it. The inner corners are squared while fused because two stadiums butted
+   together show two curves meeting in a seam.
+   The number is a real <input> in both states rather than a span that swaps
+   for a field: one markup cannot disagree with itself, and the value never
+   jumps when the editor opens. Fused, it is not reachable by Tab. */
+.cd-dur { display: inline-flex; align-items: center; gap: 0; transition: gap var(--dur-2) var(--ease); }
+.cd-dur__part {
+  height: var(--pill-h-lg);           /* sits in a row with .cd-pill--lg */
+  display: inline-flex; align-items: center; gap: var(--space-2xs);
+  background: var(--well-2); color: var(--ink);
+  transition: border-radius var(--dur-2) var(--ease);
+}
+.cd-dur__part--v { border-radius: var(--r-pill) 0 0 var(--r-pill); padding: 0 var(--space-sm) 0 var(--space-md); }
+.cd-dur__part--v:focus-within { box-shadow: inset 0 0 0 2px var(--ink); }
+.cd-dur__part--act {
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+  width: 44px; justify-content: center; position: relative; cursor: pointer;
+}
+/* Inside a fused object, focus is drawn *inset* — the same ring the field
+   beside it uses — so a floating outline can never make the cap look detached
+   from the capsule it belongs to. The outer outline is for objects that stand
+   alone. */
+.cd-dur__part--act:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ink); }
+.cd-dur[data-edit="1"] { gap: var(--space-sm); }
+.cd-dur[data-edit="1"] .cd-dur__part { border-radius: var(--r-pill); }
+.cd-dur[data-edit="1"] .cd-dur__part--v { padding: 0 var(--space-md); }
+.cd-dur input {
+  width: 3ch; padding: 0; border: 0; background: transparent;
+  font-family: var(--font-display); font-size: var(--text-base); font-weight: var(--weight-display);
+  color: inherit; text-align: right; font-variant-numeric: tabular-nums;
+}
+.cd-dur input:focus { outline: none; }
+.cd-dur[data-edit="0"] input { pointer-events: none; }
+.cd-dur__unit { font-size: var(--text-sm); font-weight: var(--weight-label); color: var(--ink-2); }
+.cd-dur__ico { position: absolute; inset: 0; margin: auto; width: 15px; height: 15px; color: var(--ink-2); transition: transform var(--dur-2) var(--ease), opacity var(--dur-2) var(--ease); }
+.cd-dur__ico--check { transform: translateY(-160%); opacity: 0; }
+.cd-dur[data-edit="1"] .cd-dur__ico--pencil { transform: translateY(160%); opacity: 0; }
+.cd-dur[data-edit="1"] .cd-dur__ico--check { transform: translateY(0); opacity: 1; }
+
+/* ── 5 · SEARCH FIELD ─────────────────────────────────────────────────── */
+.cd-searchpill {
+  display: flex; align-items: center; gap: var(--space-xs);
+  /* Not a fourth control rung: the field is exactly its own contents — a
+     20px keycap — plus the padding it needs around them. */
+  height: calc(var(--chip-h) + var(--space-md));
+  padding: 0 var(--space-xs) 0 var(--space-md);
+  border-radius: var(--r-pill);
+  background: var(--well);
+  color: var(--ink-3);
+  min-width: 260px;
+  transition: box-shadow var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.cd-searchpill:hover { background: var(--well-2); }
+.cd-searchpill input {
+  border: 0; background: none; outline: none;
+  width: 100%; min-width: 0;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.cd-searchpill input::placeholder { color: var(--ink-3); }
+
+.cd-kbd {
+  min-width: var(--chip-h); height: var(--chip-h);
+  padding: 0 var(--space-2xs);
+  border-radius: var(--r-key);
+  background: var(--card);
+  color: var(--ink-3);
+  font-size: var(--text-2xs); font-weight: var(--weight-label);
+  display: inline-grid; place-items: center;
+  /* A key label never breaks: "Ctrl K" wrapped to two lines inside a 20px
+     chip the first time a non-mac platform rendered one. */
+  white-space: nowrap; flex: none;
+  box-shadow: inset 0 0 0 1px var(--rule), var(--sh-1);
+}
+
+/* ── 6 · BODY, RAIL, CANVAS ───────────────────────────────────────────── */
+.cd-body {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  /* The row is the window's, not the rail's. Without this the row is
+     auto-sized to the taller of the two columns, so a rail whose content
+     outgrew the body dragged the row — and the scroller stretched to that
+     row — past the sheet's own edge. The window is `calc(100dvh - 48px)`
+     and never scrolls (§8.1); its body is therefore definite, and
+     `minmax(0, 1fr)` pins the row to it: the scroller ends where the sheet
+     ends, the canvas's floor padding is the floor padding the eye measures,
+     and a rail too tall for the window clips inside its own column instead
+     of lying about the content's bottom. */
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  /* No `overflow: hidden` and no transition on the column. The rail used to
+     open by widening its *track*, which meant the canvas was re-laid-out on
+     every hover — the whole page reflowed to make room for one word. The
+     track is now fixed for the life of the window and the pill overflows it
+     into the gutter instead (see 6b), so hovering the rail costs the page
+     nothing at all: not a reflow, not a repaint of anything but the pill. */
+}
+.cd-scroller { height: 100%; overflow-y: auto; overflow-x: hidden; }
+/* The router focuses the view on every navigation. A ring there would be a
+   ring for something the user did not do. */
+.cd-view:focus, .cd-view:focus-visible { outline: none; }
+.cd-canvas {
+  max-width: var(--canvas-max);
+  margin: 0 auto;
+  /* Bottom is a step above the top, not two: 64px was a void under the last
+     block on every screen (v4.8), so the end of a scroll now breathes at
+     `--space-3xl` — the same rung the narrow breakpoint already used. */
+  padding: var(--space-xl) var(--space-2xl) var(--space-3xl);
+}
+
+/* ── 6b · THE RAIL ────────────────────────────────────────────────────────
+   From ref S2: navigation is a floating column of glass discs, not a bar and
+   not a sidebar. One glass pill holds the column — one fill, one rim, one
+   light catch, one contact shadow — and the discs nested inside it are flat,
+   carrying none of the material themselves, because glass painted on glass
+   is two rims and no object. The disc you are standing on is the only solid
+   ink in the chrome; that is the glass-plus-solid combination.
+
+   A rail costs 88px of width and buys the canvas its full height: the dock
+   it replaced was sticky *over* the content it was meant to frame, and every
+   screen paid for it on every scroll.
+
+   It also costs no width to read. Hovering a disc unfolds that disc's own
+   name and nothing else; the pill holding the column grows to fit the name
+   and then shrinks back. Every disc unfolds to --rail-label rather than to
+   its own text, so the pill's left edge is a constant: a rail whose edge
+   tracked whichever name you were over would shift under a pointer
+   travelling straight down it, and a rail that moves while you are aiming
+   at it is worse than one without labels.
+
+   The column does *not* widen to pay for that label. The pill is pinned to
+   the left of its 88px track and overflows into the 12px gutter beside the
+   canvas, which is why the page underneath never moves while you read a
+   name. Only the hovered disc's own capsule changes size, and it is the only
+   thing that repaints. */
+.cd-nav {
+  display: flex; flex-direction: column; align-items: flex-start;
+  /* Pinned left, at the same 14px the centred pill used to sit at. */
+  justify-self: start;
+  margin-inline-start: calc((var(--rail-w) - var(--disc) - var(--space-xs) * 2) / 2);
+  /* The tube is a fixed width for the life of the window — it is the thing
+     that must NOT move. `max-content` here was the bug: it let the widest
+     child define the rail, so opening one name dragged the whole column
+     wider and re-laid-out the page behind it. The tube now stays exactly as
+     wide as one disc, and the item under the pointer opens *past* it. */
+  width: calc(var(--disc) + var(--space-xs) * 2);
+  /* Above the canvas: an open item overlaps the gutter, and the scroller is a
+     later sibling, so without a stacking context the card would paint over
+     the name. */
+  position: relative; z-index: 2;
+  gap: var(--space-xs);
+  /* Vertical fit, not vertical taste — the budget that lets the default
+     window hold the rail whole. The app's own window is 1180×780
+     (tauri.conf.json), whose body is 688px, and the flow at this rung set
+     (twelve discs, the spacer, the hairline, the last two discs, gap 8)
+     measures 645px; with `xs` padding (16) and `sm` margins (24) the
+     column asks its body for 685 of its 688px. At the old `sm`/`md` it
+     claimed 713px — 25px
+     past its body — so the row overflowed (fixed above), the floor gap read
+     23px while the padding said 48, and the tube ran off the sheet's bottom
+     edge with the theme disc 3px from it. The disc gap and the tube's 60px
+     width are untouched: only the air around the column paid. */
+  padding: var(--space-xs);
+  margin-block: var(--space-sm);
+  border-radius: var(--r-pill);
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  /* Contact shadow + the five-rung rim, from one named recipe (tokens.css).
+     The rung is the card's, not the row's: this is one floating column on
+     the sheet. */
+  box-shadow: var(--sh-2), var(--rim-glass);
+}
+/* The group separation between destinations and the last two discs: it grows
+   to fill a tall window (`flex: 1`), and its floor is `xs` — the rung that
+   still lets this column fit the default window (see the budget above). */
+.cd-nav__spacer { flex: 1; min-height: var(--space-xs); }
+.cd-nav__sep { width: 22px; height: 1px; background: var(--rule-strong); margin: var(--space-3xs) 0; flex: none; align-self: center; }
+
+.cd-disc {
+  position: relative; flex: none;
+  width: var(--disc); height: var(--disc);
+  padding-inline: var(--space-xs);
+  border-radius: var(--r-disc);
+  display: flex; align-items: center;
+  /* Nested and flat while closed: the tube owns the material, and a disc
+     that carried its own would be glass on glass — two rims, no object. */
+  background-color: transparent;
+  color: var(--ink);
+  transition: width var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease),
+              box-shadow var(--dur-2) var(--ease), color var(--dur-1) var(--ease);
+}
+/* Open: this disc — and only this disc — becomes a pill of its own and breaks
+   out past the tube's right edge, carrying the icon and its name together.
+   It takes the same glass, so the overlap where it sits on the tube adds only
+   ~0.5 lightness points (card and sheet are near-neighbours) and leaves no
+   seam; its own rim and its own contact shadow are what lift it out. */
+.cd-disc:hover,
+.cd-disc:focus-visible {
+  width: calc(var(--disc) + var(--rail-label));
+  z-index: 1;                      /* above its own siblings, not the tube */
+  background-color: var(--glass);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--sh-1), var(--rim-glass);
+}
+.cd-disc[aria-current="page"] { background: var(--ink); color: var(--ink-inv); }
+
+/* The glyph box is the disc's own inner width, so a closed disc measures
+   exactly --disc however wide its glyph is — the date disc's stacked "23 /
+   WED" is wider than an 18px glyph and would otherwise push the column off
+   centre and pull that one icon off the rail's axis. */
+.cd-disc__ico {
+  position: relative; flex: none;
+  width: calc(var(--disc) - var(--space-xs) * 2);
+  height: var(--disc);
+  display: grid; place-items: center; gap: 1px;
+}
+/* The label carries its own inset, so the disc's open width is exactly
+   --disc + --rail-label. A fixed width, never a max-width: a max lets each
+   name decide how far the pill opens, so the pill's own left edge moves under
+   a pointer travelling straight down the rail.
+   It opens on the disc's own duration and curve, so the name and the pill it
+   is revealed by are one movement rather than two racing. The opacity lags a
+   beat on the way in — a drawer that is a fifth open should not already be
+   showing its contents — and leaves immediately on the way out, so the name
+   is never left hanging over a closing pill. */
+.cd-disc__label {
+  width: 0; padding-inline-start: 0; opacity: 0;
+  overflow: hidden; white-space: nowrap;
+  font-size: var(--text-sm); font-weight: var(--weight-label);
+  transition: width var(--dur-2) var(--ease), padding-inline-start var(--dur-2) var(--ease),
+              opacity var(--dur-1) var(--ease);
+}
+.cd-disc:hover .cd-disc__label,
+.cd-disc:focus-visible .cd-disc__label {
+  width: var(--rail-label); padding-inline-start: var(--space-2xs); opacity: 1;
+  transition-delay: 0ms, 0ms, 70ms;
+}
+
+/* The count rides the glyph, not the disc: the disc is no longer the object
+   the pointer lands on, and a badge pinned to the disc's corner would be left
+   behind by the label opening under it. It keeps the overhang it had past the
+   disc's right edge — the disc's own inset, plus the 3px. */
+.cd-disc__n {
+  position: absolute; top: -3px; right: calc(-1 * (var(--space-xs) + 3px));
+  min-width: var(--chip-h); height: var(--chip-h); padding: 0 var(--space-2xs);
+  border-radius: var(--r-pill);
+  background: var(--ink); color: var(--ink-inv);
+  box-shadow: 0 0 0 2.5px var(--sheet);
+  font-family: var(--font-display); font-size: var(--text-2xs); font-weight: var(--weight-display);
+  font-variant-numeric: tabular-nums;
+  display: grid; place-items: center;
+}
+/* Today is the date. The one nav icon that is information rather than a
+   picture of a category — the date answers "what day is this?" on every
+   screen, which is the question the app exists to answer. */
+.cd-disc--date b { font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--weight-display); letter-spacing: var(--track-title); line-height: 1; }
+.cd-disc--date i {
+  font-style: normal; font-size: var(--text-2xs); font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps); text-transform: uppercase; opacity: 0.6;
+}
+.cd-disc[aria-current="page"].cd-disc--date i { opacity: 0.72; }
+
+/* ── 7 · PAGE HEAD ────────────────────────────────────────────────────── */
+.cd-pagehead {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--space-xl);
+  padding: 0 0 var(--space-xl);
+}
+.cd-pagehead__title {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-display);
+  line-height: 1.03;
+}
+.cd-pagehead__sub { margin-top: var(--space-xs); font-size: var(--text-xs); color: var(--ink-3); }
+.cd-pagehead__aside { display: flex; align-items: center; gap: var(--space-sm); flex: none; }
+
+
+/* ── 8 · CARDS ────────────────────────────────────────────────────────── */
+/* Cards sit on the sheet on the middle rung: room → sheet (sh-3) → card
+   (sh-2) → row/tile inside it (sh-1). Three rungs, each one tighter than
+   the last, so the eye reads how deep it is without being told. */
+.cd-card {
+  background: var(--card);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-2);
+  padding: var(--space-xl);
+}
+.cd-card + .cd-card { margin-top: var(--space-lg); }
+
+.cd-card__head { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-lg); }
+.cd-ictile {
+  width: 34px; height: 34px;
+  border-radius: var(--r-mini);
+  background-color: var(--wash, var(--wash-rose));
+  background-image: var(--wash-grad, none);
+  color: var(--onwash, var(--ink-2));
+  display: grid; place-items: center;
+  flex: none;
+}
+.cd-card__title { font-size: var(--text-md); font-weight: var(--weight-display); letter-spacing: var(--track-title); }
+.cd-card__sub { font-size: var(--text-xs); color: var(--ink-3); }
+.cd-card__head .cd-card__spacer { flex: 1; }
+
+/* ── 9 · FOCUS — the one loud block ───────────────────────────────────── */
+.cd-focus {
+  position: relative;
+  border-radius: var(--r-card);
+  padding: var(--space-2xl);
+  background-color: var(--card);
+  background-image: linear-gradient(142deg, var(--card) 34%, var(--wash-hi, var(--wash-iris)) 76%, var(--wash, var(--wash-iris)) 100%);
+  box-shadow: var(--sh-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2xl);
+  align-items: center;
+  overflow: hidden;
+}
+.cd-focus__eyebrow { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md); }
+.cd-focus__text {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-display);
+  line-height: 1.08;
+  max-width: 22ch;
+}
+/* The eyebrow is one voice: the course chip names the room, and this label
+   states why the card is on the screen at all. Tracked and small so it reads
+   as apparatus, not as a second headline. */
+.cd-focus__tag {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.cd-focus__why { margin-top: var(--space-sm); font-size: var(--text-xs); color: var(--ink-2); }
+.cd-focus__why b { font-weight: var(--weight-display); color: var(--ink); }
+.cd-focus__acts { display: flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-xl); flex-wrap: wrap; }
+.cd-focus__eyebrow .cd-focus__spacer { flex: 1; min-width: var(--space-sm); }
+
+/* ── 10 · GAUGE — a 180° arc. One datum, one hue, no full donut. ───────── */
+.cd-gauge { display: grid; justify-items: center; gap: var(--space-xs); width: 132px; }
+.cd-gauge svg { width: 132px; height: 74px; overflow: visible; }
+.cd-gauge__track { fill: none; stroke: var(--rule); stroke-width: 10; stroke-linecap: round; }
+.cd-gauge__arc {
+  fill: none;
+  stroke: var(--onwash, var(--ink));
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--dur-3) var(--ease);
+}
+.cd-gauge__val { font-size: var(--text-xl); font-weight: var(--weight-display); letter-spacing: var(--track-title); font-variant-numeric: tabular-nums; line-height: 1; }
+.cd-gauge__cap { font-size: var(--text-2xs); color: var(--ink-3); }
+
+/* ── 11 · TILES — pastel objects that carry identity ──────────────────── */
+.cd-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: var(--space-lg); }
+.cd-tile {
+  position: relative;
+  border-radius: var(--r-card);
+  padding: var(--space-lg);
+  min-height: 152px;
+  display: flex; flex-direction: column;
+  /** A tile is a surface, not a label: its prose starts at its own left edge.
+      Said here because a tile is often a <button>, whose UA default is centred. */
+  text-align: left;
+  background-color: var(--wash, var(--well));
+  background-image: var(--wash-grad);
+  color: var(--onwash, var(--ink));
+  box-shadow: var(--sh-1);
+  transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+.cd-tile:hover { transform: translateY(-2px); box-shadow: var(--sh-2); }
+.cd-tile__top { display: flex; align-items: center; gap: var(--space-xs); margin-bottom: var(--space-md); }
+.cd-tile__title { font-size: var(--text-lg); font-weight: var(--weight-display); letter-spacing: var(--track-title); line-height: 1.15; }
+.cd-tile__sub { margin-top: var(--space-2xs); font-size: var(--text-xs); opacity: 0.72; }
+.cd-tile__foot { margin-top: auto; padding-top: var(--space-md); display: flex; align-items: center; gap: var(--space-sm); }
+.cd-tile__num { font-size: var(--text-xl); font-weight: var(--weight-display); letter-spacing: var(--track-title); font-variant-numeric: tabular-nums; line-height: 1; }
+.cd-tile__cap { font-size: var(--text-2xs); opacity: 0.72; }
+.cd-tile__cta { margin-left: auto; flex: none; }
+
+/* ── 12 · CHIPS ───────────────────────────────────────────────────────── */
+.cd-chip {
+  display: inline-flex; align-items: center; gap: var(--space-2xs);
+  height: var(--chip-h); padding: 0 var(--space-xs);
+  border-radius: var(--r-pill);
+  background: var(--well);
+  color: var(--ink-2);
+  font-family: var(--font-display);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  white-space: nowrap;
+  /* A chip's state is data, not a pointer action: the flip from `ok` to
+     `overdue` is the only thing here that moves, and it moves so a crossed
+     deadline reads as a change to this row rather than as a new element. */
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.cd-chip--overdue { background: var(--chip-overdue); color: var(--on-overdue); }
+.cd-chip--risk    { background: var(--chip-risk);    color: var(--on-risk); }
+.cd-chip--ok      { background: var(--chip-ok);      color: var(--on-ok); }
+.cd-chip--info    { background: var(--chip-info);    color: var(--on-info); }
+.cd-chip--wash    { background-color: var(--wash, var(--well)); background-image: var(--wash-grad, none); color: var(--onwash, var(--ink-2)); }
+.cd-chip--code    { background-color: var(--wash, var(--well)); background-image: var(--wash-grad, none); color: var(--onwash, var(--ink-2)); font-weight: var(--weight-display); letter-spacing: var(--track-code); font-variant-numeric: tabular-nums; }
+/* On a wash the chip cannot use `--well`, so it is a pane over it. The pane
+   is mixed from `--ink-inv`, so it stays a light veil in the light theme and
+   a dark one in the dark theme without a second rule. */
+.cd-chip--onwash  { background: var(--pane); color: var(--onwash, var(--ink)); }
+.cd-chip--outline { background: transparent; box-shadow: inset 0 0 0 1px var(--rule-strong); }
+
+/* ── 13 · METERS ──────────────────────────────────────────────────────── */
+.cd-meter { display: flex; align-items: center; gap: var(--space-sm); }
+.cd-meter__track {
+  height: 8px;
+  flex: 1; min-width: 56px;
+  border-radius: var(--r-pill);
+  background: var(--well-2);
+  overflow: hidden;
+}
+.cd-meter__fill {
+  display: block; height: 100%;
+  width: var(--v, 0%);
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  transition: width var(--dur-3) var(--ease);
+}
+.cd-meter--wash .cd-meter__fill { background: var(--onwash, var(--ink)); }
+.cd-meter--lg .cd-meter__track { height: 12px; }
+/* Headroom reads as hatched — the part of the term that is still yours. */
+.cd-meter--head .cd-meter__track {
+  background-image: repeating-linear-gradient(115deg, var(--rule-strong) 0 2px, transparent 2px 6px);
+  background-color: var(--well);
+}
+.cd-meter__frac { font-size: var(--text-xs); font-weight: var(--weight-label); color: var(--ink-2); font-variant-numeric: tabular-nums; flex: none; }
+
+/* ── 14 · TASK ROWS — a ruled collection, not a stack of cards ────────── */
+/* A list inside a card is the quiet part of a screen, so it is ruled rather
+   than carded: rows sit flush, one dashed rule separates them, and the only
+   fill is a state (hover, done, late). Three white cards nested inside a
+   white card is depth theatre — it says "important" three times and means
+   none of them. The negative side margin is deliberate coupling: rows bleed
+   to the card's edge so a rule spans the full width while the row's content
+   re-aligns with the card head above it. */
+.cd-tasks { display: flex; flex-direction: column; margin: 0 calc(var(--space-xl) * -1); }
+.cd-task {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl);
+  transition: background var(--dur-1) var(--ease);
+}
+.cd-task + .cd-task { border-top: 1px dashed var(--rule-strong); }
+.cd-task:hover { background: var(--well); }
+.cd-task:focus-within { background: var(--well); box-shadow: inset 0 0 0 2px var(--ink); }
+.cd-task__title { font-size: var(--text-base); font-weight: var(--weight-label); letter-spacing: var(--track-title);
+  /* Weight is not animatable, so the colour is what carries "done" — one
+     step of the ink at the row's own duration, in sync with the fill. */
+  transition: color var(--dur-1) var(--ease);
+}
+.cd-task__meta { margin-top: var(--space-3xs); font-size: var(--text-xs); color: var(--ink-3); display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+.cd-task__right { display: flex; align-items: center; gap: var(--space-sm); }
+.cd-task__mins { font-size: var(--text-xs); font-weight: var(--weight-label); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.cd-task__acts { display: flex; align-items: center; gap: var(--space-3xs); opacity: 0; transition: opacity var(--dur-2) var(--ease); }
+.cd-task:hover .cd-task__acts, .cd-task:focus-within .cd-task__acts { opacity: 1; }
+.cd-task[data-done="1"] { background: var(--well); }
+.cd-task[data-done="1"] .cd-task__title { color: var(--ink-3); font-weight: var(--weight-body); }
+/* Late is a surface, not an outline: the row goes warm and the chip says
+   the rest. An outlined row would be a second kind of card. */
+.cd-task--late { background: var(--wash-rose); }
+/* A whole row that is itself the control — used for topics, which open in
+   place. Press is answered by the fill, not by an underline. */
+.cd-task--btn { width: 100%; text-align: left; align-items: start; }
+
+/* A date as an object: the reference's recurring calendar tile. */
+/* The mastery ladder — three bars, filled to the rung the topic stands on.
+   Read beside the status chip, never instead of it. */
+.cd-lvl { display: inline-flex; align-items: flex-end; gap: var(--space-3xs); width: 18px; height: 16px; flex: none; }
+/* A rung fills when the level is earned — rare, and the one place the app
+   says "you improved", so it fills rather than snaps. Never on a hover path. */
+.cd-lvl i { width: 4px; border-radius: var(--r-pill); background: var(--rule-strong);
+  transition: background var(--dur-2) var(--ease); }
+.cd-lvl i:nth-child(1) { height: 7px; }
+.cd-lvl i:nth-child(2) { height: 11px; }
+.cd-lvl i:nth-child(3) { height: 16px; }
+.cd-lvl[data-v="1"] i:nth-child(1),
+.cd-lvl[data-v="2"] i:nth-child(-n+2),
+.cd-lvl[data-v="3"] i { background: var(--onwash, var(--ink)); }
+
+.cd-datetile {
+  width: 38px; height: 38px;
+  border-radius: var(--r-mini);
+  background-color: var(--wash, var(--well));
+  background-image: var(--wash-grad, none);
+  color: var(--onwash, var(--ink));
+  display: grid; place-items: center;
+  font-size: var(--text-sm); font-weight: var(--weight-display);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.cd-check {
+  width: 24px; height: 24px;
+  border-radius: var(--r-pill);
+  display: grid; place-items: center;
+  color: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+  transition: box-shadow var(--dur-1) var(--ease), background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+.cd-check:hover { box-shadow: inset 0 0 0 1.5px var(--ink); transform: scale(1.06); }
+.cd-check[aria-pressed="true"] { background: var(--onwash, var(--ink)); color: var(--card); box-shadow: none; }
+
+/* ── 15 · DAY STRIP ───────────────────────────────────────────────────── */
+.cd-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-xs); }
+.cd-day {
+  display: grid; justify-items: center; gap: var(--space-2xs);
+  padding: var(--space-xs) 0;
+  border-radius: var(--r-tile);
+  transition: background var(--dur-1) var(--ease);
+}
+.cd-day:hover { background: var(--well); }
+.cd-day__lbl { font-size: var(--text-2xs); color: var(--ink-3); font-weight: var(--weight-label); }
+.cd-day__n {
+  width: 38px; height: 38px;
+  border-radius: var(--r-pill);
+  display: grid; place-items: center;
+  font-size: var(--text-sm); font-weight: var(--weight-display);
+  font-variant-numeric: tabular-nums;
+  background: var(--well);
+  color: var(--ink);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.cd-day:hover .cd-day__n { transform: translateY(-1px); }
+.cd-day[aria-current="date"] .cd-day__n { background: var(--ink); color: var(--ink-inv); box-shadow: var(--sh-ink); }
+.cd-day__v { font-size: var(--text-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+/* The one non-text mark in a text slot: this span holds a lone em dash for a
+   day with nothing on it, and the caption under the strip explains the dash.
+   Faint is the point — the information is repeated in words below. */
+.cd-day[data-nothing="1"] .cd-day__v { color: var(--ink-4); }
+
+/* ── 16 · STEM CHART ──────────────────────────────────────────────────── */
+.cd-chart { position: relative; }
+/* The plot and its axis are two grids with the same tracks, so a stem always
+   sits over its own label — the bar is a column's centre, not a flex child
+   whose width swings with how many days are in the range. */
+.cd-chart__plot {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: end;
+  height: var(--chart-h, 132px);
+  padding-top: var(--space-lg);
+  border-bottom: 1px dashed var(--rule-strong);
+}
+.cd-stem {
+  justify-self: center;
+  width: 16px;
+  border-radius: var(--r-pill);
+  /* A stem's colour is its value: ink means the day happened. There is no
+     per-course hue here because a day is not a course. */
+  background: var(--ink);
+  opacity: 0.88;
+  height: var(--v, 4px);
+  min-height: 4px;
+  /* `opacity` is in this list because the hover changes it: a stem whose
+     filter eases while its opacity snaps is two half-animations meeting. */
+  transition: height var(--dur-3) var(--ease), filter var(--dur-1) var(--ease), opacity var(--dur-1) var(--ease);
+  animation: cd-rise var(--dur-3) var(--ease) both;
+}
+.cd-stem:hover { filter: brightness(0.9) saturate(1.2); opacity: 1; }
+.cd-stem[data-empty="1"] { background: var(--well-2); opacity: 1; }
+.cd-stem[data-today="1"] { background: var(--ink); opacity: 1; }
+@keyframes cd-rise { from { height: 2px; opacity: 0; } }
+/* The hatched band is the room available — the part of the day's capacity
+   that went unused. Drawn behind the stems so a short day is legible as
+   a choice, not as a failure. */
+.cd-chart__cap { position: absolute; left: 0; right: 0; top: var(--cap-top, var(--space-lg)); border-top: 1px dashed var(--rule-strong); }
+.cd-chart__cap::after {
+  content: attr(data-label);
+  position: absolute; right: 0; top: 3px;
+  font-size: var(--text-2xs); color: var(--ink-3);
+}
+.cd-chart__axis { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin-top: var(--space-xs); }
+.cd-chart__axis span { text-align: center; font-size: var(--text-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+
+/* ── 17 · STATS ───────────────────────────────────────────────────────── */
+.cd-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-md); }
+.cd-stat { background: var(--card); border-radius: var(--r-card); box-shadow: var(--sh-1); padding: var(--space-lg); }
+.cd-stat--wash { background: var(--wash, var(--well)); color: var(--onwash, var(--ink)); }
+.cd-stat__v { font-size: var(--text-2xl); font-weight: var(--weight-display); letter-spacing: var(--track-title); font-variant-numeric: tabular-nums; line-height: 1; }
+.cd-stat__l { margin-top: var(--space-xs); font-size: var(--text-xs); color: var(--ink-3); }
+.cd-stat--wash .cd-stat__l { color: inherit; opacity: 0.72; }
+
+/* ── 18 · DASHED — free time, empty rooms, honest zeros ──────────────── */
+.cd-dashed {
+  border: 1.5px dashed var(--rule-strong);
+  border-radius: var(--r-tile);
+  padding: var(--space-lg);
+  display: grid; justify-items: center; gap: var(--space-xs);
+  text-align: center;
+  color: var(--ink-3);
+}
+.cd-dashed b { color: var(--ink-2); font-size: var(--text-xs); font-weight: var(--weight-label); }
+.cd-dashed span { font-size: var(--text-xs); }
+
+/* ── 19 · DISCLOSURE ──────────────────────────────────────────────────── */
+.cd-detail {
+  border-radius: var(--r-tile);
+  background: var(--well);
+  padding: var(--space-lg);
+  margin: var(--space-2xs) 0 var(--space-xs);
+  animation: cd-fold var(--dur-2) var(--ease) both;
+}
+@keyframes cd-fold { from { opacity: 0; transform: translateY(-4px); } }
+.cd-detail__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-md); }
+.cd-detail__k { font-size: var(--text-2xs); color: var(--ink-3); }
+.cd-detail__v { font-size: var(--text-xs); font-weight: var(--weight-label); margin-top: var(--space-3xs); }
+.cd-detail__note { margin-top: var(--space-md); font-size: var(--text-xs); color: var(--ink-3); max-width: 56ch; }
+.cd-detail__acts { margin-top: var(--space-md); display: flex; align-items: center; gap: var(--space-xs); }
+
+/* ── 20 · COMPLETION — the one earned moment ──────────────────────────── */
+.cd-complete {
+  border-radius: var(--r-card);
+  padding: var(--space-2xl);
+  background: linear-gradient(140deg, var(--wash-rose) 0%, var(--wash-iris) 100%);
+  box-shadow: var(--sh-2);
+  text-align: center;
+}
+.cd-complete__spark { display: flex; justify-content: center; gap: var(--space-lg); color: var(--on-butter, var(--fg-butter)); margin-bottom: var(--space-md); }
+.cd-complete__t { font-size: var(--text-xl); font-weight: var(--weight-display); letter-spacing: var(--track-title); }
+.cd-complete__s { margin-top: var(--space-xs); font-size: var(--text-xs); color: var(--ink-2); }
+.cd-complete__ledger { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: var(--space-sm); margin: var(--space-xl) 0; }
+.cd-complete__cell { background: var(--pane); border-radius: var(--r-tile); padding: var(--space-sm) var(--space-md); text-align: left; }
+.cd-complete__v { font-size: var(--text-lg); font-weight: var(--weight-display); font-variant-numeric: tabular-nums; }
+.cd-complete__k { font-size: var(--text-2xs); color: var(--ink-2); }
+.cd-sparkle { animation: cd-pop var(--dur-3) var(--ease) both; }
+.cd-sparkle:nth-child(2) { animation-delay: 60ms; }
+.cd-sparkle:nth-child(3) { animation-delay: 120ms; }
+@keyframes cd-pop { from { opacity: 0; transform: scale(0.5) rotate(-20deg); } }
+
+/* ── 21 · EMPTY ───────────────────────────────────────────────────────── */
+.cd-empty { display: grid; justify-items: center; gap: var(--space-sm); padding: var(--space-3xl) var(--space-xl); text-align: center; }
+.cd-empty__art { color: var(--ink-4); margin-bottom: var(--space-xs); }
+.cd-empty__t { font-size: var(--text-md); font-weight: var(--weight-display); letter-spacing: var(--track-title); }
+.cd-empty__s { font-size: var(--text-xs); color: var(--ink-3); max-width: 42ch; }
+
+/* ── 21b · SKELETON — the loading state, shaped like the content coming ──
+   A skeleton is not a grey box. It borrows the geometry it is standing in
+   for: a row takes `.cd-task`'s 76px height, 24px padding and 16px gap, with
+   the real `.cd-check`'s 24px pill in the first column, so nothing shifts
+   vertically and every title starts on the same x when the content lands.
+   The right column is `auto` here as it is there — it is sized by whatever
+   the row turns out to hold, so no skeleton can promise it. The sweep is the
+   system's one looping duration; reduced motion stills it in place.
+   The sweep runs on `--rule` → `--rule-strong`, not on the wells: the wells
+   are a step off the *sheet*, and on a card in the dark theme that is a
+   two-point difference, which is an invisible skeleton. The rules are the
+   pair that already means "a faint step off whatever it sits on" — darker
+   than a white card, lighter than a near-black one — which is also why the
+   row separators are in the same family. */
+.cd-skel {
+  display: block;
+  width: var(--w, 100%);
+  height: 0.75em;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--rule) 0%, var(--rule-strong) 50%, var(--rule) 100%);
+  background-size: 200% 100%;
+  /* Each element's gradient is scaled to its own width, so a 56px stub and a
+     500px bar shimmer at one 1400ms period while covering different distances.
+     That is deliberate: a single global wave would need a shared parent
+     gradient the row does not have. */
+  animation: cd-sweep var(--dur-loop) linear infinite;
+}
+@keyframes cd-sweep { to { background-position: -200% 0; } }
+/* A list of rows: the height, padding and dashed rule of `.cd-task`, so the
+   swap lands on the same baselines. */
+.cd-skel__rows { margin: 0 calc(var(--space-xl) * -1); }
+.cd-skel__rows > * + * { border-top: 1px dashed var(--rule-strong); }
+.cd-skel__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  height: 76px;
+  padding: 0 var(--space-xl);
+}
+/* The first column is the row's `.cd-check`: 24px and a pill, matched here
+   exactly, or the title shifts 6px sideways when the content lands. */
+.cd-skel__row > :first-child { width: 24px; height: 24px; }
+.cd-skel__row > :last-child { width: 56px; height: var(--chip-h); }
+/* A card's shape, not a bar: the surface is inert and only the lines sweep. */
+.cd-skel--card {
+  height: 193px;
+  padding: var(--space-lg);
+  border-radius: var(--r-card);
+  background: var(--well);
+  animation: none;
+  display: grid;
+  gap: var(--space-sm);
+  align-content: start;
+}
+.cd-skel__plot {
+  height: 132px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-xs);
+}
+.cd-skel__plot .cd-skel { justify-self: center; width: 16px; height: var(--v, 40%); }
+
+/* ── 22 · REVIEW ──────────────────────────────────────────────────────── */
+.cd-recall {
+  border-radius: var(--r-card);
+  padding: var(--space-2xl);
+  background: linear-gradient(150deg, var(--card) 44%, var(--wash, var(--wash-iris)) 130%);
+  box-shadow: var(--sh-2);
+}
+.cd-recall__prompt { font-size: var(--text-xl); font-weight: var(--weight-display); letter-spacing: var(--track-title); line-height: 1.2; margin-top: var(--space-md); }
+.cd-recall__answer {
+  margin-top: var(--space-lg);
+  border-radius: var(--r-tile);
+  background: var(--well);
+  padding: var(--space-lg);
+  font-size: var(--text-base);
+  animation: cd-fold var(--dur-2) var(--ease) both;
+}
+.cd-rate { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-xs); margin-top: var(--space-lg); }
+.cd-rate__btn {
+  border-radius: var(--r-pill);
+  padding: var(--space-sm);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+  display: grid; gap: var(--space-3xs); justify-items: center;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+.cd-rate__btn:hover, .cd-rate__btn[data-sel] { background: var(--ink); color: var(--ink-inv); box-shadow: var(--sh-ink); transform: translateY(-1px); }
+.cd-rate__btn b { font-size: var(--text-xs); font-weight: var(--weight-display); }
+.cd-rate__btn span { font-size: var(--text-2xs); opacity: 0.7; }
+
+/* ── 23 · LAYER + PALETTE ─────────────────────────────────────────────── */
+.cd-layer {
+  position: fixed; inset: 0; z-index: 90;
+  background: var(--scrim);   /* the room, gone dark */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: grid; place-items: start center;
+  padding: 12vh var(--space-lg) var(--space-lg);
+  animation: cd-fade var(--dur-2) var(--ease) both;
+}
+@keyframes cd-fade { from { opacity: 0; } }
+.cd-palette {
+  width: min(600px, 100%);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--sh-pop);
+  overflow: hidden;
+  animation: cd-drop var(--dur-2) var(--ease-pop) both;
+}
+@keyframes cd-drop { from { opacity: 0; transform: translateY(-10px) scale(0.98); } }
+.cd-palette__field {
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding: 0 var(--space-lg);
+  height: 58px;
+  color: var(--ink-3);
+  box-shadow: inset 0 -1px 0 var(--rule);
+}
+.cd-palette__field input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: var(--text-md); color: var(--ink); }
+.cd-palette__field input::placeholder { color: var(--ink-3); font-weight: var(--weight-body); }
+.cd-palette__list { max-height: min(420px, 52vh); overflow-y: auto; padding: var(--space-xs); }
+.cd-palette__group { padding: var(--space-sm) var(--space-md) var(--space-2xs); font-size: var(--text-2xs); font-weight: var(--weight-display); color: var(--ink-3); }
+.cd-palette__item {
+  width: 100%; display: flex; align-items: center; gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--r-item);
+  text-align: left;
+  font-size: var(--text-base);
+  color: var(--ink);
+  transition: background var(--dur-1) var(--ease);
+}
+.cd-palette__item[data-sel] { background: var(--well-2); }
+.cd-palette__item > .cd-palette__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-palette__item .cd-ictile { width: 28px; height: 28px; border-radius: var(--r-mark); }
+.cd-palette__empty { padding: var(--space-xl) var(--space-lg); text-align: center; color: var(--ink-3); font-size: var(--text-xs); }
+
+/* ── 24 · TOASTS + TIMER ──────────────────────────────────────────────── */
+.cd-toasts {
+  position: fixed; z-index: 95;
+  left: 50%; bottom: var(--space-2xl);
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-xs);
+  pointer-events: none;
+}
+.cd-toast {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  height: 38px; padding: 0 var(--space-lg);
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--ink-inv);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  box-shadow: var(--sh-2);
+  animation: cd-toast var(--dur-2) var(--ease-pop) both;
+}
+@keyframes cd-toast { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
+
+.cd-timer { display: flex; align-items: center; gap: var(--space-sm); height: var(--hit); padding: 0 var(--space-xs) 0 var(--space-md); border-radius: var(--r-pill); background: var(--ink); color: var(--ink-inv); }
+/* The clock is the only number in the app that rewrites itself while you watch
+   it, and `4:07` is four characters where `10:07` is five. Tabular numerals
+give every digit one width; they do not give the *string* one width, so the
+pill widened at ten minutes and shoved the search pill beside it sideways.
+The time is therefore pinned to the widest string the 5–180 clamp can produce
+(`180:00`) — the same `min-width` + `tabular-nums` pair the rail's count badge
+already carries, and `min-width` rather than `width` so a session that outlives
+its own clamp can never be clipped. */
+.cd-timer__time { min-width: 6ch; font-size: var(--text-xs); font-weight: var(--weight-display); font-variant-numeric: tabular-nums; }
+.cd-timer__label { font-size: var(--text-2xs); opacity: 0.6; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The timer is the one control that lives on the ink, so its inner pill is a
+   fill mixed from `--ink-inv`: white over ink in the light theme, ink over
+   white in the dark one. As a raw white it vanished in the dark theme. */
+.cd-timer .cd-pill { background: var(--fill-on-ink); color: var(--ink-inv); }
+.cd-timer .cd-pill:hover { background: var(--fill-on-ink-hi); }
+
+/* ── 25 · SEGMENTED + RANGE ───────────────────────────────────────────── */
+.cd-seg {
+  display: inline-flex; align-items: center; gap: var(--space-3xs);
+  padding: var(--space-2xs);
+  border-radius: var(--r-pill);
+  background: var(--well);
+}
+.cd-seg__pill {
+  height: var(--hit); padding: 0 var(--space-md);
+  border-radius: var(--r-pill);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  color: var(--ink-2);
+  display: inline-flex; align-items: center; gap: var(--space-2xs);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.cd-seg__pill:hover { color: var(--ink); }
+.cd-seg__pill[aria-pressed="true"] { background: var(--ink); color: var(--ink-inv); box-shadow: var(--sh-ink); }
+
+/* ── 26 · UTILITIES ───────────────────────────────────────────────────── */
+.cd-rowflex { display: flex; align-items: center; gap: var(--space-sm); }
+.cd-hint { font-size: var(--text-xs); color: var(--ink-3); }
+.cd-code { font-weight: var(--weight-display); letter-spacing: var(--track-code); }
+.cd-cluster { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+.cd-grid-2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-xl); align-items: start; }
+.cd-stack { display: grid; gap: var(--space-xl); }
+/* The only visually-hidden utility in the system: a loading region holds its
+   skeleton as decoration and announces itself in words instead. */
+.cd-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; border: 0; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ── 27 · NARROW ──────────────────────────────────────────────────────── */
+@media (max-width: 1080px) {
+  .cd-canvas { padding: var(--space-lg) var(--space-xl) var(--space-3xl); }
+  .cd-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .cd-focus { grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+  .cd-focus__text { font-size: var(--text-xl); }
+  .cd-pagehead { flex-direction: column; align-items: flex-start; gap: var(--space-md); }
+  .cd-pagehead__title { font-size: var(--text-2xl); }
+}
+@media (max-width: 760px) {
+  :root { --gutter: 0px; }
+  .cd-window { border-radius: 0; }
+  /* The rail turns on its side and becomes the top bar it would have been on
+     a phone — same discs, same order, same glass. */
+  .cd-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  /* On its side there is no width to pay for and no pointer to hover with, so
+     the labels stay off and every disc stays a disc. */
+  .cd-nav { flex-direction: row; align-items: center; justify-self: stretch; width: auto;
+            margin-inline-start: 0; position: static;
+            padding: var(--space-xs) var(--space-md); margin-block: 0; overflow-x: auto; }
+  .cd-disc__label { display: none; }
+  /* A tap leaves :hover stuck on a touch screen, and a disc that widened into
+     a name it cannot show is a hole in the top bar. */
+  .cd-disc:hover, .cd-disc:focus-visible {
+    width: var(--disc); background-color: transparent; background-image: none; box-shadow: none;
+  }
+  .cd-nav__spacer { flex: 1; min-height: 0; }
+  .cd-nav__sep { width: 1px; height: 22px; margin: 0 var(--space-2xs); }
+  .cd-canvas { padding: var(--space-md) var(--space-md) var(--space-2xl); }
+  .cd-rate { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cd-tiles { grid-template-columns: minmax(0, 1fr); }
+  .cd-searchpill { display: none; }
+}
+
+/* ── 28 · PRINT — an app, not a document. Only the ledger is worth paper. ─ */
+@media print {
+  .cd-titlebar, .cd-nav, .cd-toasts, .cd-task__acts { display: none; }
+  .cd-window { height: auto; margin: 0; box-shadow: none; }
+}

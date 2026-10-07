@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window's whole capability set. It grants SAM's own commands (which are permission-free by construction) and Tauri's core defaults, and nothing else — there is deliberately no `fs:` or `sql:` entry, because neither plugin is a dependency of the shell. Every read and write therefore crosses a `sam-core` command, which is the same path the CLI takes (§4.6 one write path, §4.10).",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "dialog:default"
+  ]
+}

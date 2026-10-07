@@ -1,0 +1,388 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "assessments.all": {
+      "columns": [
+        "label",
+        "kind",
+        "course",
+        "week"
+      ],
+      "layout": "table",
+      "sort": "kind, label",
+      "type": "assessment"
+    },
+    "assessments.calendar": {
+      "columns": [
+        "label",
+        "kind",
+        "course",
+        "week"
+      ],
+      "layout": "calendar",
+      "sort": "week.index",
+      "type": "assessment"
+    },
+    "assessments.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Assessments",
+          "view": "assessments.all"
+        },
+        {
+          "kind": "callout",
+          "text": "This is a structural template: no assessment carries a date until you fill one in. Records sit on their week until then, and the calendar below counts what it cannot place.",
+          "title": "Dates are yours to set"
+        },
+        {
+          "kind": "calendar",
+          "title": "Deadlines",
+          "view": "assessments.calendar"
+        },
+        {
+          "kind": "table",
+          "title": "By kind",
+          "view": "assessments.all"
+        }
+      ],
+      "layout": "calendar",
+      "sort": "week.index",
+      "type": "assessment",
+      "panel": "mocks"
+    },
+    "courses.board": {
+      "group": "credits",
+      "layout": "board",
+      "type": "course"
+    },
+    "courses.grid": {
+      "layout": "cardGrid",
+      "sort": "name",
+      "type": "course"
+    },
+    "courses.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Courses",
+          "view": "courses.grid"
+        },
+        {
+          "expr": "credits",
+          "kind": "stat",
+          "label": "Credits",
+          "reduce": "sum",
+          "view": "courses.grid"
+        },
+        {
+          "kind": "board",
+          "title": "By credits",
+          "view": "courses.board"
+        }
+      ],
+      "group": "credits",
+      "layout": "board",
+      "type": "course",
+      "panel": "subjects"
+    },
+    "library.byKind": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.resources": {
+      "columns": [
+        "label",
+        "kind",
+        "provider",
+        "url"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Resources",
+          "view": "library.resources"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "library.byKind"
+        },
+        {
+          "kind": "table",
+          "title": "Everything",
+          "view": "library.resources"
+        }
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource",
+      "panel": "library"
+    },
+    "milestones.all": {
+      "columns": [
+        "label",
+        "project",
+        "week",
+        "target"
+      ],
+      "layout": "table",
+      "sort": "week.index",
+      "type": "milestone"
+    },
+    "notes.all": {
+      "columns": [
+        "title",
+        "course",
+        "body"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note"
+    },
+    "notes.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Notes",
+          "view": "notes.all"
+        },
+        {
+          "kind": "table",
+          "title": "Everything you wrote down",
+          "view": "notes.all"
+        }
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note",
+      "panel": "notes"
+    },
+    "plan.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Modules",
+          "view": "plan.units"
+        },
+        {
+          "kind": "timeline",
+          "title": "The term, module by module",
+          "view": "plan.units"
+        },
+        {
+          "kind": "table",
+          "title": "Weeks",
+          "view": "plan.weeks"
+        },
+        {
+          "kind": "calendar",
+          "title": "Assessment weeks",
+          "view": "assessments.calendar"
+        }
+      ],
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit",
+      "panel": "plan"
+    },
+    "plan.units": {
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit"
+    },
+    "plan.weeks": {
+      "columns": [
+        "index",
+        "label"
+      ],
+      "layout": "table",
+      "sort": "index",
+      "type": "week"
+    },
+    "problemsets.all": {
+      "columns": [
+        "chapter",
+        "difficulty",
+        "solved",
+        "total",
+        "pct",
+        "source"
+      ],
+      "layout": "table",
+      "sort": "chapter",
+      "type": "problemset"
+    },
+    "problemsets.board": {
+      "group": "difficulty",
+      "layout": "board",
+      "sort": "chapter",
+      "type": "problemset"
+    },
+    "programs.all": {
+      "columns": [
+        "degree",
+        "institute",
+        "semesters"
+      ],
+      "layout": "table",
+      "sort": "degree",
+      "type": "program"
+    },
+    "progress.all": {
+      "columns": [
+        "week",
+        "course",
+        "min"
+      ],
+      "layout": "table",
+      "sort": "-week.index",
+      "type": "session"
+    },
+    "progress.screen": {
+      "blocks": [
+        {
+          "kind": "chart",
+          "label": "Minutes per week",
+          "reduce": "sum",
+          "view": "progress.sessions",
+          "x": "week.index",
+          "y": "min"
+        },
+        {
+          "kind": "table",
+          "title": "Sessions",
+          "view": "progress.sessions"
+        }
+      ],
+      "layout": "table",
+      "panel": "progress",
+      "sort": "-week.index",
+      "type": "session"
+    },
+    "progress.sessions": {
+      "columns": [
+        "week",
+        "course",
+        "min",
+        "note"
+      ],
+      "layout": "table",
+      "limit": 30,
+      "sort": "-week.index",
+      "type": "session"
+    },
+    "projects.all": {
+      "columns": [
+        "name",
+        "course",
+        "deadline"
+      ],
+      "layout": "table",
+      "sort": "name",
+      "type": "project"
+    },
+    "reviews.queue": {
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "reviews.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Not finished yet",
+          "reduce": "count",
+          "view": "reviews.queue"
+        },
+        {
+          "kind": "callout",
+          "text": "A topic is finished when it is proved and anchored — two problems solved, then a spaced review. The queue below is ordered by week, then by the shortest session first.",
+          "title": "How this queue is ordered"
+        },
+        {
+          "kind": "table",
+          "view": "reviews.queue"
+        }
+      ],
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "panel": "reviews",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "terms.all": {
+      "columns": [
+        "label",
+        "weeks",
+        "credits"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "term"
+    },
+    "today.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Open topics",
+          "reduce": "count",
+          "view": "today.topics"
+        },
+        {
+          "expr": "est",
+          "kind": "stat",
+          "label": "Minutes planned",
+          "reduce": "sum",
+          "view": "today.topics"
+        },
+        {
+          "kind": "list",
+          "title": "Open work, module by module",
+          "view": "today.topics"
+        }
+      ],
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "panel": "today",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "today.topics": {
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    }
+  }
+}

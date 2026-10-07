@@ -1,0 +1,47 @@
+{
+  "progress": {
+    "t.bayes": {
+      "data": {
+        "anchorEvidence": {
+          "kind": "review",
+          "rating": "good"
+        },
+        "problemsSolved": 4
+      },
+      "pipeline": "flip",
+      "review": {
+        "anchor": "2026-01-10",
+        "due": "2026-01-11",
+        "intervalDays": 1,
+        "last": "2026-01-10T10:00:00Z",
+        "log": [
+          {
+            "at": "2026-01-10T10:00:00Z",
+            "due": null,
+            "rating": "good"
+          }
+        ],
+        "reps": 0,
+        "scheduler": "fixed",
+        "step": 0
+      },
+      "stages": {
+        "anchored": "2026-01-10T10:00:00Z",
+        "learned": "2026-01-09T10:00:00Z",
+        "proved": "2026-01-09T11:00:00Z"
+      }
+    },
+    "t.naive": {
+      "data": {
+        "problemsSolved": 2,
+        "signal": "expect a 5-marker on the denominator"
+      },
+      "pipeline": "flip",
+      "stages": {
+        "learned": "2026-01-11T09:00:00Z",
+        "proved": "2026-01-11T12:00:00Z"
+      }
+    }
+  },
+  "schemaVersion": 1
+}

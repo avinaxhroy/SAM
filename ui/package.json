@@ -1,0 +1,25 @@
+{
+  "name": "sam-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "SAM frontend — Svelte 5 + Vite + TypeScript (D19). Assets only: Tauri serves them over its own custom protocol, with no localhost server (§4.10).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.13",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@tailwindcss/vite": "4.3.3",
+    "codemirror": "6.0.2",
+    "svelte": "5.57.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vite": "8.3.1"
+  }
+}

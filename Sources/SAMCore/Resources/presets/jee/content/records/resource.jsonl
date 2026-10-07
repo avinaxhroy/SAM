@@ -1,0 +1,8 @@
+{"fields":{"kind":"pdf","label":"JEE (Main) Paper 1 syllabus (official)","provider":"National Testing Agency","url":"https://jeemain.nta.nic.in/document/syllabus-2026/"},"id":"r.jee.syllabus","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"book","label":"NCERT Class 11 Physics textbook","provider":"NCERT"},"id":"r.jee.phy.textbook.11","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"book","label":"NCERT Class 12 Physics textbook","provider":"NCERT"},"id":"r.jee.phy.textbook.12","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"book","label":"NCERT Class 11 Chemistry textbook","provider":"NCERT"},"id":"r.jee.chem.textbook.11","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"book","label":"NCERT Class 12 Chemistry textbook","provider":"NCERT"},"id":"r.jee.chem.textbook.12","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"book","label":"NCERT Class 11 Mathematics textbook","provider":"NCERT"},"id":"r.jee.math.textbook.11","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"book","label":"NCERT Class 12 Mathematics textbook","provider":"NCERT"},"id":"r.jee.math.textbook.12","links":{},"schemaVersion":1,"type":"resource"}
+{"fields":{"kind":"pdf","label":"JEE (Main) past-year question papers","provider":"National Testing Agency"},"id":"r.jee.papers","links":{},"schemaVersion":1,"type":"resource"}

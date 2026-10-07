@@ -1,0 +1,93 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SAM",
+  "version": "0.1.0",
+  "identifier": "app.sam.desktop",
+  "build": {
+    "beforeDevCommand": "cd .. && pnpm -C ui dev",
+    "beforeBuildCommand": "cd .. && pnpm -C ui build && node tools/sidecar.mjs",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "SAM",
+        "width": 1180,
+        "height": 780,
+        "minWidth": 560,
+        "minHeight": 420,
+        "resizable": true,
+        "decorations": true,
+        "transparent": false,
+        "hiddenTitle": true,
+        "center": true,
+        "titleBarStyle": "Overlay"
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data:",
+        "font-src": "'self' data:",
+        "connect-src": "'self' ipc: http://ipc.localhost",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "form-action": "'self'"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/sam"
+    ],
+    "resources": {
+      "../design/tokens.json": "tokens.json",
+      "../Sources/SAMCore/Resources/presets": "presets",
+      "../Sources/SAMCore/Resources/fixtures": "fixtures",
+      "../Sources/SAMCore/Resources/themes": "themes"
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.0"
+    },
+    "windows": {
+      "minimumWebview2Version": "109.0.0.0"
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "samprofile"
+        ],
+        "name": "SAM profile",
+        "description": "A SAM study plan profile",
+        "role": "Editor",
+        "mimeType": "application/vnd.sam.profile+json"
+      }
+    ],
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0 (>= 2.40.0)"
+        ]
+      },
+      "rpm": {
+        "depends": [
+          "webkit2gtk4.1"
+        ]
+      }
+    }
+  }
+}

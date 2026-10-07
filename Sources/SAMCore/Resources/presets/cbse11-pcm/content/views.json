@@ -1,0 +1,393 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "courses.board": {
+      "group": "credits",
+      "layout": "board",
+      "type": "course"
+    },
+    "courses.grid": {
+      "layout": "cardGrid",
+      "sort": "name",
+      "type": "course"
+    },
+    "courses.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Courses",
+          "view": "courses.grid"
+        },
+        {
+          "expr": "credits",
+          "kind": "stat",
+          "label": "Weekly hours planned",
+          "reduce": "sum",
+          "view": "courses.grid"
+        },
+        {
+          "kind": "cardGrid",
+          "title": "This year's three papers",
+          "view": "courses.grid"
+        }
+      ],
+      "layout": "cardGrid",
+      "sort": "name",
+      "type": "course",
+      "panel": "subjects"
+    },
+    "library.byKind": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.resources": {
+      "columns": [
+        "label",
+        "kind",
+        "provider",
+        "url"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Resources",
+          "view": "library.resources"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "library.byKind"
+        },
+        {
+          "kind": "table",
+          "title": "Everything",
+          "view": "library.resources"
+        }
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource",
+      "panel": "library"
+    },
+    "milestones.all": {
+      "columns": [
+        "month",
+        "label",
+        "target",
+        "course"
+      ],
+      "layout": "table",
+      "sort": "month",
+      "type": "milestone"
+    },
+    "notes.all": {
+      "columns": [
+        "title",
+        "course",
+        "body"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note"
+    },
+    "notes.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Notes",
+          "view": "notes.all"
+        },
+        {
+          "kind": "table",
+          "title": "Everything you wrote down",
+          "view": "notes.all"
+        },
+        {
+          "kind": "table",
+          "title": "Monthly targets",
+          "view": "milestones.all"
+        }
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note",
+      "panel": "notes"
+    },
+    "plan.assessments": {
+      "columns": [
+        "date",
+        "label",
+        "kind",
+        "course"
+      ],
+      "layout": "calendar",
+      "sort": "date",
+      "type": "assessment"
+    },
+    "plan.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Chapters planned",
+          "view": "plan.units"
+        },
+        {
+          "expr": "index",
+          "kind": "stat",
+          "label": "Highest chapter number",
+          "reduce": "max",
+          "view": "plan.units"
+        },
+        {
+          "kind": "timeline",
+          "title": "The chapters, in the order this plan studies them",
+          "view": "plan.units"
+        },
+        {
+          "kind": "calendar",
+          "title": "Deadlines",
+          "view": "plan.assessments"
+        },
+        {
+          "kind": "table",
+          "title": "Weeks",
+          "view": "plan.weeks"
+        }
+      ],
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit",
+      "panel": "plan"
+    },
+    "plan.terms": {
+      "columns": [
+        "label",
+        "board",
+        "start",
+        "end"
+      ],
+      "layout": "table",
+      "sort": "start",
+      "type": "term"
+    },
+    "plan.units": {
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit"
+    },
+    "plan.weeks": {
+      "columns": [
+        "index",
+        "label",
+        "start",
+        "end"
+      ],
+      "layout": "table",
+      "sort": "index",
+      "type": "week"
+    },
+    "practice.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Practice sets",
+          "view": "practice.sets"
+        },
+        {
+          "expr": "solved",
+          "kind": "stat",
+          "label": "Problems solved",
+          "reduce": "sum",
+          "view": "practice.sets"
+        },
+        {
+          "expr": "total",
+          "kind": "stat",
+          "label": "Problems planned",
+          "reduce": "sum",
+          "view": "practice.sets"
+        },
+        {
+          "kind": "callout",
+          "text": "pct is a formula field - pct(solved, total) - so the share is computed, never typed, and reads null until total is above zero.",
+          "title": "About the pct column"
+        },
+        {
+          "kind": "table",
+          "title": "Numerical practice",
+          "view": "practice.sets"
+        }
+      ],
+      "columns": [
+        "chapter",
+        "difficulty",
+        "attempted",
+        "solved",
+        "total",
+        "pct",
+        "lastAttempt"
+      ],
+      "layout": "table",
+      "sort": "chapter",
+      "type": "problemset",
+      "panel": "practice"
+    },
+    "practice.sets": {
+      "columns": [
+        "chapter",
+        "difficulty",
+        "attempted",
+        "solved",
+        "total",
+        "pct",
+        "source"
+      ],
+      "layout": "table",
+      "sort": "chapter",
+      "type": "problemset"
+    },
+    "progress.all": {
+      "columns": [
+        "date",
+        "min",
+        "course"
+      ],
+      "layout": "table",
+      "sort": "-date",
+      "type": "session"
+    },
+    "progress.screen": {
+      "blocks": [
+        {
+          "days": 14,
+          "kind": "chart",
+          "label": "Minutes per day, last 14 days",
+          "reduce": "sum",
+          "view": "progress.sessions",
+          "x": "date",
+          "y": "min"
+        },
+        {
+          "kind": "table",
+          "title": "Sessions",
+          "view": "progress.sessions"
+        }
+      ],
+      "layout": "table",
+      "panel": "progress",
+      "sort": "-date",
+      "type": "session"
+    },
+    "progress.sessions": {
+      "columns": [
+        "date",
+        "min",
+        "course",
+        "note"
+      ],
+      "layout": "table",
+      "limit": 30,
+      "sort": "-date",
+      "type": "session"
+    },
+    "reviews.queue": {
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est",
+        "week"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "reviews.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Not finished yet",
+          "reduce": "count",
+          "view": "reviews.queue"
+        },
+        {
+          "kind": "callout",
+          "text": "A topic is finished when it is proved and anchored: a lecture topic needs two problems solved as proof, then a review one day, seven days and thirty days after the anchor.",
+          "title": "How this queue is ordered"
+        },
+        {
+          "kind": "table",
+          "view": "reviews.queue"
+        }
+      ],
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est",
+        "week"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "panel": "reviews",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "today.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Open topics",
+          "reduce": "count",
+          "view": "today.topics"
+        },
+        {
+          "expr": "est",
+          "kind": "stat",
+          "label": "Minutes planned",
+          "reduce": "sum",
+          "view": "today.topics"
+        },
+        {
+          "kind": "callout",
+          "text": "The flip loop is this plan's method: learn a topic, prove it with problems, anchor it with a spaced review. Nothing is finished until it is anchored.",
+          "title": "How a topic is finished"
+        },
+        {
+          "kind": "list",
+          "title": "This week's work",
+          "view": "today.topics"
+        }
+      ],
+      "filter": "week.term.id == currentTerm() && !complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "panel": "today",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "today.topics": {
+      "filter": "week.term.id == currentTerm() && !complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    }
+  }
+}

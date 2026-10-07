@@ -1,0 +1,300 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE RECALL LOOP (UI P2 · U3, S5)
+
+   Reviews is the design system's own screen: the card is `.cd-recall`, the
+   grades are `.cd-rate`, the marks are the collection layer's `.cd-lvl`, the
+   queue is `.cd-coll`/`.cd-coll__row`, the step panel is `.cd-detail`, the
+   counts are `.cd-complete`, the empty object is `.cd-empty--tight`. This file
+   carries only the composition those families do not ship: the batch ledger
+   above the card, the caption under it, the head's control cluster, and the
+   field the step evidence is typed into.
+
+   NOT ONE CLASS HERE REDEFINES A SYSTEM CLASS. Every selector below is `rv__*`
+   except the two `--two` / `--after` modifiers, which are *modifiers on the
+   system's own species* and are spelled as such: `.cd-rate.rv__rate--two`
+   declares the two columns a two-grade row has (`design/components.css:825`
+   draws four), and `.rv__after` is a spacing utility on a `.cd-hint`.
+   `design/` wins on every conflict (`design.md:7`).
+
+   Every value resolves through a token except the numbers in the density
+   register below, each of which carries the rule it derives from.
+   `node tools/tokenlint.mjs` is the gate.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 0 · THE DENSITY REGISTER ─────────────────────────────────────────────
+   Four numbers this composition needed and the system does not ship. Everything
+   else is a `--space-*` step, a `--text-*` step, one of the nine radius rungs,
+   or one of the five declared shadows. */
+
+:root {
+  /* THE RECALL COLUMN. The one width in this file, and it is a MEASURE, not a
+     rung and not a space step (`design.md` §7.5: "A `ch` cap is a measure…
+     never a scale step"). The card is one question at `--text-xl`; at the
+     canvas's full 1120px a 26px prompt runs to ~70 characters, which is a
+     paragraph, and the student's eye stops at the end of a line instead of at
+     the end of the question. 760px puts the prompt at about 29 characters —
+     two comfortable lines — and the four grade buttons at ~178px each, which
+     is what lets each one print "no recall for 2 weeks" on ONE line, which is
+     the whole job of the row (`design/controls.md` §3, L2). The design system's
+     own demo reaches for exactly this width (`design/demo/demo.css:83`).
+     At ≤1080px the canvas narrows (§27) and this yields rather than clipping. */
+  --rv-recall-col: 760px;
+
+  /* THE LEDGER'S RHYTHM. `--space-sm` 12: the gap between "Recall 3 of 12" and
+     "9 left · about 5 min" is the gap between a fact and the fact that
+     qualifies it, which is `--sam-row-gap`'s number in the collection layer —
+     so a spread on this screen and a row in a list on the same screen are
+     separated by the same distance. */
+  --rv-ledger-gap: var(--space-sm);
+
+  /* THE CAPTION'S MEASURE. `--prose-measure` is the system's one measure for a
+     line of prose (62ch, §7.5) and this sentence is prose, so it takes the
+     system's own number rather than a new one. */
+  --rv-note-measure: var(--prose-measure);
+
+  /* THE EVIDENCE FIELD. A width is a size and belongs to its own object
+     (`design.md` §7.5: "A size is an object's own dimension"), so it is stated
+     here with its reason: 8ch is the widest number a "problems solved" count
+     reaches before the field stops being a count and starts being a sentence. */
+  --rv-field-w: 8ch;
+}
+
+/* ── 1 · THE BATCH LEDGER ────────────────────────────────────────────────
+   `Recall 3 of 12` · `9 left · about 5 min` — the position and the remaining
+   cost of the sitting, ABOVE the card and not on it, because a position is a
+   different kind of fact from anything the card itself says. A bare
+   flex-between is the demo's own arrangement (`design/demo/demo.js:943`); it is
+   given a name here so the review loop's three rows can share one vocabulary. */
+.rv__ledger {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--rv-ledger-gap);
+  /* `width: 100%`, NOT `margin: 0 auto`. `.rv__rec` is a grid, and an `auto`
+     margin on a grid item overrides the default stretch — the row collapsed to
+     its own content (199px inside a 760px column) and `space-between` had
+     nothing to distribute. The parent already centres the column; a child must
+     fill it. */
+  width: 100%;
+}
+/* The meter takes the same column, so the bar's right edge is the ledger's
+   right edge and the two objects are one block. `aria-hidden` in the markup:
+   the ledger beside it already says `3 of 12` in words, so a bar that repeats
+   it for a screen reader is noise. A meter's own fill is the system's one
+   rising transition (`--dur-3`, `components.css:521`) and is left alone —
+   meters are the only thing §6 rule 10 allows to rise. */
+.rv__rec > .cd-meter { display: flex; width: 100%; margin-top: calc(var(--space-md) * -1 + var(--space-xs)); }
+.rv__rec > .cd-meter .cd-meter__track { min-width: 0; }
+
+/* THE OVERDUE OFFER, in the loop's own column. `.cd-dashed` at the full 1120px
+   canvas measured 230px tall and read as a page-wide alarm standing above the
+   decision — and the decision is not "you are behind", it is "recall this one".
+   The same fact is already in the head's context line and on the card's own
+   `N days late` chip, so this object is only ever the OFFER, and an offer that
+   is not the decision does not get the full width. `--space-md` 16 rather than
+   the dashed box's own `--space-lg` 20, for the same reason. */
+.rv__rec > .cd-dashed { padding: var(--space-md) var(--space-lg); }
+
+/* The loop's own column. The ledger, the meter, the card and the caption are
+   four objects of one measure, so they are ONE grid item of the page's stack
+   rather than four — otherwise the stack's `--space-xl` gap would fall between
+   the meter and the card it belongs to, and the block would read as three
+   separate things. `--space-md` 16 inside: tighter than the stack's own 24,
+   because these four are one object and the stack's neighbours are not. */
+.rv__rec {
+  display: grid;
+  gap: var(--space-md);
+  max-width: var(--rv-recall-col);
+  margin-inline: auto;
+}
+.rv__rec > .rv__foot { margin-top: 0; }
+
+/* ── 2 · THE CARD'S OWN ROWS ─────────────────────────────────────────────
+   The reveal row: the prompt's answer-invitation, the ONE dark pill on this
+   screen, and the key that runs it. `--space-lg` 20 under the prompt. */
+.rv__reveal { margin-top: var(--space-lg); }
+
+/* A centred group of two or three controls, wherever it appears inside a
+   centred object (the overdue offer, the reveal row, the completion ledger's
+   actions). `--space-xs` 8: these are peers in one sentence, not steps in a
+   form. */
+.rv__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+/* The acts a ledger ends with — one row of pills, never a second card. Centred,
+   because the completion object is centred (`components.css:719`). */
+.rv__acts {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-top: var(--space-lg);
+}
+
+/* A hint that follows a collection, set off the rows it follows. */
+.rv__after { margin-top: var(--space-sm); }
+
+/* ── 3 · THE CAPTION UNDER THE CARD ──────────────────────────────────────
+   The one sentence the design system requires to be IN the UI rather than only
+   in its own documentation (`design.md` §8.3: "The ladder only moves here; a
+   session logs time and nothing else"). It also carries the keyboard path, so
+   the loop's keys are written where the loop is rather than in a help screen,
+   and the two/four grade preference is a clause inside it rather than a second
+   `.cd-seg` — a segment's pressed pill is solid ink (`components.css:938`) and
+   this screen already spends its one ink state on the method.
+
+   `--text-xs` 13 / `--ink-3` — the text floor, measured at 5.52:1 on a card,
+   and this is small meta text read at 23:10 by a tired student. The
+   `--prose-measure` cap is the system's one line-prose measure (§7.5): this is
+   a sentence, not apparatus, so it is measured like a sentence.
+
+   NO LEADING GLYPH. The demo's note carries an info mark
+   (`design/demo/demo.js:968`); this icon family has no `info` glyph and the two
+   candidates are worse than nothing — `textQuote` draws three rules and reads
+   as a list icon, `bubble` reads as a comment widget. A caption that opens on
+   a mark nobody can place is a caption with a mystery at the front of it. */
+.rv__note {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--sam-meta-line);
+  color: var(--ink-3);
+  max-width: var(--rv-note-measure);
+}
+
+.rv__rec > .rv__note { margin-top: calc(var(--space-md) * -1 + var(--space-xs)); }
+
+/* THE LINE UNDER THE GRADE ROW that explains why four consequences can agree.
+   `--text-xs` / `--ink-3`, the same register as the caption and for the same
+   reason: this is meta read once, at 23:10, by someone who has just been asked
+   to judge their own memory. `--space-sm` 12 above it: it belongs to the grade
+   row and to nothing else, so it sits closer to the row than the caption below
+   it does. */
+.rv__why {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--text-xs);
+  line-height: var(--sam-meta-line);
+  color: var(--ink-3);
+  max-width: var(--rv-note-measure);
+}
+
+/* ── 4 · THE HEAD'S CONTROL CLUSTER ──────────────────────────────────────
+   The method segment and its identity pair. `flex-wrap` so a plan that
+   declares four long method names wraps the cluster onto a second line instead
+   of squeezing the page head's title, which is the one thing on this screen
+   that must not be truncated. `--space-sm` 12: the pair and the control it
+   describes are one object, so the gap between them is tighter than the gap
+   between the cluster and the title. */
+.rv__aside {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  max-width: 46ch;
+}
+.rv__aside .cd-identity { flex: none; }
+
+/* A method menu is a disclosure: the button and its menu share one box, so the
+   menu's own position cannot be argued about separately. */
+.rv__method { position: relative; display: inline-flex; }
+
+/* ── 5 · THE GRADE ROW'S TWO-COLUMN SPECIES ──────────────────────────────
+   `.cd-rate` is drawn for four buttons (`components.css:825`). A two-grade
+   sitting — the miss and the pass, which is the default because it is what
+   F4's two-keystroke budget is built on — declares the two columns it has. This
+   is the same pair the system itself falls back to on a narrow window
+   (`components.css:985`), reached the same way.
+
+   It also needs a MEASURE, which the four-column case does not. Two buttons
+   across the card's 696px content width measured 350px each, and a 350px pill
+   holding the two words "2 · Good" over "still overdue" is a control with three
+   hundred pixels of nothing in it. So the two-column row is capped at the width
+   TWO of the four-column buttons occupy, which keeps every button on this screen
+   the same size whether two or four are shown:
+
+       696 − 3 × 8   = 672   four buttons share this
+       672 ÷ 4       = 168   one button
+       168 × 2 + 8   = 344   two buttons, one gap
+
+   344px, left-aligned with the answer panel above it, so the card keeps one left
+   edge for the decision. Derived from `--rv-recall-col` and the card's own
+   `--space-2xl` padding rather than typed at the point of styling. */
+.cd-rate.rv__rate--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: calc((var(--rv-recall-col) - var(--space-2xl) * 2 - var(--space-xs) * 3) / 2 + var(--space-xs) / 2);
+}
+
+/* ── 6 · THE STEP EVIDENCE ───────────────────────────────────────────────
+   The panel opens inside the row it belongs to and spans the row's three
+   columns, so the dashed rules between rows stay whole (`collection.css`'s row
+   is the same three-column grid). */
+.rv__step { grid-column: 1 / -1; }
+
+/* A field is its label and its control stacked: the label is the plan's own
+   word for the evidence, the control is where the student types it. Height is
+   the compact control rung (`--hit` 32) so it sits on the same rhythm as the
+   pills beside it. NO `border`: a field is a recessed thing, so its separation
+   is a fill, and the resting 1px is an `inset` shadow rather than a box border —
+   the same recipe `.cd-check` and `.cd-searchpill input` already use
+   (`components.css:603`, `:178`).
+
+   NO `transition` AT ALL, and that is the rule rather than an omission: this
+   element's only states are hover and focus, and BOTH of them set `box-shadow`.
+   A transition list that names the property a `:focus` rule sets is a ring that
+   fades in — a lie about the keyboard, and the one thing `design.md` §7.5 names
+   by name. An input's focus is a keystroke and its hover is a pointer already
+   moving; neither wants 140ms. */
+.rv__field { display: grid; gap: var(--space-3xs); }
+.rv__input {
+  height: var(--hit);
+  width: var(--rv-field-w);
+  padding: 0 var(--space-xs);
+  border: 0;
+  border-radius: var(--r-mini);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.rv__input--wide { width: 100%; }
+.rv__input:hover { box-shadow: inset 0 0 0 1px var(--rule-strong); }
+/* Focus is drawn INSIDE, at full strength on the frame it arrives — an object
+   inside a bleeding row cannot be ringed from outside (§10). Plain `:focus` as
+   well as `:focus-visible`, because a text field the pointer clicked into wants
+   its ring too; the system's own fields do the same (`components.css:137`). */
+.rv__input:focus,
+.rv__input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.rv__input:disabled {
+  opacity: 0.45;
+  background: var(--well);
+}
+
+/* ── 7 · NARROW ──────────────────────────────────────────────────────────
+   §27's own rule: the canvas loses its side padding before any column hides,
+   and nothing is removed while a column is still affordable. Below the
+   system's 760px the recall column is already the full width, so the only
+   thing left to give is the centred column's own centring. */
+@media (max-width: 760px) {
+  .rv__rec { max-width: none; }
+  .rv__aside { max-width: none; }
+  .rv__note { max-width: none; }
+}
+
+
+/* Style pressed method pill with well-2 fill rather than solid ink to maintain single ink focus on the reveal action (design.md §6). */
+.rv__method .cd-seg__pill[aria-pressed='true'] {
+  background: var(--well-2);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}

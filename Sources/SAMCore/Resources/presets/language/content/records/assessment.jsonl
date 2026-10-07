@@ -1,0 +1,2 @@
+{"fields":{"kind":"kana","label":"Kana recall 1","scope":"10 kana, read aloud","score":9,"total":10,"week":1},"id":"a.ja.kana.01","links":{"track":["t.kana.01"]},"schemaVersion":1,"type":"assessment"}
+{"fields":{"kind":"vocabulary","label":"Core vocabulary quiz 1","scope":"units 1-2, six words","score":5,"total":6,"week":2},"id":"a.ja.vocab.01","links":{"track":["t.vocab.01"]},"schemaVersion":1,"type":"assessment"}

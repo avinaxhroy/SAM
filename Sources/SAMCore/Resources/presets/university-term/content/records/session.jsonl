@@ -1,0 +1,4 @@
+{"fields":{"min":50,"note":"Logic lecture and problem set"},"id":"s.cs.01","links":{"course":["c.cs.dm"],"week":["w.01"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":45,"note":"Implementing a linked list"},"id":"s.cs.02","links":{"course":["c.cs.dsa"],"week":["w.02"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":40,"note":"Reading on data representation"},"id":"s.cs.03","links":{"course":["c.cs.sys"],"week":["w.03"]},"schemaVersion":1,"type":"session"}
+{"fields":{"min":55,"note":"Probability drills"},"id":"s.cs.04","links":{"course":["c.cs.ps"],"week":["w.05"]},"schemaVersion":1,"type":"session"}

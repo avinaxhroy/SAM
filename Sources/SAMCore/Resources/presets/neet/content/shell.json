@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "navigation": [
+    {
+      "title": "Today",
+      "view": "today.screen",
+      "icon": "date"
+    },
+    {
+      "title": "Plan",
+      "view": "plan.screen",
+      "icon": "calendar"
+    },
+    {
+      "title": "Subjects",
+      "view": "subjects.screen",
+      "icon": "book"
+    },
+    {
+      "title": "Practice",
+      "view": "practice.screen",
+      "icon": "bolt"
+    },
+    {
+      "title": "Mocks",
+      "view": "mocks.screen",
+      "icon": "checklist"
+    },
+    {
+      "title": "Reviews",
+      "view": "reviews.screen",
+      "icon": "refresh"
+    },
+    {
+      "title": "Progress",
+      "view": "progress.screen",
+      "icon": "chart"
+    },
+    {
+      "title": "Library",
+      "view": "library.screen",
+      "icon": "trayFull"
+    },
+    {
+      "title": "Notes",
+      "view": "notes.screen",
+      "icon": "pencil"
+    }
+  ],
+  "commands": [],
+  "keybindings": [
+    {
+      "command": "edit.undo",
+      "key": "mod+z"
+    },
+    {
+      "command": "edit.redo",
+      "key": "mod+shift+z"
+    },
+    {
+      "command": "app.palette",
+      "key": "mod+k"
+    },
+    {
+      "command": "app.toggleSourcePane",
+      "key": "mod+shift+j"
+    },
+    {
+      "command": "app.openSettings",
+      "key": "mod+comma"
+    }
+  ]
+}

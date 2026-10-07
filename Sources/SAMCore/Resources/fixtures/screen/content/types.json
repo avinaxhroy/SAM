@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "types": {
+    "topic": {
+      "icon": "bolt",
+      "trackable": true,
+      "pipeline": "flip",
+      "fields": [
+        { "key": "title", "type": "text" },
+        { "key": "kind", "type": "select", "options": ["watch", "practice"] },
+        { "key": "est", "type": "duration" }
+      ]
+    }
+  }
+}

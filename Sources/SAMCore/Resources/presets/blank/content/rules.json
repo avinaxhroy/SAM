@@ -1,0 +1,100 @@
+{
+  "metrics": {
+    "minutes.logged": {
+      "expr": "min",
+      "label": "Minutes logged",
+      "reduce": "sum",
+      "unit": "min",
+      "view": "progress.all"
+    },
+    "minutes.planned": {
+      "expr": "est",
+      "label": "Planned minutes",
+      "reduce": "sum",
+      "unit": "min",
+      "view": "today.topics"
+    },
+    "sessions.logged": {
+      "label": "Sessions",
+      "reduce": "count",
+      "view": "progress.all"
+    },
+    "topics.open": {
+      "label": "Open topics",
+      "reduce": "count",
+      "unit": "topics",
+      "view": "today.topics"
+    }
+  },
+  "pipelines": {
+    "check": {
+      "stages": [
+        "done"
+      ]
+    },
+    "flip": {
+      "anchorSkip": {
+        "allowed": true,
+        "requireReason": true
+      },
+      "completeWhen": "anchored",
+      "gates": {
+        "anchored": {
+          "require": "proved"
+        },
+        "proved": {
+          "require": "learned"
+        }
+      },
+      "proof": {
+        "appliesToKinds": [
+          "watch"
+        ],
+        "minProblems": 2
+      },
+      "stages": [
+        "learned",
+        "proved",
+        "anchored"
+      ]
+    },
+    "pages": {
+      "counter": true,
+      "stages": [
+        "reading",
+        "read"
+      ]
+    },
+    "progress": {
+      "progress": "pct",
+      "stages": [
+        "started",
+        "midway",
+        "done"
+      ]
+    },
+    "srs": {
+      "scheduler": "fsrs",
+      "stages": [
+        "new",
+        "learning",
+        "review",
+        "mature"
+      ]
+    }
+  },
+  "scheduler": {
+    "fixed": {
+      "intervals": [
+        1,
+        7,
+        30
+      ]
+    },
+    "name": "fixed"
+  },
+  "schemaVersion": 1,
+  "study": {
+    "dailyTargetMin": 180
+  }
+}

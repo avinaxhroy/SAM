@@ -1,0 +1,3 @@
+{"fields":{"body":"Contradiction, contrapositive, induction — decide which before writing a line.","title":"Proof strategy checklist"},"id":"n.cs.01","links":{"course":["c.cs.dm"]},"schemaVersion":1,"type":"note"}
+{"fields":{"body":"Array, list, tree, heap, hash — the cost of each operation, side by side.","title":"Complexity cheat-sheet"},"id":"n.cs.02","links":{"course":["c.cs.dsa"]},"schemaVersion":1,"type":"note"}
+{"fields":{"body":"Bernoulli, binomial, Poisson, normal — the situation each one fits.","title":"When to use which distribution"},"id":"n.cs.03","links":{"course":["c.cs.ps"]},"schemaVersion":1,"type":"note"}

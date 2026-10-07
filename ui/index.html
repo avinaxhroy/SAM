@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-os="mac" data-ui-size="regular">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SAM</title>
+    <!--
+      The appearance is decided before the first frame, not after the app boots
+      — carried from design/demo/index.html, which does exactly this on purpose:
+      "A student who chose Daylight on a dark-mode desktop gets Daylight back,
+      and no launch paints the wrong room and then swaps."
+
+      Two stored things, in order: the **resolved theme** the engine produced
+      last session (`cadence.appearance`: a mode plus every custom property) is
+      applied verbatim; failing that, the stored light/dark choice sets the
+      floor. `data-theme` on <html> is what a shell with storage disabled keeps.
+      `data-os` is the same kind of floor and the shell corrects it from
+      `shell_info` at boot; until then it is the value the design system's own
+      demo carries.
+
+      This is a plain script (`/boot.js`) rather than an inline one: the
+      shell's CSP allows no inline scripts, so the pre-paint theme fix ships
+      as a same-origin file the browser loads before anything paints.
+    -->
+    <script src="/boot.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

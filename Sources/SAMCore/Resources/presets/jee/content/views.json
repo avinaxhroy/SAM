@@ -1,0 +1,397 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "library.byKind": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.resources": {
+      "columns": [
+        "label",
+        "kind",
+        "provider",
+        "url"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Resources",
+          "view": "library.resources"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "library.byKind"
+        },
+        {
+          "kind": "table",
+          "title": "Everything",
+          "view": "library.resources"
+        }
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource",
+      "panel": "library"
+    },
+    "milestones.all": {
+      "columns": [
+        "at",
+        "label",
+        "metric",
+        "target"
+      ],
+      "layout": "table",
+      "sort": "at",
+      "type": "milestone"
+    },
+    "mocks.calendar": {
+      "layout": "calendar",
+      "sort": "date",
+      "type": "assessment"
+    },
+    "mocks.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Assessments planned",
+          "view": "mocks.table"
+        },
+        {
+          "kind": "calendar",
+          "title": "Placed by date - fill an assessment's date to put it on the calendar",
+          "view": "mocks.calendar"
+        },
+        {
+          "kind": "table",
+          "title": "In plan order",
+          "view": "mocks.table"
+        }
+      ],
+      "layout": "table",
+      "sort": "week.index, kind",
+      "type": "assessment",
+      "panel": "mocks"
+    },
+    "mocks.table": {
+      "columns": [
+        "label",
+        "kind",
+        "week",
+        "course"
+      ],
+      "layout": "table",
+      "sort": "week.index, kind",
+      "type": "assessment"
+    },
+    "notes.all": {
+      "columns": [
+        "title",
+        "course",
+        "body"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note"
+    },
+    "notes.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Notes",
+          "view": "notes.all"
+        },
+        {
+          "kind": "table",
+          "title": "Everything you wrote down",
+          "view": "notes.all"
+        }
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note",
+      "panel": "notes"
+    },
+    "plan.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Units",
+          "view": "plan.units"
+        },
+        {
+          "kind": "timeline",
+          "title": "The two years, unit by unit",
+          "view": "plan.units"
+        },
+        {
+          "kind": "table",
+          "title": "Weeks",
+          "view": "plan.weeks"
+        },
+        {
+          "kind": "table",
+          "title": "Milestones you set yourself",
+          "view": "milestones.all"
+        },
+        {
+          "kind": "calendar",
+          "title": "Assessments",
+          "view": "mocks.calendar"
+        }
+      ],
+      "group": "course.name",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit",
+      "panel": "plan"
+    },
+    "plan.units": {
+      "group": "course.name",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit"
+    },
+    "plan.weeks": {
+      "columns": [
+        "index",
+        "label",
+        "phase"
+      ],
+      "layout": "table",
+      "sort": "index",
+      "type": "week"
+    },
+    "practice.bydifficulty": {
+      "group": "difficulty",
+      "layout": "board",
+      "sort": "chapter",
+      "type": "problemset"
+    },
+    "practice.screen": {
+      "blocks": [
+        {
+          "expr": "solved",
+          "kind": "stat",
+          "label": "Questions solved",
+          "reduce": "sum",
+          "view": "practice.sets"
+        },
+        {
+          "expr": "total",
+          "kind": "stat",
+          "label": "Questions banked",
+          "reduce": "sum",
+          "view": "practice.sets"
+        },
+        {
+          "kind": "table",
+          "title": "Every question bank",
+          "view": "practice.sets"
+        },
+        {
+          "kind": "board",
+          "title": "By difficulty",
+          "view": "practice.bydifficulty"
+        }
+      ],
+      "columns": [
+        "chapter",
+        "difficulty",
+        "solved",
+        "total",
+        "pct",
+        "source"
+      ],
+      "layout": "table",
+      "sort": "chapter",
+      "type": "problemset",
+      "panel": "practice"
+    },
+    "practice.sets": {
+      "columns": [
+        "chapter",
+        "difficulty",
+        "solved",
+        "total",
+        "pct",
+        "source"
+      ],
+      "layout": "table",
+      "sort": "chapter",
+      "type": "problemset"
+    },
+    "progress.screen": {
+      "blocks": [
+        {
+          "expr": "min",
+          "kind": "stat",
+          "label": "Minutes logged",
+          "reduce": "sum",
+          "view": "progress.sessions"
+        },
+        {
+          "kind": "chart",
+          "label": "Minutes by plan week",
+          "reduce": "sum",
+          "view": "progress.sessions",
+          "x": "week.index",
+          "y": "min"
+        },
+        {
+          "kind": "table",
+          "title": "Sessions",
+          "view": "progress.sessions"
+        }
+      ],
+      "layout": "table",
+      "panel": "progress",
+      "sort": "week.index",
+      "type": "session"
+    },
+    "progress.sessions": {
+      "columns": [
+        "week",
+        "course",
+        "min",
+        "note"
+      ],
+      "layout": "table",
+      "limit": 30,
+      "sort": "week.index",
+      "type": "session"
+    },
+    "reviews.queue": {
+      "columns": [
+        "title",
+        "course",
+        "unit",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "reviews.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Still open",
+          "reduce": "count",
+          "view": "reviews.queue"
+        },
+        {
+          "kind": "callout",
+          "text": "A topic is finished when it is proved and anchored: learn it, solve two problems on it, then come back on day 1, 7 and 30. This queue is ordered by plan week, then by the shortest sitting first.",
+          "title": "How this queue is ordered"
+        },
+        {
+          "kind": "table",
+          "view": "reviews.queue"
+        }
+      ],
+      "columns": [
+        "title",
+        "course",
+        "unit",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "panel": "reviews",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "subjects.courses": {
+      "layout": "cardGrid",
+      "sort": "order",
+      "type": "course"
+    },
+    "subjects.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Subjects",
+          "view": "subjects.courses"
+        },
+        {
+          "kind": "stat",
+          "label": "Chapters",
+          "view": "subjects.units"
+        },
+        {
+          "kind": "board",
+          "title": "Chapters by subject",
+          "view": "subjects.units"
+        },
+        {
+          "kind": "cardGrid",
+          "title": "Subjects",
+          "view": "subjects.courses"
+        }
+      ],
+      "group": "course.name",
+      "layout": "board",
+      "sort": "index",
+      "type": "unit",
+      "panel": "subjects"
+    },
+    "subjects.units": {
+      "group": "course.name",
+      "layout": "board",
+      "sort": "index",
+      "type": "unit"
+    },
+    "today.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Open topics",
+          "reduce": "count",
+          "view": "today.topics"
+        },
+        {
+          "expr": "est",
+          "kind": "stat",
+          "label": "Minutes planned",
+          "reduce": "sum",
+          "view": "today.topics"
+        },
+        {
+          "kind": "list",
+          "title": "Next in plan order",
+          "view": "today.topics"
+        }
+      ],
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "panel": "today",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "today.topics": {
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    }
+  }
+}

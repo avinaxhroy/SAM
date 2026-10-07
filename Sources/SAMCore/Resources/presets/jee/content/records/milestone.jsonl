@@ -1,0 +1,3 @@
+{"fields":{"at":8,"label":"Target score at the first full mock","metric":"marks","target":250},"id":"m.jee.01","links":{},"schemaVersion":1,"type":"milestone"}
+{"fields":{"at":20,"label":"Target percentile once the syllabus has been seen once","metric":"percentile","target":95},"id":"m.jee.02","links":{},"schemaVersion":1,"type":"milestone"}
+{"fields":{"at":23,"label":"Target rank in the final revision sweep","metric":"rank","target":5000},"id":"m.jee.03","links":{},"schemaVersion":1,"type":"milestone"}

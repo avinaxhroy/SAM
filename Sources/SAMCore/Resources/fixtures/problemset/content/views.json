@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "math.problems": {
+      "type": "problemset",
+      "layout": "table",
+      "filter": "course.id == 'math'",
+      "sort": "chapter",
+      "columns": [
+        "chapter",
+        "difficulty",
+        "solved",
+        "total",
+        "pct",
+        "source"
+      ]
+    }
+  }
+}

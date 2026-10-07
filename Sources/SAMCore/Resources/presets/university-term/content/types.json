@@ -1,0 +1,438 @@
+{
+  "schemaVersion": 1,
+  "types": {
+    "program": {
+      "icon": "graduationcap",
+      "fields": [
+        {
+          "key": "institute",
+          "type": "text",
+          "label": "Institute"
+        },
+        {
+          "key": "degree",
+          "type": "text",
+          "label": "Degree"
+        },
+        {
+          "key": "start",
+          "type": "date",
+          "label": "Starts"
+        },
+        {
+          "key": "semesters",
+          "type": "number",
+          "label": "Semesters"
+        }
+      ]
+    },
+    "term": {
+      "icon": "calendar",
+      "parent": "program",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "start",
+          "type": "date",
+          "label": "Starts"
+        },
+        {
+          "key": "weeks",
+          "type": "number",
+          "label": "Weeks"
+        },
+        {
+          "key": "credits",
+          "type": "number",
+          "label": "Credits"
+        }
+      ]
+    },
+    "course": {
+      "icon": "book",
+      "parent": "term",
+      "colorRole": "identity",
+      "fields": [
+        {
+          "key": "code",
+          "type": "text",
+          "label": "Course code"
+        },
+        {
+          "key": "name",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "short",
+          "type": "text",
+          "label": "Short name"
+        },
+        {
+          "key": "credits",
+          "type": "number",
+          "label": "Credits"
+        },
+        {
+          "key": "instructor",
+          "type": "text",
+          "label": "Instructor"
+        },
+        {
+          "key": "note",
+          "type": "longtext",
+          "label": "Note"
+        }
+      ]
+    },
+    "unit": {
+      "icon": "squareStack",
+      "parent": "course",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "index",
+          "type": "number",
+          "label": "Order"
+        },
+        {
+          "key": "weekStart",
+          "type": "number",
+          "label": "First week"
+        },
+        {
+          "key": "weekEnd",
+          "type": "number",
+          "label": "Last week"
+        }
+      ]
+    },
+    "topic": {
+      "icon": "bolt",
+      "trackable": true,
+      "pipeline": "flip",
+      "fields": [
+        {
+          "key": "unit",
+          "type": "relation",
+          "label": "Unit",
+          "to": "unit",
+          "cardinality": "one",
+          "required": false
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course",
+          "cardinality": "one"
+        },
+        {
+          "key": "title",
+          "type": "text",
+          "label": "Title"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of work",
+          "options": [
+            "watch",
+            "practice",
+            "read",
+            "write",
+            "project",
+            "revise"
+          ]
+        },
+        {
+          "key": "est",
+          "type": "duration",
+          "label": "Estimated time"
+        },
+        {
+          "key": "resource",
+          "type": "relation",
+          "label": "Resource",
+          "to": "resource"
+        },
+        {
+          "key": "part",
+          "type": "text",
+          "label": "Part"
+        },
+        {
+          "key": "week",
+          "type": "relation",
+          "label": "Week",
+          "to": "week",
+          "cardinality": "one"
+        },
+        {
+          "key": "focus",
+          "type": "date",
+          "label": "Planned for"
+        }
+      ]
+    },
+    "week": {
+      "icon": "calendar",
+      "parent": "term",
+      "fields": [
+        {
+          "key": "index",
+          "type": "number",
+          "label": "Order"
+        },
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        }
+      ]
+    },
+    "resource": {
+      "icon": "trayFull",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Kind",
+          "options": [
+            "video",
+            "pdf",
+            "article",
+            "book",
+            "tool"
+          ]
+        },
+        {
+          "key": "url",
+          "type": "url",
+          "label": "Link"
+        },
+        {
+          "key": "provider",
+          "type": "text",
+          "label": "Provider"
+        }
+      ]
+    },
+    "assessment": {
+      "icon": "calendar",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "kind",
+          "type": "select",
+          "label": "Type of test",
+          "options": [
+            "quiz",
+            "assignment",
+            "midterm",
+            "final"
+          ]
+        },
+        {
+          "key": "week",
+          "type": "relation",
+          "label": "Week",
+          "to": "week",
+          "cardinality": "one"
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        },
+        {
+          "key": "date",
+          "type": "date",
+          "label": "Date"
+        },
+        {
+          "key": "score",
+          "type": "number",
+          "label": "Score"
+        }
+      ]
+    },
+    "session": {
+      "icon": "clock",
+      "private": true,
+      "fields": [
+        {
+          "key": "week",
+          "type": "relation",
+          "label": "Week",
+          "to": "week",
+          "cardinality": "one"
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        },
+        {
+          "key": "date",
+          "type": "date",
+          "label": "Date"
+        },
+        {
+          "key": "min",
+          "type": "duration",
+          "label": "Minutes"
+        },
+        {
+          "key": "note",
+          "type": "text",
+          "label": "Note"
+        }
+      ]
+    },
+    "note": {
+      "icon": "pencil",
+      "private": true,
+      "fields": [
+        {
+          "key": "title",
+          "type": "text",
+          "label": "Title"
+        },
+        {
+          "key": "body",
+          "type": "longtext",
+          "label": "Body"
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        }
+      ]
+    },
+    "project": {
+      "icon": "hammer",
+      "fields": [
+        {
+          "key": "name",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "course",
+          "type": "relation",
+          "label": "Course",
+          "to": "course"
+        },
+        {
+          "key": "deadline",
+          "type": "date",
+          "label": "Deadline"
+        }
+      ]
+    },
+    "milestone": {
+      "icon": "flag",
+      "fields": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": "Name"
+        },
+        {
+          "key": "project",
+          "type": "relation",
+          "label": "Project",
+          "to": "project"
+        },
+        {
+          "key": "week",
+          "type": "relation",
+          "label": "Week",
+          "to": "week",
+          "cardinality": "one"
+        },
+        {
+          "key": "target",
+          "type": "number",
+          "label": "Target"
+        }
+      ]
+    },
+    "problemset": {
+      "icon": "checklist",
+      "parent": "course",
+      "trackable": true,
+      "pipeline": "progress",
+      "fields": [
+        {
+          "key": "chapter",
+          "type": "text",
+          "label": "Chapter"
+        },
+        {
+          "key": "difficulty",
+          "type": "select",
+          "label": "Difficulty",
+          "options": [
+            "easy",
+            "medium",
+            "hard"
+          ]
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": "Questions in the set"
+        },
+        {
+          "key": "attempted",
+          "type": "number",
+          "label": "Attempted"
+        },
+        {
+          "key": "solved",
+          "type": "number",
+          "label": "Solved"
+        },
+        {
+          "key": "pct",
+          "type": "formula",
+          "label": "Percent solved",
+          "expr": "pct(solved, total)"
+        },
+        {
+          "key": "source",
+          "type": "url",
+          "label": "Source link"
+        },
+        {
+          "key": "focus",
+          "type": "date",
+          "label": "Planned for"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,3 @@
+{"fields":{"goal":"Understand how memory, ownership and threads actually work by writing systems code.","kind":"systems","name":"Systems Programming","short":"Sys"},"id":"c.sys","links":{},"schemaVersion":1,"type":"course"}
+{"fields":{"goal":"Implement the core data structures and reason about what each operation costs.","kind":"algorithms","name":"Data Structures & Algorithms","short":"DSA"},"id":"c.dsa","links":{},"schemaVersion":1,"type":"course"}
+{"fields":{"goal":"Move bytes between two machines and speak a real protocol.","kind":"networking","name":"Networking","short":"Net"},"id":"c.net","links":{},"schemaVersion":1,"type":"course"}

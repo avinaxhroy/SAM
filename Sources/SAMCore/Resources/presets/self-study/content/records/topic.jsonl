@@ -1,0 +1,6 @@
+{"fields":{"est":45,"kind":"read","title":"Heap vs stack: where each value lives"},"id":"t.sys.01","links":{"course":["c.sys"],"resource":["r.book.ostep"],"unit":["u.sys.2"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":60,"kind":"practice","title":"Ownership rules drill: fix ten fails"},"id":"t.sys.02","links":{"course":["c.sys"],"unit":["u.sys.2"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":50,"kind":"read","title":"Threads and channels without data races"},"id":"t.sys.03","links":{"course":["c.sys"],"unit":["u.sys.3"],"week":["w.03"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":40,"kind":"watch","title":"Big-O from first principles"},"id":"t.dsa.01","links":{"course":["c.dsa"],"resource":["r.video.algo"],"unit":["u.dsa.1"],"week":["w.01"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":90,"kind":"build","title":"Implement a dynamic array"},"id":"t.dsa.02","links":{"course":["c.dsa"],"unit":["u.dsa.1"],"week":["w.02"]},"schemaVersion":1,"type":"topic"}
+{"fields":{"est":90,"kind":"build","title":"Build a TCP echo server"},"id":"t.net.01","links":{"course":["c.net"],"unit":["u.net.1"],"week":["w.03"]},"schemaVersion":1,"type":"topic"}

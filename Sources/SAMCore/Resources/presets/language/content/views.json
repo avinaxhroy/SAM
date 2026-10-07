@@ -1,0 +1,352 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "assessments.table": {
+      "columns": [
+        "label",
+        "kind",
+        "scope",
+        "week",
+        "score",
+        "total",
+        "result"
+      ],
+      "layout": "table",
+      "sort": "week",
+      "type": "assessment"
+    },
+    "dialogues.table": {
+      "columns": [
+        "title",
+        "topic",
+        "lines",
+        "kind"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "dialogue"
+    },
+    "kana.board": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "term",
+      "type": "word"
+    },
+    "kana.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Cards on the board",
+          "view": "kana.board"
+        },
+        {
+          "kind": "callout",
+          "text": "Every card moves through four steps — new, learning, review, mature — and the plan decides when each one comes back. Your ratings feed that schedule: a card you find hard returns sooner, a card you find easy waits longer. Nothing here is a test, and nothing counts against you.",
+          "title": "How a card moves"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "kana.board"
+        },
+        {
+          "kind": "table",
+          "title": "All cards, term first",
+          "view": "words.table"
+        }
+      ],
+      "group": "kind",
+      "layout": "board",
+      "sort": "term",
+      "type": "word"
+    },
+    "language.overview": {
+      "columns": [
+        "name",
+        "native",
+        "level",
+        "goal"
+      ],
+      "layout": "table",
+      "sort": "name",
+      "type": "language"
+    },
+    "media.byKind": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "label",
+      "type": "resource"
+    },
+    "media.library": {
+      "columns": [
+        "label",
+        "kind",
+        "provider",
+        "url"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource",
+      "panel": "library"
+    },
+    "milestones.all": {
+      "columns": [
+        "label",
+        "measure",
+        "target"
+      ],
+      "layout": "table",
+      "sort": "target",
+      "type": "milestone"
+    },
+    "notes.all": {
+      "columns": [
+        "title",
+        "body"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note",
+      "panel": "notes"
+    },
+    "plan.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Units",
+          "view": "units.table"
+        },
+        {
+          "expr": "est",
+          "kind": "stat",
+          "label": "Planned minutes",
+          "reduce": "sum",
+          "view": "units.table"
+        },
+        {
+          "kind": "timeline",
+          "title": "Units in order, track by track",
+          "view": "units.timeline"
+        },
+        {
+          "kind": "table",
+          "title": "Every unit",
+          "view": "units.table"
+        },
+        {
+          "kind": "table",
+          "title": "Self-quizzes, week by week",
+          "view": "assessments.table"
+        },
+        {
+          "kind": "table",
+          "title": "Progress markers",
+          "view": "milestones.all"
+        }
+      ],
+      "group": "track",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit",
+      "panel": "plan"
+    },
+    "progress.panel": {
+      "blocks": [
+        {
+          "kind": "chart",
+          "label": "Minutes per week",
+          "reduce": "sum",
+          "view": "sessions.table",
+          "x": "week",
+          "y": "min"
+        },
+        {
+          "kind": "table",
+          "title": "Sessions",
+          "view": "sessions.table"
+        }
+      ],
+      "columns": [
+        "week",
+        "min",
+        "note"
+      ],
+      "layout": "table",
+      "panel": "progress",
+      "sort": "-week",
+      "type": "session"
+    },
+    "reviews.panel": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Cards still in play",
+          "view": "reviews.queue"
+        },
+        {
+          "kind": "callout",
+          "text": "Again · hard · good · easy — four buttons, one machine. Each logged review is history the FSRS scheduler reads: it stores stability and difficulty per word and computes the next civil due date from them. A failure steps a card back a stage; `mature` is reached by review, never claimed by a checkbox.",
+          "title": "A review is evidence, not a tick"
+        },
+        {
+          "kind": "table",
+          "title": "The queue",
+          "view": "reviews.queue"
+        }
+      ],
+      "columns": [
+        "term",
+        "reading",
+        "meaning",
+        "kind"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "panel": "reviews",
+      "sort": "kind, term",
+      "type": "word"
+    },
+    "reviews.queue": {
+      "columns": [
+        "term",
+        "reading",
+        "meaning",
+        "kind"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "sort": "kind, term",
+      "type": "word"
+    },
+    "sentences.table": {
+      "columns": [
+        "text",
+        "translation",
+        "kind",
+        "source"
+      ],
+      "layout": "table",
+      "sort": "kind, text",
+      "type": "sentence"
+    },
+    "sessions.table": {
+      "columns": [
+        "week",
+        "min",
+        "track",
+        "note"
+      ],
+      "layout": "table",
+      "limit": 30,
+      "sort": "-week",
+      "type": "session"
+    },
+    "today.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Cards in rotation",
+          "view": "words.queue"
+        },
+        {
+          "kind": "callout",
+          "text": "These are the cards the srs pipeline has not retired yet — everything the FSRS scheduler still owes you a review on. The scheduler's own answer (due now, coming up, waiting on a first pass) is `sam reviews.due --json`; this list is what to study.",
+          "title": "What “due” means here"
+        },
+        {
+          "kind": "list",
+          "title": "Study now, kind by kind",
+          "view": "words.queue"
+        }
+      ],
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "panel": "today",
+      "sort": "kind, term",
+      "type": "word"
+    },
+    "tracks.board": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "order",
+      "type": "track"
+    },
+    "units.table": {
+      "columns": [
+        "label",
+        "index",
+        "goal",
+        "est"
+      ],
+      "layout": "table",
+      "sort": "index",
+      "type": "unit"
+    },
+    "units.timeline": {
+      "group": "track",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit"
+    },
+    "vocab.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Words tracked",
+          "view": "words.table"
+        },
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Still to learn",
+          "reduce": "count",
+          "view": "words.queue"
+        },
+        {
+          "kind": "table",
+          "title": "Every word, term first",
+          "view": "words.table"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "kana.board"
+        }
+      ],
+      "columns": [
+        "term",
+        "reading",
+        "meaning",
+        "kind",
+        "source"
+      ],
+      "layout": "table",
+      "sort": "kind, term",
+      "type": "word"
+    },
+    "words.queue": {
+      "filter": "!complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "sort": "kind, term",
+      "type": "word"
+    },
+    "words.table": {
+      "columns": [
+        "term",
+        "reading",
+        "meaning",
+        "kind",
+        "source"
+      ],
+      "layout": "table",
+      "sort": "kind, term",
+      "type": "word"
+    }
+  }
+}

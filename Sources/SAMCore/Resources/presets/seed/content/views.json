@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "views": {
+    "courses.board": {
+      "group": "credits",
+      "layout": "board",
+      "type": "course"
+    },
+    "courses.grid": {
+      "layout": "cardGrid",
+      "sort": "name",
+      "type": "course"
+    },
+    "courses.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Courses",
+          "view": "courses.grid"
+        },
+        {
+          "expr": "credits",
+          "kind": "stat",
+          "label": "Credits",
+          "reduce": "sum",
+          "view": "courses.grid"
+        },
+        {
+          "kind": "cardGrid",
+          "title": "This term's rooms",
+          "view": "courses.grid"
+        }
+      ],
+      "layout": "cardGrid",
+      "sort": "name",
+      "type": "course",
+      "panel": "subjects"
+    },
+    "library.byKind": {
+      "group": "kind",
+      "layout": "board",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.resources": {
+      "columns": [
+        "label",
+        "kind",
+        "provider",
+        "url"
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource"
+    },
+    "library.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Resources",
+          "view": "library.resources"
+        },
+        {
+          "kind": "board",
+          "title": "By kind",
+          "view": "library.byKind"
+        },
+        {
+          "kind": "table",
+          "title": "Everything",
+          "view": "library.resources"
+        }
+      ],
+      "layout": "table",
+      "sort": "label",
+      "type": "resource",
+      "panel": "library"
+    },
+    "milestones.all": {
+      "layout": "table",
+      "sort": "month",
+      "type": "milestone"
+    },
+    "notes.all": {
+      "columns": [
+        "title",
+        "course",
+        "body"
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note"
+    },
+    "notes.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Notes",
+          "view": "notes.all"
+        },
+        {
+          "kind": "table",
+          "title": "Everything you wrote down",
+          "view": "notes.all"
+        }
+      ],
+      "layout": "table",
+      "sort": "title",
+      "type": "note",
+      "panel": "notes"
+    },
+    "plan.assessments": {
+      "layout": "calendar",
+      "sort": "date",
+      "type": "assessment"
+    },
+    "plan.screen": {
+      "blocks": [
+        {
+          "kind": "stat",
+          "label": "Units",
+          "view": "plan.units"
+        },
+        {
+          "kind": "timeline",
+          "title": "The term, in order",
+          "view": "plan.units"
+        },
+        {
+          "kind": "calendar",
+          "title": "Deadlines",
+          "view": "plan.assessments"
+        },
+        {
+          "kind": "table",
+          "title": "Weeks",
+          "view": "plan.weeks"
+        }
+      ],
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit",
+      "panel": "plan"
+    },
+    "plan.units": {
+      "group": "course",
+      "layout": "timeline",
+      "sort": "index",
+      "type": "unit"
+    },
+    "plan.weeks": {
+      "columns": [
+        "index",
+        "label",
+        "start",
+        "end"
+      ],
+      "layout": "table",
+      "sort": "index",
+      "type": "week"
+    },
+    "programs.all": {
+      "layout": "table",
+      "sort": "start",
+      "type": "program"
+    },
+    "progress.all": {
+      "columns": [
+        "date",
+        "min",
+        "course"
+      ],
+      "layout": "table",
+      "sort": "-date",
+      "type": "session"
+    },
+    "progress.screen": {
+      "blocks": [
+        {
+          "days": 14,
+          "kind": "chart",
+          "label": "Minutes per day, last 14 days",
+          "reduce": "sum",
+          "view": "progress.sessions",
+          "x": "date",
+          "y": "min"
+        },
+        {
+          "kind": "table",
+          "title": "Sessions",
+          "view": "progress.sessions"
+        }
+      ],
+      "layout": "table",
+      "panel": "progress",
+      "sort": "-date",
+      "type": "session"
+    },
+    "progress.sessions": {
+      "columns": [
+        "date",
+        "min",
+        "course",
+        "note"
+      ],
+      "layout": "table",
+      "limit": 30,
+      "sort": "-date",
+      "type": "session"
+    },
+    "projects.all": {
+      "layout": "cardGrid",
+      "sort": "name",
+      "type": "project"
+    },
+    "reviews.queue": {
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "reviews.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Not finished yet",
+          "reduce": "count",
+          "view": "reviews.queue"
+        },
+        {
+          "kind": "callout",
+          "text": "A topic is finished when it is proved and anchored — two problems solved, then a spaced review. The queue below is ordered by week, then by the shortest session first.",
+          "title": "How this queue is ordered"
+        },
+        {
+          "kind": "table",
+          "view": "reviews.queue"
+        }
+      ],
+      "columns": [
+        "title",
+        "course",
+        "kind",
+        "est"
+      ],
+      "filter": "!complete()",
+      "layout": "table",
+      "limit": 12,
+      "panel": "reviews",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "terms.all": {
+      "layout": "table",
+      "sort": "start",
+      "type": "term"
+    },
+    "today.screen": {
+      "blocks": [
+        {
+          "expr": "!complete()",
+          "kind": "stat",
+          "label": "Open topics",
+          "reduce": "count",
+          "view": "today.topics"
+        },
+        {
+          "expr": "est",
+          "kind": "stat",
+          "label": "Minutes planned",
+          "reduce": "sum",
+          "view": "today.topics"
+        },
+        {
+          "kind": "list",
+          "title": "This week's work",
+          "view": "today.topics"
+        }
+      ],
+      "filter": "week.term.id == currentTerm() && !complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "panel": "today",
+      "sort": "week.index, est",
+      "type": "topic"
+    },
+    "today.topics": {
+      "filter": "week.term.id == currentTerm() && !complete()",
+      "group": "kind",
+      "layout": "list",
+      "limit": 12,
+      "sort": "week.index, est",
+      "type": "topic"
+    }
+  }
+}

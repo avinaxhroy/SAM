@@ -1,0 +1,319 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE SHEETS  (Appendix C.9, §11)
+
+   The app has exactly ONE floating surface (§11): a form, a confirm and the
+   paste door are the same object with different contents — never an `NSAlert`
+   and never a browser `prompt`. `shell/Sheet.svelte` draws that object; this
+   file is what it looks like, plus the controls its three bodies need.
+
+   `.cd-scrim` and `.cd-sheet` are declared here rather than in
+   `components.css` because the design system has no dialog at all (D17): the
+   two surfaces are the sheet's own, and a second file declaring them would be
+   a second dialog.
+
+   Nothing below invents an object the app already has: a field is a well
+   (`--well` at `--r-mini`, the design system's `WellFieldStyle` counterpart),
+   a choice is a segment, a state is a check. The one ink object on the screen
+   is the footer's `.cd-pill` and nothing here overrides it.
+
+   Every value resolves through a token; `node tools/tokenlint.mjs` is the gate.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── THE CHROME ───────────────────────────────────────────────────────── */
+/* The scrim is `--ink` at ~0.16 (Appendix C.9): the room dimmed, not a black
+   veil — and deliberately not `backdrop-filter`, which would make the app
+   behind the sheet look like a different app. */
+.cd-scrim {
+  position: fixed; inset: 0; z-index: 40;
+  background: color-mix(in oklab, var(--ink) 16%, transparent);
+}
+
+/* The card: 460 wide (UI_SPEC §2.2's one declared sheet size), `--r-card`,
+   `--sh-pop` — the surface a card is, at the largest scale. The head and the
+   foot are fixed heights; the body scrolls, so a long list can never push the
+   one ink object out of reach. */
+.cd-sheet {
+  position: fixed; z-index: 50;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 460px;
+  max-width: calc(100vw - var(--space-3xl));
+  max-height: 80dvh;
+  display: flex; flex-direction: column;
+  padding: 0;
+  background: var(--card);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-pop), var(--catch);
+}
+
+/* ── THE ARRIVAL ──────────────────────────────────────────────────────── */
+/* The sheet arrives: the room dims (the scrim fades) and the card rises into
+   the middle (~0.98, a few px of lift, `--dur-2` at `--ease-pop`). The
+   keyframes state only the *start*: the end of each animation is the rule
+   above, so the card's centering transform is written once and nothing has to
+   be undone when the animation finishes. Both classes are declared here, so
+   every sheet in the app — including the door that draws this chrome itself —
+   gets the same arrival without touching its own code. */
+.cd-scrim { animation: cd-scrim-in var(--dur-2) var(--ease-pop); }
+.cd-sheet { animation: cd-sheet-in var(--dur-2) var(--ease-pop); }
+
+@keyframes cd-scrim-in {
+  from { opacity: 0; }
+}
+
+@keyframes cd-sheet-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The state changes instantly; the sheet is simply there. */
+  .cd-scrim, .cd-sheet { animation: none; }
+}
+
+/* The head is the title block and the ✕, and the block holds the slack so the ✕
+   is pinned to the card's own trailing edge — the spacer `.cd-card__head` uses
+   for the same job. Without it the ✕ was a flex item after a shrink-to-fit
+   title, so its x followed the *words*: measured on one build, "Add component"
+   put it at 836 in a card whose right inset is 926, while "Delete the kind
+   Mocks?" (a block long enough to fill the slack) put the same button at 894.
+   A close button that moves with the title also moves with the kind's name, in
+   every sheet the student opens.
+
+   The selector is the child rather than a class because three files draw this
+   head from the same two-child contract — `shell/Sheet.svelte`, which owns it,
+   `system/DeleteSheet.svelte`, and the System editor's own copy in
+   `variants/system/A.svelte` — and a class added to one of them would fix one
+   head. Measured on the kind sheet after: the ✕ at 894→926 in a card whose
+   right inset is 926, on every title it can carry. */
+.cd-sheet__head { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; padding: var(--space-md) var(--space-xl) 0; }
+.cd-sheet__head > div { flex: 1 1 auto; min-width: 0; }
+.cd-sheet__head > .cd-iconbtn { flex: none; }
+.cd-sheet__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-title);
+  color: var(--ink);
+}
+.cd-sheet__sub { margin-top: var(--space-3xs); font-size: var(--text-xs); color: var(--ink-3); }
+
+/* Scrollable sheet body with contained scroll chaining and inset padding for collection rows. */
+.cd-sheet__body {
+  min-height: 0; overflow: auto; overscroll-behavior: contain;
+  padding: var(--space-lg) var(--space-xl);
+  display: grid; gap: var(--space-sm);
+}
+.cd-sheet__foot { display: flex; align-items: center; gap: var(--space-xs); min-height: 56px; padding: 0 var(--space-xl); }
+
+/* Foot note expands to fill available width while action buttons maintain intrinsic size. */
+.cd-sheet__foot > .cd-sheet__note { flex: 1 1 auto; min-width: 0; }
+.cd-sheet__foot > .cd-pill, .cd-sheet__foot > .cd-pill * { flex: none; }
+
+.cd-sheet__actions { display: flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-md); }
+.cd-sheet__note { font-size: var(--text-2xs); color: var(--ink-3); line-height: 1.5; }
+
+/* ── THE SHEET'S OWN CONTROLS ─────────────────────────────────────────── */
+/* Two-column grid for standard label/control pairs; single column for segments and chips. */
+.cd-sheet__field { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--space-sm); align-items: center; }
+.cd-sheet__field:has(.cd-segment),
+.cd-sheet__field:has(.cd-chips) { grid-template-columns: minmax(0, 1fr); }
+.cd-sheet__row { display: flex; align-items: center; gap: var(--space-sm); }
+.cd-sheet__stack { display: grid; gap: var(--space-2xs); }
+
+/* The label carries the field's own `label`; the key rides beside it in mono,
+   because the UI never hides the JSON identity (§4.8 P3). */
+.cd-sheet__label { min-width: 0; font-size: var(--text-xs); color: var(--ink-2); }
+.cd-sheet__key {
+  margin-left: var(--space-2xs);
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+.cd-sheet__hint { font-size: var(--text-2xs); color: var(--ink-3); }
+.cd-sheet__count { font-size: var(--text-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cd-sheet__spacer { flex: 1; }
+
+/* A field is a well, not a box: no border, one fill, `--r-mini`. */
+.cd-sheet__well {
+  width: 100%; min-width: 0;
+  padding: var(--space-2xs) var(--space-xs);
+  border: 0; border-radius: var(--r-mini);
+  background: var(--well);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+.cd-sheet__well::placeholder { color: var(--ink-4); }
+/* The paste buffer is data, not prose: mono, and tall enough to hold a term's
+   worth of rows without scrolling inside the card. */
+.cd-sheet__data { font-family: var(--font-mono, ui-monospace); resize: vertical; }
+.cd-sheet__select { width: 100%; }
+
+/* A toggle is a labelled check, and the check is filled from the button's own
+   state: the tick and the label can never disagree (`components.css`'s
+   `.cd-check` paints only a check that carries `aria-pressed` itself). */
+.cd-sheet__toggle { display: inline-flex; align-items: center; gap: var(--space-xs); font-size: var(--text-xs); color: var(--ink-2); }
+.cd-sheet__toggle .cd-check { flex: none; }
+.cd-sheet__toggle[aria-pressed="true"] { color: var(--ink); }
+.cd-sheet__toggle[aria-pressed="true"] .cd-check { background: var(--ink); }
+
+/* The column mapper: the header cell on the left, the target on the right. */
+.cd-sheet__maps { display: grid; gap: var(--space-2xs); }
+.cd-sheet__map { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-xs); align-items: center; }
+.cd-sheet__maphead { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-2xs); color: var(--ink-2); }
+
+/* A failure is inline on the risk chip's own pair (`--chip-risk` / `--on-risk`)
+   and never a second floating surface: while the sheet is open, it IS the
+   surface (§11). */
+.cd-sheet__error {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--r-mini);
+  background: var(--chip-risk);
+  color: var(--on-risk);
+  font-size: var(--text-2xs);
+}
+
+/* Record door sheets (New and Paste) layout and controls (§11). */
+
+/* Header remains fixed while body scrolls. */
+.cd-sheet__head { flex: none; }
+
+/* Identity row containing kind indicator and command key. */
+.rda-idrow { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; margin-top: var(--space-2xs); }
+.rda-key {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+  background: var(--well);
+  border-radius: var(--r-key);
+  padding: 1px var(--space-2xs);
+  white-space: nowrap;
+}
+.rda-tail { font-size: var(--text-lg); font-weight: var(--weight-label); letter-spacing: var(--track-title); color: var(--ink); }
+
+/* ── The kind control: one container that changes role in place ───────── */
+/* The borrowed mechanic (`create-menu.tsx`): a pill that opens into a card from
+   its own top-left corner, its radius stepping to state the change of role —
+   `--r-pill` → `--r-mini`, the two radii the system already has. The card is
+   `--card` over `--well-2`: the pill is never ink, because the sheet's one dark
+   object is the commit. */
+.rda-kind {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  transform-origin: top left;
+  border-radius: var(--r-pill);
+  background: var(--well-2);
+  transition: border-radius var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease),
+    box-shadow var(--dur-2) var(--ease);
+}
+.rda-kind[data-open='true'] {
+  display: block;
+  width: 232px;
+  border-radius: var(--r-mini);
+  background: var(--card);
+  box-shadow: var(--sh-pop), inset 0 0 0 1px var(--rule);
+  animation: rda-unfold var(--dur-2) var(--ease) both;
+}
+@keyframes rda-unfold {
+  from {
+    transform: translate(-2px, -4px) scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.rda-kind__b {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  height: var(--hit);
+  padding: 0 var(--space-sm);
+  border-radius: var(--r-pill);
+  font-size: var(--text-2xs);
+  color: var(--ink);
+  white-space: nowrap;
+  transition: background var(--dur-1) var(--ease);
+}
+.rda-kind__b:hover { background: var(--well); }
+.rda-kind__n { font-family: var(--font-mono, ui-monospace); font-size: var(--text-2xs); letter-spacing: 0.01em; }
+.rda-kind__g { color: var(--ink-2); font-size: var(--text-2xs); }
+/* The same chip where the kind is a statement, not a control: Paste's every
+   mapping was made against one kind's keys, so the door does not offer what it
+   would have to re-derive. */
+.rda-kind[data-fixed='true'] { height: var(--hit); padding: 0 var(--space-sm); cursor: default; }
+
+/* The list is capped and scrolls, so the sheet never grows past its own
+   max-height and the body keeps its room. The door's current kind stands
+   first: the row the student is looking for is never below the fold. */
+.rda-kinds { display: grid; gap: 1px; max-height: 264px; overflow: auto; padding: var(--space-2xs); }
+.rda-kinds__o {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--hit);
+  padding: 0 var(--space-xs);
+  border-radius: var(--r-item);
+  text-align: left;
+  transition: background var(--dur-1) var(--ease);
+}
+.rda-kinds__o:hover { background: var(--well); }
+.rda-kinds__o[aria-selected='true'] { background: var(--well-2); }
+.rda-kinds__o[aria-selected='true'] .rda-kinds__n { color: var(--ink-2); }
+.rda-kinds__k { font-family: var(--font-mono, ui-monospace); font-size: var(--text-2xs); color: var(--ink); }
+.rda-kinds__n { font-size: var(--text-2xs); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rda-kinds__g { font-size: var(--text-2xs); color: var(--ink-2); }
+
+/* ── The rows ─────────────────────────────────────────────────────────── */
+/* A row's label is its own name with its key beside it; a refusal marks the
+   row it is about. */
+.rda-rowl { display: flex; align-items: baseline; gap: var(--space-2xs); min-width: 0; flex-wrap: wrap; }
+.rda-rowl__n { font-size: var(--text-xs); color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+.cd-sheet__field[data-invalid='true'] .rda-rowl__n { color: var(--on-overdue); font-weight: var(--weight-label); }
+/* A segment needs the whole width (the app makes the same call above). */
+.cd-sheet__field:has(.cd-segment) { grid-template-columns: minmax(0, 1fr); }
+
+/* ── A refusal prints where its cause is ──────────────────────────────── */
+/* The address and the code are printed only when the engine carried them; a
+   `Usage` error carries neither, and nothing is invented to fill the gap. */
+.rda-err {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--r-mini);
+  background: var(--chip-risk);
+  color: var(--on-risk);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}
+.rda-err__at { font-family: var(--font-mono, ui-monospace); }
+.rda-err__c { opacity: 0.75; }
+
+/* ── The paste buffer's count and mode row ────────────────────────────── */
+.rda-modes { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.rda-count { font-size: var(--text-2xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* ── The receipt: what was written, read back ─────────────────────────── */
+.rda-receipt { display: grid; gap: var(--space-md); }
+.rda-receipt__t { font-size: var(--text-xs); color: var(--ink-2); }
+.rda-receipt__t b { color: var(--ink); font-weight: var(--weight-label); }
+.rda-read { display: grid; gap: var(--space-2xs); }
+.rda-read__r { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-sm); align-items: baseline; min-height: 22px; }
+.rda-read__r + .rda-read__r { border-top: 1px dashed var(--rule); padding-top: var(--space-2xs); }
+.rda-read__k { display: flex; align-items: baseline; gap: var(--space-2xs); min-width: 0; font-size: var(--text-2xs); color: var(--ink-2); }
+.rda-read__v { font-size: var(--text-xs); color: var(--ink); text-align: right; overflow-wrap: anywhere; }
+.rda-read__f { font-family: var(--font-mono, ui-monospace); font-size: var(--text-2xs); color: var(--ink-3); }
+/* A derived column is marked `ƒ` — the one thing about the record the receipt
+   can prove was computed rather than stored. `--ink-3` is non-text-only, so the
+   glyph takes `--ink-2`, one step stronger than the label it rides beside. */
+.rda-d { color: var(--ink-2); }
+
+/* The commit keeps its label while it cannot leave (`aria-disabled`), and the
+   reason is printed at the mapper — never a disabled state with no cause. */
+.cd-sheet__foot .cd-pill[aria-disabled='true'] { opacity: 0.45; pointer-events: none; }
+.cd-sheet__foot .cd-pill[aria-busy='true'] { opacity: 0.7; }
+/* A refusal is not a disabled state: the pill stays live while the last write's
+   finding is on screen. */
+.cd-sheet__foot .cd-pill[aria-disabled='false'] { opacity: 1; }

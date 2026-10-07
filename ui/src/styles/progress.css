@@ -1,0 +1,74 @@
+/*
+ * Progress panel styles (UI P2 · U4 · S6, R19).
+ * Layout rules for charts, metric skeletons, and progress lists.
+ */
+
+/* ══ 1 · THE ARRIVING GEOMETRY ═══════════════════════════════════════════ */
+
+/* The shell's own skeleton, and the one block of the old figure row that had
+   to survive the port: the loading state borrows the geometry it stands in for
+   (R19), so it needs a figure's shape before any design has drawn one.
+
+   It is four card-shaped blocks at `--pr-fig-h`, the height the shipped tile
+   measured — the numeral at `--text-2xl` on `line-height: 1`, the gap to the
+   words, the words' own line box and the tile's air:
+
+       32 × 1.00  = 32.00   the numeral
+        8          =  8.00   numeral → words
+       13 × 1.25  = 16.25   the words
+       20 × 2     = 40.00   the tile's own air
+       ──────────────────
+                  96.25  → a 96px block
+
+   A design whose figures are taller (B's vessels are 148px + their words) lands
+   a whole row taller than the skeleton it replaced, and that is inherent: three
+   designs have three arrival heights and the shell cannot mirror all three. The
+   blocks are inert and sweeps, so nothing in them is mistaken for a figure. */
+:root {
+  --pr-fig-h: calc(
+      var(--text-2xl)
+    + var(--space-xs)
+    + var(--text-xs) * 1.25
+    + var(--space-lg) * 2
+  );
+}
+
+.pr-fig--skel {
+  height: var(--pr-fig-h);
+  padding: var(--space-lg);
+  border-radius: var(--r-card);
+  background: var(--well);
+  animation: none;
+  display: grid;
+  gap: var(--space-xs);
+  align-content: center;
+}
+
+/* ══ 2 · THE WEAK-SET ROW ════════════════════════════════════════════════ */
+
+/* No level mark: a problem set is not due, late or next-in-plan, and the
+   mark's whole vocabulary (`collection.css` §4) is the clock's.  A row with
+   nothing to say in its first column must not spend the column. */
+.pr-set {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 40%);
+}
+
+/* The bar is capped by a TRACK and not by its own width, and that is the whole
+   fix.  `collection.css` §7 states the rule this card broke: "The bar is a
+   measure, not a rule, so it is capped … It may still give way on a narrow card,
+   because the words are the content and the bar is the illustration of them."
+   A rigid `width: var(--sam-meter-w)` on the meter inside an `auto` track let the
+   320px bar win the whole row — measured in Chromium, the row resolved to
+   `grid-template-columns: 0px 320px` and the bank name, its course chip and
+   `9 of 35 solved` all rendered at **zero width**: three rows of a bar with no
+   row on them.  A percentage track cannot do that.  The words keep 60% by
+   construction, the bar keeps the rest, and the bar's own 320px cap
+   (`--sam-meter-w`, read from `collection.css` §0 rather than re-declared, so
+   the two screens cannot say 320 differently) still applies inside it.  40% is a
+   share, not a size: a fraction of whatever the row is, so it needs no token and
+   cannot drift from one. */
+.pr-set .cd-meter {
+  flex: 0 1 auto;
+  width: var(--sam-meter-w);
+  min-width: 0;
+}
