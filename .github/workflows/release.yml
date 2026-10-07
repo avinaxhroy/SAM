@@ -29,6 +29,7 @@ jobs:
       version: ${{ steps.parse.outputs.version }}
       tag: ${{ steps.parse.outputs.tag }}
       notes: ${{ steps.parse.outputs.notes }}
+      prerelease: ${{ steps.parse.outputs.prerelease }}
       should_release: ${{ steps.check_tag.outputs.should_release }}
 
     steps:
@@ -174,7 +175,7 @@ jobs:
           releaseName: 'Release ${{ needs.check-changelog.outputs.tag }}'
           releaseBody: ${{ needs.check-changelog.outputs.notes }}
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ needs.check-changelog.outputs.prerelease == 'true' }}
 
       - name: Upload CLI release archive
         env:

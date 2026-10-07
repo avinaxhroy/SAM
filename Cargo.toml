@@ -17,7 +17,7 @@ resolver = "3"
 members = ["crates/sam-core", "crates/sam-cli", "src-tauri"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.0-beta"
 edition = "2024"
 rust-version = "1.96"
 license = "AGPL-3.0-or-later"

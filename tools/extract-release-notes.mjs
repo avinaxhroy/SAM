@@ -43,6 +43,8 @@ const rest = content.slice(startIdx);
 const nextHeaderIdx = rest.search(/^##\s+/m);
 const notes = (nextHeaderIdx === -1 ? rest : rest.slice(0, nextHeaderIdx)).trim();
 
+const isPrerelease = /-(beta|alpha|rc|preview|dev)/i.test(version);
+
 const args = process.argv.slice(2);
 function argVal(name) {
   const idx = args.indexOf(name);
@@ -63,8 +65,10 @@ if (args.includes('--github-output') && process.env.GITHUB_OUTPUT) {
   const ghOutput = process.env.GITHUB_OUTPUT;
   appendFileSync(ghOutput, `version=${version}\n`, 'utf8');
   appendFileSync(ghOutput, `tag=${tag}\n`, 'utf8');
+  appendFileSync(ghOutput, `prerelease=${isPrerelease}\n`, 'utf8');
   // Multiline delimiter for GITHUB_OUTPUT
   appendFileSync(ghOutput, `notes<<EOF\n${notes}\nEOF\n`, 'utf8');
 }
 
-console.log(JSON.stringify({ version, tag, notesLength: notes.length }, null, 2));
+console.log(JSON.stringify({ version, tag, isPrerelease, notesLength: notes.length }, null, 2));
+

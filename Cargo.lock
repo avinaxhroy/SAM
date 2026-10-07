@@ -3164,7 +3164,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "sam-cli"
-version = "0.1.0"
+version = "0.1.0-beta"
 dependencies = [
  "sam-core",
  "serde_json",
@@ -3172,7 +3172,7 @@ dependencies = [
 
 [[package]]
 name = "sam-core"
-version = "0.1.0"
+version = "0.1.0-beta"
 dependencies = [
  "directories",
  "fsrs",
@@ -3184,7 +3184,7 @@ dependencies = [
 
 [[package]]
 name = "sam-shell"
-version = "0.1.0"
+version = "0.1.0-beta"
 dependencies = [
  "sam-core",
  "serde",

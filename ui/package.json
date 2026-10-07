@@ -1,7 +1,7 @@
 {
   "name": "sam-ui",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.0-beta",
   "type": "module",
   "description": "SAM frontend — Svelte 5 + Vite + TypeScript (D19). Assets only: Tauri serves them over its own custom protocol, with no localhost server (§4.10).",
   "scripts": {
