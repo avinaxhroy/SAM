@@ -22,24 +22,14 @@ The **Today** screen is your starting point:
 - **Session timer**: Click **Start** to run the titlebar timer. When you finish, elapsed minutes save directly to the active topic and parent course.
 - **Queue groups**: Remaining work is organized into `late`, `due`, `next`, and `stale` groups so you can work straight down the list.
 
-### 3. Clear proof gates with practice (Practice)
+### 3. Practice and reviews
 
-Sitting through a lecture does not prove mastery. Under SAM's default progression pipeline:
+Sitting through material does not guarantee retention:
 
-- Completing a study session marks a topic as `learned`.
-- A topic cannot advance to `proved` until you satisfy its proof gate (by default, logging at least 2 solved practice problems).
-- You can also track standalone problem sets in the **Practice** screen with difficulty ratings, attempt counts, and auto-calculated accuracy percentages.
+- **Practice (Proof gates)**: Topics advance from `learned` to `proved` once you satisfy proof gates (by default, logging 2 solved problems) or track standalone problem sets with accuracy metrics.
+- **Reviews (Spaced repetition)**: Proved topics enter a scheduled recall queue (`Space` to reveal, `1` Again, `2` Good) scheduled via SM-2, FSRS-6, or fixed ladders.
 
-### 4. Review on schedule (Reviews)
-
-Once proved, topics enter your spaced repetition queue:
-
-- Open the **Reviews** screen to view due recall cards.
-- Press `Space` to reveal the solution notes or prompt.
-- Grade your recall using `1` (**Again**) or `2` (**Good**). Buttons preview the exact next scheduled review date before you click.
-- SAM schedules future intervals using your configured algorithm: fixed ladders (1d, 7d, 30d), SM-2, or FSRS-6.
-
-### 5. Check progress and handle gaps (Progress)
+### 4. Check progress and handle gaps (Progress)
 
 The **Progress** screen replaces streak counters with four denominator-backed ratios: revised topics out of total syllabus items, solved problems against targets, logged study minutes, and ceiling-benchmarked subject charts.
 
@@ -57,6 +47,54 @@ Every capability in SAM is accessible across four surfaces:
 | **Name** | Command palette | Press `⌘K` (or `Ctrl+K`) to search screens, run commands, or use quick capture (`a`). |
 | **Text** | File system | Edit JSON and JSONL files in your editor; the watcher reloads within ~150ms. |
 | **Terminal** | Headless CLI | Run `sam <command-id>` for headless automation and scripting. |
+
+---
+
+## Authoring study plans with AI
+
+You can design and populate study plans with AI without installing extra skills or plugins. Plans can be stored in **any directory of your choice** using `--plan <directory>`.
+
+### 1. With an AI Coding Agent (Claude Code, Cursor, Windsurf, OpenHands, Antigravity)
+
+Paste this prompt directly into your coding agent's chat or terminal:
+
+```text
+Create a study plan for [my learning goal or syllabus] in ./my-plan using SAM. Follow the workflow in https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md:
+1. Initialize the plan folder: sam plan.new --plan ./my-plan
+2. Query active schema and options: sam --schema --json --plan ./my-plan
+3. Break down the curriculum into courses, weeks, and topics, staging them in /tmp/batch.jsonl
+4. Test with sam apply /tmp/batch.jsonl --dry-run --plan ./my-plan and commit with sam apply /tmp/batch.jsonl --plan ./my-plan
+5. Verify today's queue: sam today.view --plan ./my-plan
+```
+
+The agent executes these native CLI commands autonomously and populates your study plan end-to-end.
+
+### 2. With a Chatbot (ChatGPT, Claude, Gemini)
+
+Paste this prompt into your chatbot along with your syllabus, textbook outline, or study goal:
+
+```text
+Convert the following syllabus or learning goal into a SAM batch.jsonl file strictly following the specification at https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md:
+
+[Paste your syllabus, course outline, or learning goal here]
+```
+
+Then initialize your plan folder and import the generated file:
+
+```bash
+# 1. Initialize a clean plan in any folder of your choice
+sam plan.new --plan ./my-plan
+
+# 2. Preview and validate the generated records (dry run)
+sam apply batch.jsonl --dry-run --plan ./my-plan
+
+# 3. Ingest the records into your plan
+sam apply batch.jsonl --plan ./my-plan
+```
+
+The desktop app automatically detects the new records via its debounced file watcher (~150ms) and updates the **Plan**, **Subjects**, and **Today** views without restarting.
+
+See [`docs/ai-agents.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md) for the complete terminal automation guide and [`docs/ai-prompt.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md) for the token-optimized schema specification.
 
 ---
 
@@ -101,50 +139,6 @@ cargo tauri dev
 ```
 
 On first launch without an existing plan, SAM presents a start screen where you can choose a preset or create a blank plan folder.
-
----
-
-## Authoring study plans with AI
-
-You can design and populate study plans with AI without installing extra skills or plugins. Plans can be stored in **any directory of your choice** using `--plan <directory>`.
-
-### 1. With an AI Coding Agent (Claude Code, Cursor, Windsurf, OpenHands, Antigravity)
-
-Paste this prompt directly into your coding agent's chat or terminal:
-
-> Create a study plan for [my learning goal or syllabus] in `./my-plan` using SAM. Follow the workflow in https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md:
-> 1. Initialize the plan folder: `sam plan.new --plan ./my-plan`
-> 2. Query active schema and options: `sam --schema --json --plan ./my-plan`
-> 3. Break down the curriculum into courses, weeks, and topics, staging them in `/tmp/batch.jsonl`
-> 4. Test with `sam apply /tmp/batch.jsonl --dry-run --plan ./my-plan` and commit with `sam apply /tmp/batch.jsonl --plan ./my-plan`
-> 5. Verify today's queue: `sam today.view --plan ./my-plan`
-
-The agent executes these native CLI commands autonomously and populates your study plan end-to-end.
-
-### 2. With a Chatbot (ChatGPT, Claude, Gemini)
-
-Paste this prompt into your chatbot along with your syllabus, textbook outline, or study goal:
-
-> Convert the following syllabus or learning goal into a SAM `batch.jsonl` file strictly following the specification at https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md:
->
-> [Paste your syllabus, course outline, or learning goal here]
-
-Then initialize your plan folder and import the generated file:
-
-```bash
-# 1. Initialize a clean plan in any folder of your choice
-sam plan.new --plan ./my-plan
-
-# 2. Preview and validate the generated records (dry run)
-sam apply batch.jsonl --dry-run --plan ./my-plan
-
-# 3. Ingest the records into your plan
-sam apply batch.jsonl --plan ./my-plan
-```
-
-The desktop app automatically detects the new records via its debounced file watcher (~150ms) and updates the **Plan**, **Subjects**, and **Today** views without restarting.
-
-See [`docs/ai-agents.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md) for the complete terminal automation guide and [`docs/ai-prompt.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md) for the token-optimized schema specification.
 
 ---
 
