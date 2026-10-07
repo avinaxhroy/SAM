@@ -2,6 +2,15 @@
 
 SAM is a desktop study OS and command-line tool that links course syllabi, practice problems, and spaced reviews into a single system.
 
+<p align="center">
+  <a href="https://github.com/avinaxhroy/SAM/releases">
+    <img src="https://img.shields.io/badge/Download%20SAM-Latest%20Release-238636?style=for-the-badge&logo=github&logoColor=white" alt="Download SAM" />
+  </a>
+  <a href="https://github.com/avinaxhroy/SAM/releases">
+    <img src="https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux-0969da?style=for-the-badge&logo=tauri&logoColor=white" alt="macOS | Windows | Linux" />
+  </a>
+</p>
+
 Most study setups isolate these pieces: to-do lists do not understand syllabus prerequisites, flashcard apps disconnect questions from the course context, and spreadsheets break down once you need review schedulers or session timers.
 
 SAM organizes your curriculum into a concrete loop: you learn a topic, prove understanding by solving practice problems, and retain it through spaced repetition scheduled directly against your course outline.
@@ -114,7 +123,15 @@ See [`docs/ai-agents.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-ag
 
 ## Getting started
 
-### Prerequisites
+### Prebuilt releases
+
+Download prebuilt binaries for macOS, Windows, and Linux from [GitHub Releases](https://github.com/avinaxhroy/SAM/releases):
+
+[![Download SAM](https://img.shields.io/badge/Download-SAM%20Releases-238636?style=for-the-badge&logo=github&logoColor=white)](https://github.com/avinaxhroy/SAM/releases)
+
+### Building from source
+
+#### Prerequisites
 
 - **Rust**: 1.80 or newer (uses 2024 edition).
 - **Node.js**: v20 or newer.
