@@ -7,9 +7,6 @@
   <a href="https://github.com/avinaxhroy/SAM/releases">
     <img src="https://img.shields.io/badge/Download%20SAM-Latest%20Release-238636?style=for-the-badge&logo=github&logoColor=white" alt="Download SAM" />
   </a>
-  <a href="https://github.com/avinaxhroy/SAM/releases">
-    <img src="https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux-0969da?style=for-the-badge&logo=tauri&logoColor=white" alt="macOS | Windows | Linux" />
-  </a>
 </p>
 <h1 align="center">SAM</h1>
 
