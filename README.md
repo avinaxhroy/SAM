@@ -3,13 +3,6 @@
     <img src="src-tauri/icons/icon.png" width="128" height="128" alt="SAM Logo" />
   </a>
 </p>
-
-<h1 align="center">SAM</h1>
-
-<p align="center">
-  A desktop study OS and command-line tool that links course syllabi, practice problems, and spaced reviews into a single system.
-</p>
-
 <p align="center">
   <a href="https://github.com/avinaxhroy/SAM/releases">
     <img src="https://img.shields.io/badge/Download%20SAM-Latest%20Release-238636?style=for-the-badge&logo=github&logoColor=white" alt="Download SAM" />
@@ -17,6 +10,11 @@
   <a href="https://github.com/avinaxhroy/SAM/releases">
     <img src="https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux-0969da?style=for-the-badge&logo=tauri&logoColor=white" alt="macOS | Windows | Linux" />
   </a>
+</p>
+<h1 align="center">SAM</h1>
+
+<p align="center">
+  A desktop study OS and command-line tool that links course syllabi, practice problems, and spaced reviews into a single system.
 </p>
 
 Most study setups isolate these pieces: to-do lists do not understand syllabus prerequisites, flashcard apps disconnect questions from the course context, and spreadsheets break down once you need review schedulers or session timers.
