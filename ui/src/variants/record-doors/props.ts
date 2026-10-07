@@ -1,7 +1,4 @@
-/**
- * Record doors component props (`NewRecordSheet`, `PasteSheet`).
- * Provides field descriptors, input bindings, and submit actions.
- */
+/** Props for NewRecordSheet and PasteSheet. */
 
 /** One kind the plan declares, as the door's own control lists it. */
 export type DoorKind = { key: string; name: string };

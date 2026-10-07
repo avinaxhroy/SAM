@@ -916,7 +916,6 @@
           <span class="cd-nav__spacer"></span>
           <span class="cd-nav__sep"></span>
 
-          <!-- Add button. -->
           <button
             class="cd-disc cd-disc--add"
             type="button"
@@ -1026,7 +1025,6 @@
                 {/each}
               </div>
 
-              <!-- Empty view state when no blocks are configured. -->
               {#if (app.outcome.blocks ?? []).length === 0}
                 <section class="cd-card">
                   <h2 class="cd-card__title">This view draws nothing yet</h2>
@@ -1044,7 +1042,7 @@
           {/if}
 
           {#if app.busy && !app.outcome}
-            <!-- Loading skeleton matching view row geometry (R19). -->
+            <!-- R19: skeleton matches view row geometry. -->
             <section class="cd-card" aria-busy="true">
               <p class="cd-sr" role="status">Loading this screen…</p>
               <div class="cd-skel__rows">
@@ -1116,7 +1114,6 @@
     <div class="cd-toasts">
       <div class="cd-toast" class:is-leaving={toastLeaving} role="alert">
         <span>{toastShown}</span>
-        <!-- Action receipt button available prior to exit animation. -->
         {#if app.toastAction && !toastLeaving}
           <button
             class="cd-pill cd-pill--sm"

@@ -1,8 +1,4 @@
-<!--
-  Mocks & Assessments · Variant B (The Day Picker Rail).
-  Horizontal day-picker rail showing daily assessment density across the month.
-  Selecting a day filters the list below; in assign mode, rail acts as a date picker.
--->
+<!-- Mocks & Assessments · Variant B (The Day Picker Rail). Horizontal day-picker rail showing daily assessment density. -->
 <script lang="ts">
   import {
     byDayOrder,
@@ -376,7 +372,6 @@
             {@render dayRows(picked.key, picked.records, false)}
           </div>
         {:else}
-          <!-- Empty state when no assessments fall on the selected date. -->
           <div class="cd-dashed xb-emptyday">
             <b>Nothing on {spokenDay(picked.key)}</b>
             <span>

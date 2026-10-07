@@ -1,8 +1,4 @@
-<!--
-  Week chart variant A: The Grid.
-  Seven day cards rendered side-by-side with vertical duration bars, daily target line,
-  and keyboard navigation across days.
--->
+<!-- Week chart variant A: The Grid. Seven day cards with vertical duration bars. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

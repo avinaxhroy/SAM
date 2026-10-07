@@ -1,8 +1,4 @@
-<!--
-  PRACTICE BANKS widget host (`COMPOSER.md` §3.1).
-  Mounts the active practice banks variant within composed screens,
-  deriving problem set totals, solved percentages, and attempt logs.
--->
+<!-- Practice banks widget host (COMPOSER §3.1). -->
 <script lang="ts">
   import Variant from '../../../variants/Variant.svelte';
   import type { PracticeBank, PracticeSummary } from '../../../variants/practice-banks/props';

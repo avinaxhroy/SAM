@@ -1,7 +1,4 @@
-/**
- * Coming up surface variant component props.
- * Maps dated plan items to display cards across deck, reveal, and split layouts.
- */
+/** Props for ComingUp variants. */
 import { durationText } from '../../types';
 
 /** Formatted display date broken into parts. */

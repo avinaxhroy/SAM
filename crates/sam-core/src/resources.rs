@@ -1,9 +1,6 @@
-//! Path resolution (§4.1) and bundled resource access.
+//! Path resolution (§4.1) and bundled resource access (`SAM paths --json`).
 //!
-//! Provides a unified path resolver for shell, CLI, indexer, and test harnesses
-//! (`SAM paths --json`).
-//!
-//! Handles design tokens from `design/tokens.json` (§1.4.A), supporting `$value`,
+//! Resolves design tokens from `design/tokens.json` (§1.4.A), supporting `$value`,
 //! `$dark` overlays, and recursive `{path}` alias interpolation.
 
 use std::collections::BTreeMap;

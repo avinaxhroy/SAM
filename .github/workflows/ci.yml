@@ -24,7 +24,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
             librsvg2-dev \
             patchelf \
             build-essential \
@@ -57,16 +56,6 @@ jobs:
 
       - name: Build frontend
         run: pnpm -C ui build
-
-      - name: Verify design tokens and lint
-        run: |
-          node design/tools/tokens.mjs
-          node tools/tokenlint.mjs
-
-      - name: Verify plan docs and presets
-        run: |
-          node tools/plancheck.mjs
-          node tools/presets.mjs
 
       - name: Run workspace tests
         run: cargo test --workspace

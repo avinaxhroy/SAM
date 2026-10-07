@@ -1,7 +1,4 @@
-/**
- * Record view layouts component props (`Block.svelte`).
- * Provides normalized record facts and layout definitions for block rendering.
- */
+/** Props for RecordView layout blocks (`Block.svelte`). */
 import { recordLabel, type BlockNode, type FieldRead, type RecordDoc, type TypeRead } from '../../types';
 
 /**

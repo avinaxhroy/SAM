@@ -1,8 +1,4 @@
-<!--
-  TODAY · THE DAY'S QUEUE · C · THE STATE PILLS.
-  Segmented state pill variant (Late, Due, Planned) with a sliding indicator
-  tab and list rows grouped by status.
--->
+<!-- TODAY · The Day's Queue · C · The State Pills. Segmented status tabs (Late, Due, Planned). -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

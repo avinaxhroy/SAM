@@ -1,7 +1,4 @@
-/**
- * Courses surface variant component props.
- * Displays subject hierarchies, progress ladders, and topic queues.
- */
+/** Props for Courses surface variants. */
 export type CourseTopic = {
   id: string;
   label: string;

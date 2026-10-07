@@ -1,13 +1,6 @@
 /**
- * Unified IPC gateway to the core engine (D19, §4.2, §4.10, §7).
- *
- * Dispatches `{ id, params }` over Tauri IPC in desktop builds or over the
- * local HTTP dev bridge in browser test harnesses, ensuring identical behavior.
- *
- * Capabilities:
- * - `onPlanChanged`: External plan mutation notifications (D9).
- * - `popupMenu`: Native OS context menu with DOM fallback (§4.8).
- * - `openPreferences`: Native preference window or DOM screen route.
+ * IPC gateway to the core engine (D19, §4.2, §4.10, §7).
+ * Dispatches `{ id, params }` over Tauri IPC in desktop builds or HTTP in browser harnesses.
  */
 
 /** One dispatch result, exactly as `sam invoke` reports it. */
@@ -206,10 +199,7 @@ export async function shellInfo(): Promise<ShellInfo | null> {
 /** One plan-changed publication (D9): the revision, or why it is not valid. */
 export type PlanChanged = { revision: string | null; plan: string; valid: boolean; message?: string };
 
-/**
- * Subscribes to plan change events across Tauri events or web dev SSE streams (D9).
- * Returns an unlisten/close function.
- */
+/** Subscribe to plan changes across Tauri events or web SSE (D9). */
 export function onPlanChanged(handler: (event: PlanChanged) => void): () => void {
   const tauri = scope().__TAURI__;
   if (transport() === 'tauri' && tauri?.event) {
@@ -237,9 +227,7 @@ export function onPlanChanged(handler: (event: PlanChanged) => void): () => void
   return () => {};
 }
 
-/**
- * Signals immediate write completion to bypass watcher debounce intervals.
- */
+/** Notify web bridge to bypass watcher debounce on write. */
 export async function publishWrite(plan: string | null = null): Promise<void> {
   const base = endpoint();
   if (transport() === 'web' && base) {
@@ -258,10 +246,7 @@ export async function publishWrite(plan: string | null = null): Promise<void> {
 /** One item of a context menu: an id to dispatch, or a separator. */
 export type MenuItemSpec = { id: string; title: string; enabled?: boolean } | { separator: true };
 
-/**
- * Displays native context menu if supported by the shell environment (§4.10).
- * Returns true if presented natively, false if DOM fallback rendering is required.
- */
+/** Present native context menu if supported; returns false when DOM fallback is needed (§4.10). */
 export async function popupMenu(items: MenuItemSpec[]): Promise<boolean> {
   const tauri = scope().__TAURI__;
   if (transport() === 'tauri' && tauri) {
@@ -275,9 +260,7 @@ export async function popupMenu(items: MenuItemSpec[]): Promise<boolean> {
   return false;
 }
 
-/**
- * Subscribes to menu choice events from native menus (§4.8 Principle 2).
- */
+/** Subscribe to menu choice events from native menus (§4.8 Principle 2). */
 export function onMenuChoice(handler: (id: string) => void): () => void {
   const tauri = scope().__TAURI__;
   if (transport() === 'tauri' && tauri?.event) {

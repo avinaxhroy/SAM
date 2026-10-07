@@ -1,7 +1,4 @@
-/**
- * Palette surface variant component props.
- * Displays filtered actions, quick-capture records, and destination targets.
- */
+/** Props for Palette surface variants. */
 export type PaletteGroup = 'capture' | 'actions' | 'objects';
 
 /** The two facts the live row's plate states, in the app's own words. */

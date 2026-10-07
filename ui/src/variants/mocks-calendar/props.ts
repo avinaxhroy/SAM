@@ -1,7 +1,4 @@
-/**
- * Mocks & assessments surface variant component props.
- * Displays calendar grids, scheduled assessments, and date pickers.
- */
+/** Props for MocksCalendar surface variants. */
 export type MockCourse = {
   id: string;
   /** The course's own code (`CS201`), which is what a student says out loud. */

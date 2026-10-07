@@ -1,7 +1,4 @@
-/**
- * Timer chrome surface variant component props.
- * Displays active study session clocks, progress indicators, and pause/stop controls.
- */
+/** Props for TimerChrome surface variants. */
 export type TimerProps = {
   /** The session's subject, as the row that started it named it. */
   label: string;

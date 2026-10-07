@@ -1,8 +1,4 @@
-<!--
-  Courses variant C: The Next Step.
-  Highlights the most urgent course with a featured card, followed by row listings
-  and a next-topic hero banner in the detail view.
--->
+<!-- Courses variant C: The Next Step. Featured urgent course card and next-topic banner. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import { chaptersOf, percentOf, type CoursesProps, type CourseTopic } from './props';

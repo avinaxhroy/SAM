@@ -46,7 +46,7 @@ jobs:
       - name: Parse latest version and notes from CHANGELOG
         id: parse
         run: |
-          node tools/extract-release-notes.mjs --github-output --out-notes notes.md
+          node scripts/extract-release-notes.mjs --github-output --out-notes notes.md
           echo "Notes extracted successfully."
 
       - name: Check if tag already exists
@@ -111,7 +111,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
             librsvg2-dev \
             patchelf \
             build-essential \
@@ -149,7 +148,7 @@ jobs:
         run: cargo build --workspace --release
 
       - name: Populate CLI sidecar for Tauri bundling
-        run: node tools/sidecar.mjs
+        run: node scripts/sidecar.mjs
 
       - name: Package CLI binary (Unix)
         if: matrix.os != 'windows'
@@ -160,11 +159,11 @@ jobs:
 
       - name: Package CLI binary (Windows)
         if: matrix.os == 'windows'
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir -p dist-cli
-          cp target/release/sam.exe dist-cli/sam.exe
-          compress-archive -Path dist-cli/sam.exe -DestinationPath "sam-${{ needs.check-changelog.outputs.tag }}-${{ matrix.target }}.zip"
+          New-Item -ItemType Directory -Force -Path dist-cli
+          Copy-Item target/release/sam.exe dist-cli/sam.exe
+          Compress-Archive -Path dist-cli/sam.exe -DestinationPath "sam-${{ needs.check-changelog.outputs.tag }}-${{ matrix.target }}.zip" -Force
 
       - name: Build Tauri Desktop App & Create GitHub Release
         uses: tauri-apps/tauri-action@v0
@@ -180,6 +179,7 @@ jobs:
       - name: Upload CLI release archive
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.check-changelog.outputs.tag }}
         shell: bash
         run: |

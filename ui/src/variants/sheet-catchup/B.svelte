@@ -1,7 +1,4 @@
-<!--
-  Catchup sheet variant B: The Docked Drawer.
-  Right-docked sliding drawer displaying overdue cards on a date offset timeline scale (§11).
--->
+<!-- Catchup sheet variant B: The Docked Drawer. Right-docked timeline drawer (§11). -->
 <script lang="ts">
   import { arrivalLine, plural, type CatchupProps } from './props';
 

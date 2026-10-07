@@ -33,11 +33,14 @@ function targetTriple() {
 
 const triple = targetTriple();
 const ext = triple.includes('windows') ? '.exe' : '';
-const source = join(ROOT, 'target', 'release', `sam${ext}`);
+let source = join(ROOT, 'target', 'release', `sam${ext}`);
+if (!existsSync(source)) {
+  source = join(ROOT, 'target', 'debug', `sam${ext}`);
+}
 
 if (!existsSync(source)) {
   console.error(
-    `sidecar: ${source} does not exist — run \`cargo build --workspace --release\` first ` +
+    `sidecar: ${source} does not exist — run \`cargo build -p sam-cli\` first ` +
       '(`cargo tauri build` does not compile the CLI itself).',
   );
   process.exit(1);

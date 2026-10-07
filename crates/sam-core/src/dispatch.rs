@@ -1,6 +1,6 @@
 //! `CommandSession` (§4.2 CommandDispatch, §4.9 D15): unified dispatcher over the registry.
 //!
-//! Handles invocation for the CLI, UI, and test fixtures. Reads acquire the read
+//! Invocation pipeline for the CLI, UI, and test fixtures. Reads acquire the read
 //! lock; writes acquire the write lock, run journal recovery, verify `--if-revision`,
 //! and commit through [`crate::transaction`] (§4.8 Principle 2, Phase 2, Phase 4).
 

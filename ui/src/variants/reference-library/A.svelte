@@ -1,9 +1,4 @@
-<!--
-  REFERENCE · A · THE SHELF.
-  Bookshelf variant where records stand as vertical book spines on a shelf.
-  Selecting a spine opens an inline foldout displaying source details, filing
-  metadata, and action buttons.
--->
+<!-- REFERENCE · A · The Shelf. Vertical book spines with foldout details. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import { cameFrom, type LibraryRecord, type ReferenceProps } from './props';

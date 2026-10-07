@@ -1,8 +1,4 @@
-<!--
-  PLAN SPINE widget host (`COMPOSER.md` §3.1).
-  Mounts the active plan-spine variant within composed screens, deriving
-  week schedules and unplaced topics independently from the plan model.
--->
+<!-- Plan spine widget host (COMPOSER §3.1). -->
 <script lang="ts">
   import Variant from '../../../variants/Variant.svelte';
   import { rangeText, type PlanTopic, type PlanWeek } from '../../../variants/plan-spine/props';

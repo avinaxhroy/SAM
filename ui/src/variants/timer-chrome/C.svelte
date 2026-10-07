@@ -1,8 +1,4 @@
-<!--
-  Timer chrome variant C: The Floor Bar.
-  Docked bottom toolbar displaying running session status, pause/stop actions,
-  and an expandable facts drawer while reserving canvas padding.
--->
+<!-- Timer chrome variant C: The Floor Bar. Docked bottom toolbar. -->
 <script module lang="ts">
   /** One id per mounted dock: the Facts object names the panel it controls. */
   let panels = 0;

@@ -1,12 +1,4 @@
-<!--
-  Component inserter sheet (COMPOSER.md §4.6).
-
-  Presents the widget catalog with live structural previews (`./previews.ts`):
-    - Caller selection: Invokes `onadd(surface)` without directly mutating configuration.
-    - Presence status: Disables addition and indicates when a component already exists on screen.
-    - Search filtering: Filters by widget name and description, displaying fallback when unmatched.
-    - Keyboard and focus: Focuses search input on mount and restores focus to opener on dismiss.
--->
+<!-- Component inserter sheet presenting the widget catalog (COMPOSER §4.6). -->
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import Sheet from '../shell/Sheet.svelte';

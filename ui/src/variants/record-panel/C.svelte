@@ -1,8 +1,4 @@
-<!--
-  Record panel variant C: The Band.
-  Difference chart visualization plotting estimated vs logged minutes and planned vs spent days.
-  Entity ID is hidden in accordance with D2.
--->
+<!-- Record panel variant C: The Band. Difference chart for estimated vs logged minutes (D2). -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import Control from './Control.svelte';

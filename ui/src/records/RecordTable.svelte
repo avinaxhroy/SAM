@@ -1,4 +1,4 @@
-<!-- Table view for record inspection and editing across variants A, B, and C (R8, Phase 2, U5). -->
+<!-- Record inspection and editing table (R8, Phase 2, U5). -->
   <script lang="ts">
     import Variant from '../variants/Variant.svelte';
     import { COPY_JSON, COPY_PATH, columnPlusIds, rowMenuIds, type MenuRow } from '../commands/registry';

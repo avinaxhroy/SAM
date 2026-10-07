@@ -1,8 +1,4 @@
-<!--
-  COURSES widget host (`COMPOSER.md` §3.1).
-  Mounts the active courses variant within composed screens, deriving
-  course progress and topics independently from the plan model.
--->
+<!-- Courses widget host (COMPOSER §3.1). -->
 <script lang="ts">
   import Variant from '../../../variants/Variant.svelte';
   import type { CourseCard, CourseTopic } from '../../../variants/courses/props';

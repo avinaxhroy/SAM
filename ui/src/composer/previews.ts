@@ -1,17 +1,13 @@
 /**
- * Structural wireframe previews for widget catalog cards (COMPOSER §3.1, §4.6).
- *
- * Provides static 160×90 SVG wireframe schematics representing widget geometry:
- * - Structural abstraction: Represents layout geometry rather than mock user data.
- * - Theme inheritance: Uses `currentColor` and variable opacity rungs for dark/light adaptability.
- * - Accessibility: Decorative graphics marked `aria-hidden`; card titles provide accessible text.
+ * Static 160×90 SVG wireframe previews for widget catalog cards (COMPOSER §3.1, §4.6).
+ * Renders layout shapes via `currentColor` without mock data.
  */
 import type { WIDGETS } from './widgets/registry';
 
 /** The surfaces the catalog offers — the map below is checked against it. */
 type Surface = (typeof WIDGETS)[number]['surface'];
 
-/* ── Drawing helpers: SVG wireframe primitives ───────────────────────── */
+// SVG wireframe primitives
 
 /** A filled block: the geometry the eye reads as *content*, at `opacity`. */
 function mark(x: number, y: number, w: number, h: number, opacity: number, rx = 1.6): string {

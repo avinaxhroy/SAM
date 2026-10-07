@@ -1,7 +1,4 @@
-/**
- * Reviews recall loop variant component props.
- * Handles active card prompt, answer reveal, rating shortcuts, and scheduling previews.
- */
+/** Props for Reviews recall loop variants. */
 export type RecallGrade = {
   /** The engine's own word for the judgement (`again` · `hard` · `good` · `easy`). */
   rating: string;

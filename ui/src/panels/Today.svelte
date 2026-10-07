@@ -1,9 +1,4 @@
-<!--
-  TODAY (S1, UI P2 / U1).
-  The daily decision surface presenting the active study focus,
-  daily study queue, upcoming dated rows, and weekly review progress.
-  Derives component props from `todayFacts` published by the engine.
--->
+<!-- TODAY (S1, UI P2 / U1): daily study focus and queue derived from todayFacts. -->
 <script lang="ts">
   import Variant from '../variants/Variant.svelte';
   import Button from '../records/Button.svelte';

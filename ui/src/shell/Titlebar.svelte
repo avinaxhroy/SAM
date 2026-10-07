@@ -15,8 +15,8 @@
   // The identity mark is the bundle's artwork, not a redrawn glyph, so the tab,
   // the Dock and the titlebar are one mark. The cross into `design/` is the same
   // one `styles/app.css` already makes for `design/components.css`.
-  import markLight from '../../../design/mark-light.png';
-  import markDark from '../../../design/mark-dark.png';
+  import markLight from '../design/mark-light.png';
+  import markDark from '../design/mark-dark.png';
 
   let { os = 'mac', quiet = false }: { os?: 'mac' | 'win' | 'linux'; quiet?: boolean } = $props();
 

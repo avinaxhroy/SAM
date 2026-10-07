@@ -1,8 +1,4 @@
-<!--
-  SYSTEM · C · THE LADDER.
-  Single continuous document layout structuring all system configuration places
-  into stacked vertical sections with filterable search and breadcrumbs.
--->
+<!-- SYSTEM · C · The Ladder. Continuous document layout with stacked configuration places. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import Editor from './Editor.svelte';

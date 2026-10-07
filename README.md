@@ -236,16 +236,15 @@ See [`docs/content-model.md`](docs/content-model.md) for the complete schema spe
 ## Development and testing
 
 ```bash
-# Run workspace unit and integration tests (179 tests)
+# Build frontend
+pnpm -C ui install
+pnpm -C ui build
+
+# Run workspace unit and integration tests
 cargo test --workspace
 
-# Validate design tokens and check for unstyled color or size leaks
-node design/tools/tokens.mjs
-node tools/tokenlint.mjs
-
-# Verify plan documentation cross-references and preset schemas
-node tools/plancheck.mjs
-node tools/presets.mjs
+# Launch desktop app in development
+cargo tauri dev
 ```
 
 ---
@@ -255,10 +254,7 @@ node tools/presets.mjs
 - [Architecture and engine design](docs/architecture.md)
 - [Content model and schema definition](docs/content-model.md)
 - [CLI reference and batch workflows](docs/cli.md)
-- [Authoring plans with AI agents and chatbots](docs/ai-agents.md)
-- [AI schema specification for chatbots](docs/ai-prompt.md)
 - [Presets and custom curriculum templates](docs/presets.md)
-- [Development and contributing guide](docs/development.md)
 
 ---
 

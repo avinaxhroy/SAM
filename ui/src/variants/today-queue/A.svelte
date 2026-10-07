@@ -1,9 +1,4 @@
-<!--
-  TODAY · THE DAY'S QUEUE · A · THE WORKING STACK.
-  Stacked card queue variant where the active item is lifted above the pile
-  with session timer controls (Start, Log), while queued items appear as
-  compressed slips below it.
--->
+<!-- TODAY · The Day's Queue · A · The Working Stack. Stacked card queue with active item lifted above the pile. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

@@ -1,14 +1,6 @@
 /**
  * Pointer drag engine for screen composer frames (COMPOSER §4.4).
- * Uses pointer events rather than HTML5 drag-and-drop for consistent
- * cross-platform support across Linux WebKitGTK and desktop webviews.
- *
- * Mechanics:
- * - Pointerdown on frame handle or chrome captures the pointer.
- * - 4px threshold prevents accidental drags from clicks.
- * - The dragged frame translates with pointer delta; remaining items hold position.
- * - On release, the frame glides to its final position over `--dur-1` before order commits.
- * - Escape cancels drag and restores original position.
+ * Uses pointer events rather than HTML5 drag-and-drop for WebKitGTK / desktop webview consistency.
  */
 
 /** Required callbacks and DOM elements provided by the composer stack. */

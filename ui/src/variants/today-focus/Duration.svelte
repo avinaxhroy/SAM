@@ -1,7 +1,4 @@
-<!--
-  Session duration editor capsule (.cd-dur).
-  Toggles between display mode and editable input, validating 5-180 minute bounds on commit.
--->
+<!-- Session duration editor capsule (.cd-dur) with 5–180 minute validation bounds. -->
 <script lang="ts">
   import { tick } from 'svelte';
   import Icon from '../../shell/Icon.svelte';

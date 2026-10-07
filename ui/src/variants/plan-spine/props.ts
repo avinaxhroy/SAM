@@ -1,7 +1,4 @@
-/**
- * Plan spine surface variant component props.
- * Renders weekly schedule cards, term milestones, and topic sequences.
- */
+/** Props for PlanSpine surface variants. */
 import { durationText } from '../../types';
 
 /** One piece of work, as a design draws it. */

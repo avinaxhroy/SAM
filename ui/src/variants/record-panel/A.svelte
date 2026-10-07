@@ -1,8 +1,4 @@
-<!--
-  Record panel variant A: The Diagram.
-  Drafting plate visualization connecting record properties and related entities via
-  dynamically routed SVG wires. Entity ID is hidden in accordance with D2.
--->
+<!-- Record panel variant A: The Diagram. Drafting plate with dynamic SVG wire routing (D2). -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import IdPair from '../../shell/IdPair.svelte';

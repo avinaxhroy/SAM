@@ -1,8 +1,4 @@
-<!--
-  Record door sheet variant A.
-  Modal form supporting record creation and paste import, field-level validation,
-  and in-place kind switching (§11).
--->
+<!-- Record door sheet variant A. Modal form for record creation and paste import (§11). -->
 <script lang="ts">
   import Sheet from '../../shell/Sheet.svelte';
   import type { DoorField, RecordDoorProps } from './props';

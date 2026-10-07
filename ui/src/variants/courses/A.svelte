@@ -1,8 +1,4 @@
-<!--
-  Courses variant A: The Index.
-  Text-forward layout using ruled rows with course codes, names, progress counts,
-  and a linear progress meter in the detail view.
--->
+<!-- Courses variant A: The Index. Ruled rows with progress counts and meter. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import { chaptersOf, percentOf, type CoursesProps } from './props';

@@ -1,8 +1,4 @@
-<!--
-  Reviews & Recall · Variant B (Three Stages).
-  Three-step review flow (Prompt, Evidence, Grade) with expandable stage navigation.
-  Keyboard shortcuts (1-4) trigger grading once the answer is revealed.
--->
+<!-- Reviews & Recall · Variant B (Three Stages). Three-step review flow (Prompt, Evidence, Grade) with keyboard shortcuts (1–4). -->
 <script lang="ts">
   import { tick } from 'svelte';
   import Answer from './Answer.svelte';

@@ -1,8 +1,4 @@
-<!--
-  Practice banks variant B: Folders In A Rack.
-  Folder-tab layout where selecting a folder slides open a progress slip card
-  with course-wash tabs.
--->
+<!-- Practice banks variant B: Folders In A Rack. Folder-tab layout with sliding progress slip. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

@@ -1,8 +1,4 @@
-<!--
-  MOCKS CALENDAR widget host (`COMPOSER.md` §3.1).
-  Mounts the active mocks calendar variant within composed screens,
-  resolving assessment rows and dates independently.
--->
+<!-- Mocks calendar widget host (COMPOSER §3.1). -->
 <script lang="ts">
   import Variant from '../../../variants/Variant.svelte';
   import Icon from '../../../shell/Icon.svelte';

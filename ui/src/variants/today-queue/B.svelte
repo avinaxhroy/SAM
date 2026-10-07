@@ -1,8 +1,4 @@
-<!--
-  TODAY · THE DAY'S QUEUE · B · THE FILTER STRIP.
-  Filter strip variant allowing selection by course or status (Late, Due,
-  Planned) to isolate specific subsets of the daily queue.
--->
+<!-- TODAY · The Day's Queue · B · The Filter Strip. Filters queue by course or status. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

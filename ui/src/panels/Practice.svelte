@@ -1,8 +1,4 @@
-<!--
-  PRACTICE (S3, UI P2 / U2).
-  Question banks surface showing completion percentages and attempt history.
-  Reads problem set records and dispatches `record.setField` to log practice attempts.
--->
+<!-- PRACTICE (S3, UI P2 / U2): question banks and attempt history. -->
 <script lang="ts">
   import Icon from '../shell/Icon.svelte';
   import Variant from '../variants/Variant.svelte';

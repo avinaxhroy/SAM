@@ -1,7 +1,4 @@
-/**
- * Progress stats surface variant component props.
- * Displays metric summaries, weekly progress, and period deltas.
- */
+/** Props for ProgressStats surface variants. */
 
 /** The lab's four figures, in its own order. */
 export type FigureKey = 'time' | 'days' | 'solved' | 'tested';

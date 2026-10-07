@@ -1,11 +1,11 @@
 //! Transaction engine (§4.6).
 //!
-//! Provides atomic, recoverable multi-file writes:
+//! Atomic, recoverable multi-file writes:
 //! verify → stage → journal(prepared) → replace → journal(committed) → finalize.
 //!
-//! Atomic single-file renames combine with journal logging to guarantee multi-file atomicity.
-//! Before-images are retained as backups (default: last 20 revisions). Durability is
-//! ensured via fsync on files and journals (§4.6 step 3).
+//! Atomic single-file renames combine with journal logging for multi-file atomicity.
+//! Before-images are retained as backups (default: last 20 revisions). Files and
+//! journals are fsynced (§4.6 step 3).
 //!
 //! Bookkeeping is stored under `.sam/`, which is ignored by config loading and does
 //! not increment content revisions (§4.6).

@@ -1,8 +1,4 @@
-<!--
-  Mocks & Assessments · Variant A (The Month That Opens).
-  Seven-column monthly calendar grid with expandable assessment detail cards below
-  each week row. Day cells display date numeral, scheduled markers, and overflow count.
--->
+<!-- Mocks & Assessments · Variant A (The Month That Opens). Monthly calendar grid with expandable detail cards below each week row. -->
 <script lang="ts">
   import {
     byDayOrder,
@@ -113,7 +109,6 @@
   }
 </script>
 
-<!-- Close the open card on Escape when focus is inside this container. -->
 <svelte:window
   onkeydown={(event) => {
     if (event.key !== 'Escape') return;
@@ -129,7 +124,6 @@
       <p class="cd-pagehead__sub">{headLine}</p>
     </div>
     <span class="cd-pagehead__aside">
-      <!-- New assessment button rendered with quiet style when items await scheduling. -->
       {#if newCommand}
         <button
           class={`cd-pill${waiting.length > 0 ? ' cd-pill--quiet' : ''}`}
@@ -218,7 +212,6 @@
         <h2 class="xa-h2">{record.label}</h2>
       </div>
 
-      <!-- Assessment metadata: scheduled date, planned week, and score. -->
       <dl class="xa-facts">
         <div>
           <dt>When</dt>
@@ -232,7 +225,6 @@
         {/if}
       </dl>
 
-      <!-- Date assignment selection, commit action, and undo confirmation receipt. -->
       <div class="xa-ctl">
         {#if placed !== null && placed.id === record.id}
           <div class="x-receipt">
@@ -392,7 +384,6 @@
         <div class="cd-card xa-wrows">
           <div class="xa-recs">
             {#each waiting as record (record.id)}
-              <!-- Select undated record to open its date assignment card. -->
               <button
                 class="xa-rec"
                 type="button"
@@ -426,7 +417,6 @@
     </section>
 
     {#if dated.length === 0 && waiting.length > 0}
-      <!-- Notice prompting user to date waiting assessments. -->
       <div class="cd-detail xa-none">
         <span class="xa-none__t">Nothing is dated yet</span>
         <p class="xa-none__s">

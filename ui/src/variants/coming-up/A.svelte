@@ -1,8 +1,4 @@
-<!--
-  Coming up variant A: The Deck.
-  Layered carousel presenting upcoming study items one card at a time,
-  supporting keyboard arrow navigation, swipe transitions, and spring animations.
--->
+<!-- Coming up variant A: The Deck. Layered carousel with swipe and arrow navigation. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import { leadOf, type ComingUpProps } from './props';

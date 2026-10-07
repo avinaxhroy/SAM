@@ -1,7 +1,4 @@
-<!--
-  System editor row body: provides editing surfaces for schema columns,
-  ladders, screen block trees, scheduler parameters, and rules (§4.8, §4.10).
--->
+<!-- System editor row body for schema columns, ladders, blocks, and rules (§4.8, §4.10). -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import IdPair from '../../shell/IdPair.svelte';
