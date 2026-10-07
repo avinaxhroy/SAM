@@ -1,8 +1,4 @@
-<!--
-  TODAY-FOCUS widget host (`COMPOSER.md` §3.1).
-  Mounts the active session focus card within composed screens.
-  Shares target duration with today-queue via `composer/shared.svelte.ts`.
--->
+<!-- Today focus widget host (COMPOSER §3.1). -->
 <script lang="ts">
   import Variant from '../../../variants/Variant.svelte';
   import type { Coverage, TodayFocusProps, WhyFact } from '../../../variants/today-focus/props';

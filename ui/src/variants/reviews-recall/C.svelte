@@ -1,8 +1,4 @@
-<!--
-  Reviews & Recall · Variant C (The Split).
-  Split layout with review queue on left and answer/evidence pane on right.
-  Ratings expand underneath on reveal; snapshot layer provides card crossfades.
--->
+<!-- Reviews & Recall · Variant C (The Split). Split layout with review queue on left and answer/evidence on right. -->
 <script lang="ts">
   import { tick } from 'svelte';
   import Answer from './Answer.svelte';

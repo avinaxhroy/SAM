@@ -1,8 +1,4 @@
-<!--
-  Reviews queue variant B: The Board.
-  Four-column kanban board categorized by overdue age windows, featuring animated card transitions
-  and 1-day defer actions.
--->
+<!-- Reviews queue variant B: The Board. Four-column kanban layout by overdue window. -->
 <script lang="ts">
   import { tick } from 'svelte';
   import type { QueueProps } from './props';

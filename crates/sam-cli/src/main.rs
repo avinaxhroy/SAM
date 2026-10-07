@@ -1,7 +1,6 @@
 //! SAM CLI dispatcher (§4.9, D15, D18).
 //!
-//! Dispatches commands directly through `sam-core` without windowing dependencies.
-//! Routes mutations through `CommandSession` with consistent exit codes (§4.9).
+//! Dispatches commands directly through `sam-core` and routes mutations via `CommandSession` (§4.9).
 
 use std::io::{IsTerminal, Read};
 use std::path::{Path, PathBuf};
@@ -216,7 +215,7 @@ fn uicheck(plan: Option<&Path>, json: bool) -> ExitCode {
 
 // ── argv → registry params (§4.9) ───────────────────────────────────────────
 
-/// Command-line flags that resolve commands in pass 1 without values.
+/// Flags that resolve commands in pass 1 without values.
 const COMMAND_FLAGS: [&str; 5] = ["--help", "-h", "--version", "-V", "--invoke"];
 
 struct Cli {
@@ -229,7 +228,7 @@ struct Cli {
     dry_run: bool,
 }
 
-/// Dynamic per-type commands (`<type>.new`, `<type>.paste`) (§4.7).
+/// Matches dynamic per-type commands (`<type>.new`, `<type>.paste`) (§4.7).
 fn is_per_type_id(token: &str) -> bool {
     matches!(
         token.rsplit_once('.'),
@@ -237,7 +236,7 @@ fn is_per_type_id(token: &str) -> bool {
     )
 }
 
-/// Parameter value converted to text representation for promotion to repeated lists.
+/// String representation of a parameter value for promotion to repeated lists.
 fn slot_text(value: &ParamValue) -> String {
     match value {
         ParamValue::Str(text) => text.clone(),

@@ -1,8 +1,4 @@
-<!--
-  SYSTEM · B · THE WORKBENCH.
-  Inline workbench variant where system configuration places expand directly
-  within the view, supporting inline block editing and standalone page navigation.
--->
+<!-- SYSTEM · B · The Workbench. Inline expandable configuration places. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import Cells from './Cells.svelte';

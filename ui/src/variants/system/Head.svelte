@@ -1,7 +1,4 @@
-<!--
-  System view header: renders page title, metric summary strip, search input,
-  and optional navigation segments for schema places.
--->
+<!-- System view header with search and place navigation. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import type { Place, PlaceId, Strip, SystemActions } from './props';

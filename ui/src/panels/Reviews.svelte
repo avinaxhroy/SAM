@@ -1,14 +1,4 @@
-<!--
-  Reviews panel (S5, UI P2 · U3, F13).
-
-  Manages spaced repetition review queues and recall sessions:
-    - Queue reading via `reviews.due`, ordered oldest first.
-    - Recall card interface with answer reveal and rating dispatch (`reviews-recall`).
-    - Queue management and deferral interface (`reviews-queue`).
-    - Overdue catch-up workflow (F13) and stage advancement (`record.advanceStage`).
-
-  Provides common loading, error, empty, and completion states across variant presentations.
--->
+<!-- Reviews panel (S5, UI P2 · U3, F13): review queues and recall sessions. -->
 <script lang="ts">
   import Icon from '../shell/Icon.svelte';
   import IdPair from '../shell/IdPair.svelte';

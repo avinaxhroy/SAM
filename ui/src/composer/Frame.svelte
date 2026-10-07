@@ -1,13 +1,4 @@
-<!--
-  Component editor wrapper frame (COMPOSER §4.3).
-
-  Wraps composer components during screen editing with manipulation chrome:
-    - Inert preview: Sets child component `inert` to prevent interaction during composition.
-    - Drag & drop reordering: Supports pointer dragging with a 4px activation threshold.
-    - Keyboard reordering: Arrow keys and Home/End reorder components with screen reader announcements.
-    - Variant stepping: Cycle forward/backward through available component visual designs.
-    - Deletion: Removes component from layout via single action.
--->
+<!-- Component editor wrapper frame with layout controls (COMPOSER §4.3). -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { app } from '../session.svelte';

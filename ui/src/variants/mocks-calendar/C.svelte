@@ -1,8 +1,4 @@
-<!--
-  Mocks & Assessments · Variant C (Guided Steps).
-  Step-by-step workflow card for scheduling undated assessments: pick an available
-  weekday, preview scheduling impact, and confirm. Completed assessments list below.
--->
+<!-- Mocks & Assessments · Variant C (Guided Steps). Step-by-step scheduling workflow card. -->
 <script lang="ts">
   import {
     byDayOrder,

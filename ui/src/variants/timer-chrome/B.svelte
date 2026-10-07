@@ -1,8 +1,4 @@
-<!--
-  Timer chrome variant B: The Morphing Pill.
-  Compact titlebar pill that transitions between display mode and duration editor mode
-  in place, keeping overall width stable.
--->
+<!-- Timer chrome variant B: The Morphing Pill. In-place transitions between display and editor. -->
 <script lang="ts">
   import type { TimerProps } from './props';
 

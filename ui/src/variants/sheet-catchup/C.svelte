@@ -1,7 +1,4 @@
-<!--
-  Catchup sheet variant C: The Slide-Up Panel.
-  Bottom slide-up drawer with card selection and swipe-to-confirm action slider (§11).
--->
+<!-- Catchup sheet variant C: The Slide-Up Panel. Bottom slide-up drawer with confirm slider (§11). -->
 <script lang="ts">
   import { arrivalLine, plural, type CatchupProps } from './props';
 

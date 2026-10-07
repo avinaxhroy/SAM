@@ -1,8 +1,4 @@
-<!--
-  REFERENCE · C · THE FOLDERS.
-  Folder-sleeve variant grouped by course with an additional unfiled folder.
-  Clicking a folder pocket slides out its card sheet and displays filed items.
--->
+<!-- REFERENCE · C · The Folders. Course folder sleeves with slide-out cards. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import { foldersOf, type ReferenceProps } from './props';

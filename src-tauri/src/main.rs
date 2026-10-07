@@ -1,11 +1,11 @@
-//! SAM's desktop shell (§4.2, §4.10, D16/D18).
+//! SAM desktop shell (§4.2, §4.10, D16/D18).
 //!
-//! Bridges native OS integration to `sam-core`:
-//! - Window frame: OS-native window controls and decorations (§4.10).
-//! - Native menus: application menu bar and context menus projected from `command_registry` (§4.10).
-//! - Single instance: launches routed to running window with CLI and file arguments (§4.10).
-//! - Linux renderer probe: minimal environment overrides applied before webview creation (§9, D21).
-//! - Security model: webview has no direct filesystem or database access; all mutations route through `sam-core`.
+//! Native OS integration for `sam-core`:
+//! - Window frame and controls (§4.10).
+//! - Application menu bar and context menus from `command_registry` (§4.10).
+//! - Single instance routing for CLI and file arguments (§4.10).
+//! - Linux WebKitGTK renderer probe overrides (§9, D21).
+//! - Sandboxed webview with mutations restricted to `sam-core`.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -48,7 +48,7 @@ fn renderer_choice(
     ("nvidia-explicit-sync-off", Some(("__NV_DISABLE_EXPLICIT_SYNC", "1")))
 }
 
-/// Detects driver environment and applies WebKitGTK environment overrides if needed before webview creation.
+/// Applies WebKitGTK driver overrides if needed before webview creation.
 fn apply_renderer_probe() {
     let label = if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_some()
         || std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_some()
@@ -88,7 +88,7 @@ fn renderer_path() -> &'static str {
         .unwrap_or("native")
 }
 
-/// Returns up to 8 most recently modified plan directories.
+/// Up to 8 most recently modified plan directories.
 fn recent_plans() -> Vec<String> {
     let Ok(paths) = sam_core::resources::paths() else {
         return Vec::new();
@@ -137,7 +137,7 @@ fn shell_info(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     Ok(value)
 }
 
-/// Returns true when window configuration uses overlay titlebar controls.
+/// True when window configuration uses overlay titlebar controls.
 fn titlebar_overlay(app: &tauri::AppHandle) -> bool {
     app.config()
         .app
@@ -149,9 +149,7 @@ fn titlebar_overlay(app: &tauri::AppHandle) -> bool {
         .is_some_and(|style| matches!(style.as_str(), "Overlay" | "Transparent"))
 }
 
-/// Entry point for frontend engine commands (§4.2). Forwards requests to
-/// `CommandSession::run` with lock acquisition, revision checking, validation,
-/// and journaling. File I/O and plan locking execute asynchronously off the UI thread.
+/// Dispatch frontend engine command (§4.2) via `CommandSession::run`.
 #[tauri::command]
 async fn dispatch(
     app: tauri::AppHandle,
@@ -252,7 +250,7 @@ async fn open_preferences(app: tauri::AppHandle) -> Result<bool, String> {
     Ok(true)
 }
 
-/// Opens native directory selection dialog (§4.10).
+/// Native directory picker dialog (§4.10).
 #[tauri::command]
 async fn pick_directory(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let (send, receive) = std::sync::mpsc::channel();
@@ -267,7 +265,7 @@ async fn pick_directory(app: tauri::AppHandle) -> Result<Option<String>, String>
         .map_err(|error| format!("the dialog did not answer: {error}"))
 }
 
-/// Opens native save dialog for profile export (§4.10).
+/// Native save dialog for profile export (§4.10).
 #[tauri::command]
 async fn pick_profile_out(app: tauri::AppHandle, name: Option<String>) -> Result<Option<String>, String> {
     let (send, receive) = std::sync::mpsc::channel();
@@ -288,7 +286,7 @@ async fn pick_profile_out(app: tauri::AppHandle, name: Option<String>) -> Result
         .map_err(|error| format!("the dialog did not answer: {error}"))
 }
 
-/// Opens native file dialog for profile import (§4.10).
+/// Native file dialog for profile import (§4.10).
 #[tauri::command]
 async fn pick_profile_file(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let (send, receive) = std::sync::mpsc::channel();
@@ -322,7 +320,7 @@ fn take_pending_open(state: tauri::State<'_, ShellState>) -> Vec<String> {
     taken
 }
 
-/// Watches plan root directory and publishes `plan-changed` events on update (D9).
+/// Watch plan root directory and publish `plan-changed` events on update (D9).
 #[tauri::command]
 fn watch_plan(
     app: tauri::AppHandle,
@@ -359,7 +357,7 @@ fn watch_plan(
     Ok(())
 }
 
-/// Projects the native menu bar from the command registry (§4.10).
+/// Project native menu bar from the command registry (§4.10).
 fn build_menu(app: &tauri::AppHandle, keybindings: &[(String, String)]) -> tauri::Result<Menu<tauri::Wry>> {
     let accelerator = |id: &str| -> Option<String> {
         keybindings
@@ -369,7 +367,6 @@ fn build_menu(app: &tauri::AppHandle, keybindings: &[(String, String)]) -> tauri
     };
 
     let mut menu = MenuBuilder::new(app);
-    // Application menu
     let about = PredefinedMenuItem::about(app, Some("About SAM"), None)?;
     let preferences = MenuItem::with_id(
         app,
@@ -384,7 +381,6 @@ fn build_menu(app: &tauri::AppHandle, keybindings: &[(String, String)]) -> tauri
     let mut app_menu = SubmenuBuilder::new(app, "SAM")
         .item(&about)
         .item(&preferences);
-    // Open Recent submenu (§4.10)
     let recent = recent_plans();
     if recent.is_empty() {
         let empty = MenuItem::with_id(app, "recent.none", "No plans yet", false, None::<&str>)?;
@@ -445,7 +441,7 @@ fn build_menu(app: &tauri::AppHandle, keybindings: &[(String, String)]) -> tauri
     menu.build()
 }
 
-/// Extracts `.samprofile` argument from command-line arguments if present.
+/// Extracts `.samprofile` argument from CLI arguments if present.
 fn association_argument(argv: &[String]) -> Option<String> {
     argv.iter()
         .find(|argument| {
@@ -458,7 +454,7 @@ fn association_argument(argv: &[String]) -> Option<String> {
         .cloned()
 }
 
-/// Routes opened file path to the webview or queues it if the window is not yet ready.
+/// Routes opened file path to the webview or queues it until ready.
 fn route_open(app: &tauri::AppHandle, path: String, source: &str) {
     if let Ok(paths) = sam_core::resources::paths() {
         let _ = sam_core::resources::note_open(&paths, &path, source);
@@ -546,7 +542,6 @@ fn main() {
 mod tests {
     use super::os_label;
 
-    /// Asserts the OS label matches the design system vocabulary ("mac", "win", "linux").
     #[test]
     fn the_os_label_is_the_design_systems_vocabulary() {
         let label = os_label();
@@ -556,7 +551,6 @@ mod tests {
         );
     }
 
-    /// Asserts all menu bar items correspond to valid command registry IDs (§4.10).
     #[test]
     fn every_menu_item_is_a_registry_id() {
         for (_, categories) in sam_core::command_registry::MENUS {
@@ -575,7 +569,6 @@ mod tests {
         }
     }
 
-    /// Asserts logical modifier 'mod' translates to native accelerator 'CmdOrCtrl' (§4.8 P2).
     #[test]
     fn the_accelerator_translation_is_the_platforms_spelling() {
         let translated = "mod+shift+z".replace("mod", "CmdOrCtrl");

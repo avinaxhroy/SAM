@@ -1,8 +1,4 @@
-<!--
-  Timer chrome variant A: The Notch Slab.
-  Expands from the titlebar tools area along the window's top edge, displaying
-  session time, active state, and controls without shifting surrounding titlebar elements.
--->
+<!-- Timer chrome variant A: The Notch Slab. Expands from the titlebar tools area. -->
 <script lang="ts">
   import type { TimerProps } from './props';
 

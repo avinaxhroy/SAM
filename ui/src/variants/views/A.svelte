@@ -1,7 +1,4 @@
-<!--
-  Record layout container: renders card and header species across 8 layout definitions (§3.6).
-  Delegates body presentation to specialized block views.
--->
+<!-- Record layout container across 8 layout definitions (§3.6). -->
 <script lang="ts">
   import BlockHead from '../../blocks/BlockHead.svelte';
   import RecordBoard from '../../blocks/RecordBoard.svelte';

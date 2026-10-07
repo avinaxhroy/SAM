@@ -1,8 +1,4 @@
-<!--
-  Record panel variant B: The Counter Bank.
-  Displays quantity, duration, and date columns as sliding mechanical counter wheels.
-  Entity ID is hidden in accordance with D2.
--->
+<!-- Record panel variant B: The Counter Bank. Mechanical counter wheels for quantity, duration, and dates (D2). -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import IdPair from '../../shell/IdPair.svelte';

@@ -1,9 +1,4 @@
-<!--
-  RECORD TABLE · C · THE MORPH.
-  Tile and detail sheet variant. Displays a tablist of records above an active
-  record sheet. Selected fields expand into inline editor capsules with commit
-  and cancel controls, integrating with FieldControl.
--->
+<!-- RECORD TABLE · C · The Morph. Tablist of records above an active record sheet. -->
 <script lang="ts">
   import FieldControl from '../../records/FieldControl.svelte';
   import Menu from '../../shell/Menu.svelte';

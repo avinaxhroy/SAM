@@ -1,9 +1,6 @@
 /**
- * App session state machine and view snapshot manager (Appendix C.5).
- *
- * Screen state reflects the engine's resolved snapshot. Mutations dispatch
- * through sam-core, which publishes new revisions. The session manages active
- * screen selection, sheet state, and the transaction undo stack (§4.8 P6, §9).
+ * Session state machine and view snapshot manager (Appendix C.5).
+ * Maintains current screen selection, sheet state, and undo stack over engine snapshots (§4.8 P6, §9).
  */
 import {
   IpcError,
@@ -67,7 +64,7 @@ export type TimerState = {
   targetMin: number;
 };
 
-/** Toast notification action callback (F14). */
+/** Toast action callback (F14). */
 export type ToastAction = { label: string; run: () => void };
 
 /** Active modal sheet (§11). At most one floating sheet is open at a time. */
@@ -263,7 +260,7 @@ export class Session {
 
   // ── floating surfaces (§11) ───────────────────────────────────────────
   toast = $state<string | null>(null);
-  /** Action callback attached to current toast notification (F14). */
+  /** Action callback on active toast (F14). */
   toastAction = $state<ToastAction | null>(null);
   /** Diagnostic message from most recent operation. */
   lastDiagnostic = $state<string | null>(null);
@@ -719,7 +716,7 @@ export class Session {
   }
 
   // ── intention markers (P2, U1) ─────────────────────────────────────────
-  /** Sets record focus date to today (P2, U1). */
+  /** Pin record focus date to today (P2, U1). */
   async addToToday(id: string): Promise<void> {
     const date = this.todayFacts?.date;
     if (!date) return;
@@ -763,7 +760,7 @@ export class Session {
       // Ignore responses for views that are no longer selected.
       if (view !== this.selected) return;
       this.outcome = result.data as ViewRead;
-      // Clear draft once persisted components match the active view (COMPOSER §3.2).
+      // Discard draft when persisted components match active view (COMPOSER §3.2).
       if (
         this.screenEditing &&
         this.screenDraftFor === this.outcome.view &&
@@ -944,7 +941,7 @@ export class Session {
     }
   }
 
-  /** Handle launch argument: import a `.samprofile` file or open a plan directory. */
+  /** Import a `.samprofile` or open a plan directory from launch args. */
   async handleLaunchArgument(argument: string): Promise<void> {
     if (argument.toLowerCase().endsWith('.samprofile')) {
       await this.importProfile(argument);
@@ -1309,7 +1306,7 @@ export class Session {
   }
 
   // ── external change (D9, §4.8 P6) ──────────────────────────────────────
-  /** Handle external plan file changes (D9, §4.8 P6). */
+  /** Handle external plan change notification (D9, §4.8 P6). */
   handlePlanChanged(event: PlanChanged): void {
     if (event.valid === false) {
       this.notice(`the plan on disk does not load — ${event.message ?? 'run SAM --configcheck'}`);

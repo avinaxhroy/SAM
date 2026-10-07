@@ -1,7 +1,4 @@
-/**
- * Reviews queue surface variant component props.
- * Organizes overdue review cards by lateness windows and supports inline deferrals.
- */
+/** Props for ReviewsQueue surface variants. */
 export type QueueRow = {
   id: string;
   title: string;

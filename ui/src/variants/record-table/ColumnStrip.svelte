@@ -1,9 +1,4 @@
-<!--
-  COLUMN STRIP.
-  Shared schema editor column header strip across table variants. Hosts column
-  headers, context menus (rename, retype, hide, move, delete), column reordering
-  drag handles, and the trailing '+' action for creating/unhiding columns.
--->
+<!-- Shared schema editor column header strip across table variants. -->
 <script lang="ts">
   import ColumnMenu from '../../records/ColumnMenu.svelte';
   import Menu from '../../shell/Menu.svelte';

@@ -1,9 +1,4 @@
-<!--
-  MOCKS & ASSESSMENTS (S4, UI P2 / U2).
-  Calendar and scheduling surface for mocks and assessments.
-  Computes dates and relative offsets, and dispatches `record.setField`
-  to update record dates.
--->
+<!-- MOCKS & ASSESSMENTS (S4, UI P2 / U2): calendar and scheduling surface. -->
 <script lang="ts">
   import Icon from '../shell/Icon.svelte';
   import Variant from '../variants/Variant.svelte';

@@ -1,8 +1,4 @@
-<!--
-  Practice banks variant A: The Row That Opens.
-  Expandable rows in a list format, where selecting a row reveals an inline logging bench
-  and progress forecast bar.
--->
+<!-- Practice banks variant A: The Row That Opens. Expandable rows with inline logging bench. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

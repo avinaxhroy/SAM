@@ -1,7 +1,4 @@
-<!--
-  Today focus variant B: The Card That Opens.
-  Card with expandable reason details, session target minutes editor, and direct start button.
--->
+<!-- Today focus variant B: The Card That Opens. Expandable rationale and duration editor. -->
 <script module lang="ts">
   /** One id per mounted card, so `aria-controls` never points at a sibling. */
   let panelSeq = 0;

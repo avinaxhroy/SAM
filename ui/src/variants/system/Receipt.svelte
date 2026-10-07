@@ -1,7 +1,4 @@
-<!--
-  System write receipt: displays status text for committed operations
-  with an inline undo action.
--->
+<!-- Status text and undo action for committed writes. -->
 <script lang="ts">
   import type { Receipt as ReadBack, SystemActions } from './props';
 

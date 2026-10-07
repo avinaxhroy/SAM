@@ -1,7 +1,4 @@
-/**
- * Record detail panel surface variant component props.
- * Displays record fields, relations, ladder rungs, and review metrics.
- */
+/** Props for RecordPanel surface variants. */
 import type { FieldRead, RecordDoc } from '../../types';
 
 /** Which rung of the ladder a stage is on — the app's own three words. */

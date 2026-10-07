@@ -1,9 +1,4 @@
-<!--
-  RECORD TABLE · B · THE PROFILE.
-  Expandable bar variant where each record renders as a card that unfolds its
-  field profile in place using CSS grid row transitions (0fr -> 1fr). Supports
-  animated column sorting and dedicated action buttons for detail panels and menus.
--->
+<!-- RECORD TABLE · B · The Profile. Unfolds field profile in place using CSS grid transitions. -->
 <script lang="ts">
   import { flip } from 'svelte/animate';
   import FieldControl from '../../records/FieldControl.svelte';

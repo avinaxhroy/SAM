@@ -1,7 +1,4 @@
-/**
- * Week chart surface variant component props.
- * Displays daily study duration bars, dynamic ceiling scales, and target lines.
- */
+/** Props for WeekChart surface variants. */
 import { durationText } from '../../types';
 
 /** One day of the last seven, oldest first — the panel's own read order.

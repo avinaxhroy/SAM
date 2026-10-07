@@ -1,8 +1,4 @@
-<!--
-  Week chart variant C: The Shelf.
-  Stacked horizontal progress tracks with notch indicators for daily goals and
-  expandable detail disclosure per day.
--->
+<!-- Week chart variant C: The Shelf. Stacked horizontal progress tracks with daily goal notches. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

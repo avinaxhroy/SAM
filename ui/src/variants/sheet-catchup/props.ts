@@ -1,7 +1,4 @@
-/**
- * Catchup sheet variant component props.
- * Supports batch rescheduling of overdue tasks to recommended target dates.
- */
+/** Props for Catchup sheet variants. */
 
 /** One overdue record, as a card states it: a name and at most two facts. */
 export type CatchupItem = {

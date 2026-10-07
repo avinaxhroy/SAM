@@ -1,7 +1,4 @@
-<!--
-  Today focus variant A: Slide to Begin.
-  Focus session card with interactive draggable slider knob to initiate a study session.
--->
+<!-- Today focus variant A: Slide to Begin. Interactive draggable start knob. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import Duration from './Duration.svelte';

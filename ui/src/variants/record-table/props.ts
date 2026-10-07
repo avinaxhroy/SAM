@@ -1,7 +1,4 @@
-/**
- * Record table surface variant component props.
- * Defines column cell bindings, menu actions, and row selection states.
- */
+/** Props for RecordTable surface variants. */
 import type { MenuRow } from '../../commands/registry';
 import type { FieldRead, RecordDoc } from '../../types';
 

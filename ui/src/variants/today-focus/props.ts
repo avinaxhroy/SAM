@@ -1,7 +1,4 @@
-/**
- * Today focus card variant component props.
- * Renders daily greeting, focus status, and session prompt.
- */
+/** Props for TodayFocus surface variants. */
 export type WhyFact = { key: string; value: string };
 
 /** The three states the masthead can be in, derived from the day's own facts. */

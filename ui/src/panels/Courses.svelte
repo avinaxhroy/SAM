@@ -1,9 +1,4 @@
-<!--
-  SUBJECTS / COURSES (S2).
-  Identity layer displaying course progress, topic breakdown, and upcoming work.
-  Reads the plan model and `reviews.due` schedule to supply props for the
-  selected courses variant (`variants/courses/props.ts`).
--->
+<!-- SUBJECTS / COURSES (S2): course progress, topic breakdown, and upcoming work. -->
 <script lang="ts">
   import Icon from '../shell/Icon.svelte';
   import Variant from '../variants/Variant.svelte';

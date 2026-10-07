@@ -1,7 +1,4 @@
-<!--
-  Reviews queue variant C: The Inline Defer.
-  Overdue reviews list with an in-place day picker for deferring individual records.
--->
+<!-- Reviews queue variant C: The Inline Defer. In-place day picker. -->
 <script lang="ts">
   import { tick } from 'svelte';
   import type { QueueProps } from './props';

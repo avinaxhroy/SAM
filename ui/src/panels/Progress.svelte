@@ -1,19 +1,5 @@
-<!--
-  Progress (S6, UI P2 · U4) — study metrics and set review status (F8).
-
-  THE FIGURES SURFACE
-  Derives week totals, activity metrics, and set recommendations for the
-  progress-stats surface (`ui/src/variants/progress-stats/props.ts`).
-
-  THE WEEK WINDOW
-  Renders the seven days ending on the plan's current date. Figures compare
-  against the preceding 7-day window when available.
-
-  THE CHART SURFACE
-  Mounts the week-chart surface using the same seven-day data window, ensuring
-  figure and chart consistency.
--->
-  <script lang="ts">
+<!-- Progress panel (S6, UI P2 · U4, F8): study metrics, week window, and activity charts. -->
+<script lang="ts">
     import Icon from '../shell/Icon.svelte';
     import Variant from '../variants/Variant.svelte';
     import type { Figure, ProgressDay } from '../variants/progress-stats/props';

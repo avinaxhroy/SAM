@@ -1,8 +1,4 @@
-<!--
-  Courses variant B: The Shelf.
-  Card grid layout with topic pip indicators and chapter-based sidebar navigation
-  with circular progress glyphs.
--->
+<!-- Courses variant B: The Shelf. Card grid with chapter sidebar. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import { chaptersOf, type CourseCard, type CourseTopic, type CoursesProps } from './props';

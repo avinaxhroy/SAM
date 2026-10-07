@@ -5,7 +5,7 @@
   "identifier": "app.sam.desktop",
   "build": {
     "beforeDevCommand": "cd .. && pnpm -C ui dev",
-    "beforeBuildCommand": "cd .. && pnpm -C ui build && node tools/sidecar.mjs",
+    "beforeBuildCommand": "cd .. && pnpm -C ui build && node scripts/sidecar.mjs",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../ui/dist"
   },
@@ -55,7 +55,7 @@
       "binaries/sam"
     ],
     "resources": {
-      "../design/tokens.json": "tokens.json",
+      "../Sources/SAMCore/Resources/tokens.json": "tokens.json",
       "../Sources/SAMCore/Resources/presets": "presets",
       "../Sources/SAMCore/Resources/fixtures": "fixtures",
       "../Sources/SAMCore/Resources/themes": "themes"

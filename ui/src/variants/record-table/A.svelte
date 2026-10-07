@@ -1,9 +1,4 @@
-<!--
-  RECORD TABLE · A · THE RAIL.
-  Table variant featuring a slide-out tool rail for quick instant adjustments
-  (+1d, -1d, +1w, +1m) and clear operations. Integrates schema column headers,
-  accessible row controls, and in-place field editors.
--->
+<!-- RECORD TABLE · A · The Rail. Slide-out tool rail for quick date adjustments. -->
 <script lang="ts">
   import FieldControl from '../../records/FieldControl.svelte';
   import Menu from '../../shell/Menu.svelte';

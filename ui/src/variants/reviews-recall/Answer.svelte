@@ -1,7 +1,4 @@
-<!--
-  Review answer slot: provides view and inline edit modes for the topic answer text,
-  keyed by record ID with Enter-to-save and Escape-to-cancel semantics.
--->
+<!-- Answer slot with inline editing (Enter to save, Escape to cancel). -->
 <script lang="ts">
   import { tick } from 'svelte';
 

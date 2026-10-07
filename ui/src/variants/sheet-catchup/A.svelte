@@ -1,8 +1,4 @@
-<!--
-  Catchup sheet variant A: The Tray.
-  Floor-docked tray allowing students to drag and file overdue cards into target date slots
-  to batch-defer reviews (§11).
--->
+<!-- Catchup sheet variant A: The Tray. Floor-docked tray for batch-deferring reviews (§11). -->
 <script lang="ts">
   import { arrivalLine, filedLine, plural, type CatchupProps } from './props';
 

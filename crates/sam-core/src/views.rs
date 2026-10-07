@@ -1,7 +1,7 @@
 //! Saved-view resolution (§3.6, §4.7): combines a query definition with layout metadata.
 //!
 //! Filter, sort, and group keys are L2 expressions evaluated over the in-memory plan snapshot.
-//! `SAM view` serves as the primary view projection, tagged with the active source revision.
+//! `SAM view` is the primary view projection, tagged with the active source revision.
 //!
 //! Output is deterministic: canonical record serialization, explicit null ordering,
 //! and stable ID tie-breakers on every sort (§4.4).

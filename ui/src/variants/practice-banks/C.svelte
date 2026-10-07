@@ -1,8 +1,4 @@
-<!--
-  Practice banks variant C: The Tactile Commit.
-  List view with square progress indicators and an anchored tactile button
-  for logging practice sessions.
--->
+<!-- Practice banks variant C: The Tactile Commit. List view with anchored logging button. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

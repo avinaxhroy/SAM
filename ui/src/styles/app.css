@@ -5,11 +5,11 @@
  */
 
 @import "tailwindcss";
-@import "../../../design/fonts.css";
-@import "../../../design/tokens.css";
-@import "../../../design/base.css";
-@import "../../../design/tailwind.css";
-@import "../../../design/components.css";
+@import "../design/fonts.css";
+@import "../design/tokens.css";
+@import "../design/base.css";
+@import "../design/tailwind.css";
+@import "../design/components.css";
 
 @import "./components.css";
 @import "./collection.css";

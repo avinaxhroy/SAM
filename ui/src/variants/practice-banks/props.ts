@@ -1,7 +1,4 @@
-/**
- * Practice banks surface variant component props.
- * Displays problemset banks, progress ratios, and practice logging controls.
- */
+/** Props for PracticeBanks surface variants. */
 
 /** Problemset bank display row. `total` is null when bank size is undeclared. */
 export type PracticeBank = {

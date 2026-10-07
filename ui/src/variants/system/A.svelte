@@ -1,9 +1,4 @@
-<!--
-  SYSTEM · A · THE INDEX.
-  Tabbed system configuration view using a segmented control to switch between
-  system places (Kinds, Screens, Rules, Scheduling, Stages), opening detailed
-  editors in animated 460px sheets.
--->
+<!-- SYSTEM · A · The Index. Tabbed system configuration view with 460px sheets. -->
 <script lang="ts">
   import Editor from './Editor.svelte';
   import Head from './Head.svelte';

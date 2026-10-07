@@ -1,7 +1,4 @@
-/**
- * Source pane component props (Appendix C.4).
- * Manages raw JSON/JSONL document inspection, validation diagnostics, and edits.
- */
+/** Props for SourcePane (Appendix C.4). */
 
 /** One finding, exactly as `source.check` reports it (§4.9's Diagnostic). */
 export type SourceFinding = {

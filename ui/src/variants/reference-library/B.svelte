@@ -1,9 +1,4 @@
-<!--
-  REFERENCE · B · THE PALETTE.
-  Collapsible results deck variant anchored to a search input header. Results
-  display as dual-column record cards supporting external links, note disclosures,
-  and record detail panels.
--->
+<!-- REFERENCE · B · The Palette. Search-anchored card deck with external links. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import { cameFrom, type ReferenceProps } from './props';

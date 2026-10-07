@@ -1,7 +1,4 @@
-/**
- * Today queue surface variant component props.
- * Displays scheduled study tasks, grouped queues, and time estimates.
- */
+/** Props for Today queue variants. */
 import { durationText, type TodayGroupId, type TodayItem } from '../../types';
 
 /** One row of the day, exactly as the panel's own `rows` read draws it. */

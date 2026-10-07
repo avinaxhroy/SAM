@@ -1,8 +1,4 @@
-<!--
-  Reviews queue variant A: The Shelves.
-  Collapsible shelf layout grouping overdue review records by lateness window,
-  selecting a record moves it to the active recall card.
--->
+<!-- Reviews queue variant A: The Shelves. Grouped by lateness window. -->
 <script lang="ts">
   import { stateClass, type QueueProps } from './props';
 

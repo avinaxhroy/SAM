@@ -1,8 +1,4 @@
-<!--
-  REFERENCE-LIBRARY widget host (`COMPOSER.md` §3.1).
-  Mounts the active reference library variant within composed screens,
-  resolving library and note records with filter query state.
--->
+<!-- Reference library widget host (COMPOSER §3.1). -->
 <script lang="ts">
   import Variant from '../../../variants/Variant.svelte';
   import { app } from '../../../session.svelte';

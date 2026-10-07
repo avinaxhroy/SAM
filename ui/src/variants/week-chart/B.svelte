@@ -1,8 +1,4 @@
-<!--
-  Week chart variant B: The Fan.
-  Radial fan layout of leaning duration bars with dual horizontal reference rules
-  and weekday axis markers.
--->
+<!-- Week chart variant B: The Fan. Radial fan layout of leaning duration bars. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {

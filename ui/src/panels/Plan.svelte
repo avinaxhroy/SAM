@@ -1,9 +1,4 @@
-<!--
-  THE PLAN (S2, UI P2 / U2).
-  Term timeline displaying week-by-week topic schedules and unplaced work.
-  Resolves topic states, estimates, and week bounds from the plan model
-  for the selected plan-spine variant (`variants/plan-spine/props.ts`).
--->
+<!-- THE PLAN (S2, UI P2 / U2): term timeline and topic schedule. -->
 <script lang="ts">
   import Icon from '../shell/Icon.svelte';
   import Variant from '../variants/Variant.svelte';

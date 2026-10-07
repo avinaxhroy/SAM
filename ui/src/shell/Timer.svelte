@@ -1,8 +1,4 @@
-<!--
-  Active study session controller.
-  Derives session elapsed time, manages the 1s tick, dispatches record writes on stop,
-  and renders the active timer-chrome variant.
--->
+<!-- Active study session controller and timer-chrome host. -->
 <script lang="ts">
   import Variant from '../variants/Variant.svelte';
   import type { TimerProps } from '../variants/timer-chrome/props';

@@ -1,7 +1,4 @@
-/**
- * System inspection surface variant component props.
- * Displays schema definitions, views, pipelines, destinations, and diagnostics.
- */
+/** Props for System inspection variants. */
 import type { PlaceId } from './places';
 
 export type { PlaceId };
