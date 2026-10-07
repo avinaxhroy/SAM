@@ -9,49 +9,6 @@
 /src-tauri/gen
 /src-tauri/binaries
 
-# Design assets, experiments & tools
-/design/
-/tools/
-/web/
-/uiexperiments/
-.captures/
-.capture/
-*.capture
-
-# Internal development specifications & logs
-/BUILDLOG.md
-/SAM_PLAN.md
-/UI_PLAN.md
-/UI_SPEC.md
-/UX_FLOWS.md
-/COMPOSER.md
-/AGENTS.md
-skills-lock.json
-/docs/development.md
-/docs/ai-agents.md
-/docs/ai-prompt.md
-ui/src/variants/PORTING.md
-
-# AI agent workspace directories
-.agents/
-.bob/
-.claude/
-.commandcode/
-.continue/
-.crush/
-.grok/
-.inferencesh/
-.kalakar/
-.kiro/
-.opencode/
-.openhands/
-.pi/
-.qoder/
-.qwen/
-.roo/
-.windsurf/
-.zcode/
-
 # OS metadata
 .DS_Store
 Thumbs.db

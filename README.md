@@ -112,7 +112,7 @@ You can design and populate study plans with AI without installing extra skills 
 
 Paste this prompt directly into your coding agent's chat or terminal:
 
-> Create a study plan for [my learning goal or syllabus] in `./my-plan` using SAM. Follow the workflow in [`docs/ai-agents.md`](docs/ai-agents.md):
+> Create a study plan for [my learning goal or syllabus] in `./my-plan` using SAM. Follow the workflow in https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md:
 > 1. Initialize the plan folder: `sam plan.new --plan ./my-plan`
 > 2. Query active schema and options: `sam --schema --json --plan ./my-plan`
 > 3. Break down the curriculum into courses, weeks, and topics, staging them in `/tmp/batch.jsonl`
@@ -125,7 +125,7 @@ The agent executes these native CLI commands autonomously and populates your stu
 
 Paste this prompt into your chatbot along with your syllabus, textbook outline, or study goal:
 
-> Convert the following syllabus or learning goal into a SAM `batch.jsonl` file strictly following the specification at [`docs/ai-prompt.md`](docs/ai-prompt.md):
+> Convert the following syllabus or learning goal into a SAM `batch.jsonl` file strictly following the specification at https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md:
 >
 > [Paste your syllabus, course outline, or learning goal here]
 
@@ -144,7 +144,7 @@ sam apply batch.jsonl --plan ./my-plan
 
 The desktop app automatically detects the new records via its debounced file watcher (~150ms) and updates the **Plan**, **Subjects**, and **Today** views without restarting.
 
-See [`docs/ai-agents.md`](docs/ai-agents.md) for the complete terminal automation guide and [`docs/ai-prompt.md`](docs/ai-prompt.md) for the token-optimized schema specification.
+See [`docs/ai-agents.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md) for the complete terminal automation guide and [`docs/ai-prompt.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md) for the token-optimized schema specification.
 
 ---
 
