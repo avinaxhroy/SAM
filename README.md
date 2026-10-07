@@ -1,6 +1,14 @@
-# SAM
+<p align="center">
+  <a href="https://github.com/avinaxhroy/SAM">
+    <img src="src-tauri/icons/icon.png" width="128" height="128" alt="SAM Logo" />
+  </a>
+</p>
 
-SAM is a desktop study OS and command-line tool that links course syllabi, practice problems, and spaced reviews into a single system.
+<h1 align="center">SAM</h1>
+
+<p align="center">
+  A desktop study OS and command-line tool that links course syllabi, practice problems, and spaced reviews into a single system.
+</p>
 
 <p align="center">
   <a href="https://github.com/avinaxhroy/SAM/releases">
