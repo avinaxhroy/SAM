@@ -171,6 +171,7 @@ jobs:
       - name: Build Tauri Desktop App & Create GitHub Release
         uses: tauri-apps/tauri-action@v0
         env:
+          APPLE_SIGNING_IDENTITY: '-'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ needs.check-changelog.outputs.tag }}
