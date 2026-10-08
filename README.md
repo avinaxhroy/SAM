@@ -132,6 +132,30 @@ Download prebuilt binaries for macOS, Windows, and Linux from [GitHub Releases](
 
 [![Download SAM](https://img.shields.io/badge/Download-SAM%20Releases-238636?style=for-the-badge&logo=github&logoColor=white)](https://github.com/avinaxhroy/SAM/releases)
 
+#### macOS: bypassing the "damaged app" warning
+
+The DMG is not code-signed (no Apple Developer Program membership yet), so after downloading from a browser, macOS Gatekeeper may show **"'SAM' is damaged and can't be opened. You should move it to the Bin."** The app is fine — Gatekeeper is rejecting the missing signature, not reporting real corruption.
+
+Fix it either way:
+
+```bash
+# Option A: after dragging SAM to /Applications, strip the quarantine flag
+xattr -cr /Applications/SAM.app
+```
+
+**Option B:** download the DMG with `curl` instead of a browser — no quarantine flag is ever set:
+
+```bash
+curl -L -o ~/Downloads/SAM.dmg https://github.com/avinaxhroy/SAM/releases/latest/download/SAM_0.1.0-beta_aarch64.dmg && open ~/Downloads/SAM.dmg
+```
+
+Or install via Homebrew (downloads without the quarantine flag, so no fix needed):
+
+```bash
+brew install --cask avinaxhroy/tap/sam
+```
+
+
 ### Building from source
 
 #### Prerequisites

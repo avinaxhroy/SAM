@@ -41,8 +41,25 @@ const tag = `v${version}`;
 const startIdx = match.index + match[0].length;
 const rest = content.slice(startIdx);
 const nextHeaderIdx = rest.search(/^##\s+/m);
-const notes = (nextHeaderIdx === -1 ? rest : rest.slice(0, nextHeaderIdx)).trim();
+const rawNotes = (nextHeaderIdx === -1 ? rest : rest.slice(0, nextHeaderIdx)).trim();
+// Pre-pended to every generated release body. Explains macOS Gatekeeper rejection of
+// the unsigned DMG ("damaged and can't be opened") and the two zero-cost workarounds.
+const installNotes = `### macOS install note
 
+The DMG is not code-signed (no Apple Developer Program yet), so macOS may show **"'SAM' is damaged and can't be opened"** on first launch. The app is fine — that's Gatekeeper rejecting the missing signature. Fix with either:
+
+\`\`\`bash
+# Option A: after dragging SAM to /Applications, strip the quarantine flag
+xattr -cr /Applications/SAM.app
+\`\`\`
+
+**Option B:** download the DMG with \`curl\` instead of a browser — no quarantine flag is ever set:
+
+\`\`\`bash
+curl -L -o ~/Downloads/SAM.dmg https://github.com/avinaxhroy/SAM/releases/download/${tag}/SAM_${version}_aarch64.dmg && open ~/Downloads/SAM.dmg
+\`\`\`
+`;
+const notes = (installNotes + '\n' + rawNotes).trim();
 const isPrerelease = /-(beta|alpha|rc|preview|dev)/i.test(version);
 
 const args = process.argv.slice(2);
