@@ -139,6 +139,9 @@ The DMG is not code-signed (no Apple Developer Program membership yet), so after
 Fix it either way:
 
 ```bash
+# If the DMG itself won't mount ("damaged"), strip its flag first:
+xattr -d com.apple.quarantine ~/Downloads/SAM_0.1.0-beta_aarch64.dmg
+
 # Option A: after dragging SAM to /Applications, strip the quarantine flag
 xattr -cr /Applications/SAM.app
 ```
@@ -149,7 +152,7 @@ xattr -cr /Applications/SAM.app
 curl -L -o ~/Downloads/SAM.dmg https://github.com/avinaxhroy/SAM/releases/latest/download/SAM_0.1.0-beta_aarch64.dmg && open ~/Downloads/SAM.dmg
 ```
 
-Or install via Homebrew (downloads without the quarantine flag, so no fix needed):
+Or install via Homebrew — the cask strips the quarantine flag for you, no manual step needed:
 
 ```bash
 brew install --cask avinaxhroy/tap/sam
