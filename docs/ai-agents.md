@@ -8,7 +8,7 @@ A study plan in SAM is simply a directory of your choice on disk (e.g. `./my-pla
 
 ## 1. How SAM represents a study plan
 
-Regardless of subject or field, SAM structures your curriculum into a clean, denominator-backed loop:
+In a standard curriculum plan, SAM structures records into a clear hierarchy (or custom entity types defined in your schema):
 
 1. **Courses (`course`)**: The high-level subjects or domains you are learning (e.g., Computer Systems, Biology, Microeconomics).
 2. **Units / Weeks (`unit` / `week`)**: Optional temporal or modular grouping (e.g., Week 1, Unit 3).

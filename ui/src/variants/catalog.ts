@@ -50,7 +50,7 @@ export const SURFACES: SurfaceDef[] = [
     group: 'day',
     default: 'a',
     variants: [
-      { id: 'a', name: 'The Working Stack', note: 'One thing is lifted out of the pile; the rest are slips, and done drops into the tray.' },
+      { id: 'a', name: 'The Day’s Weight', note: 'Every block is drawn at its own estimate — a fifteen-minute errand is a slip, a two-hour set is a slab — and the day’s state is the block’s own fill, told once; the rest of a band waits behind its count.' },
       { id: 'b', name: 'The Filter Strip', note: 'Course and state pills over one list; the arithmetic is stated under the strip.' },
       { id: 'c', name: 'The State Pills', note: 'Late · Due · Planned — each pill carries its count as a badge.' },
     ],

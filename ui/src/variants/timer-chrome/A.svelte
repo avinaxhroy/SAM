@@ -20,8 +20,44 @@
   let mode = $state<'mini' | 'open' | 'confirm'>('mini');
   /** The measured room decides how much of the reading survives. */
   let room = $state<'wide' | 'mid' | 'tight'>('wide');
-  let flare = $state(true);
+  /** Corner fillets, shown only when clearance permits on that side. */
+  let flareLeft = $state(true);
+  let flareRight = $state(true);
   let expanded = $state(false);
+
+  /** Density modes, widest first. */
+  const DENSITIES = ['wide', 'mid', 'tight'] as const;
+  type Density = (typeof DENSITIES)[number];
+
+  /** Measures required content width for an open row at a given density.
+      Temporarily applies data-room to use CSS visibility rules, summing
+      child scrollWidths so unconstrained text width is captured. */
+  function readingWidth(element: HTMLElement, density: Density): number {
+    const open = element.querySelector<HTMLElement>('.vtca__layer[data-slot="open"]');
+    const row = open?.querySelector<HTMLElement>('.vtca__row');
+    if (!open || !row) return 0;
+    const was = element.dataset.room;
+    element.dataset.room = density;
+    const layer = getComputedStyle(open);
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+    let width = parseFloat(layer.paddingLeft) + parseFloat(layer.paddingRight);
+    let parts = 0;
+    for (const part of Array.from(row.children) as HTMLElement[]) {
+      if (getComputedStyle(part).display === 'none') continue;
+      if (parts > 0) width += gap;
+      width += part.scrollWidth;
+      parts += 1;
+    }
+    if (was === undefined) delete element.dataset.room;
+    else element.dataset.room = was;
+    return Math.ceil(width);
+  }
+
+  /** Returns the widest density that fits within available width. */
+  function densityFor(element: HTMLElement, width: number): Density {
+    for (const density of DENSITIES) if (readingWidth(element, density) <= width) return density;
+    return 'tight';
+  }
 
   /** The measured width of the dead space beside the slot — the notch's room. */
   function measure(): void {
@@ -30,10 +66,19 @@
     const group = element.closest('.cd-titlebar')?.querySelector('.cd-titlebar__group');
     if (!group) return;
     const space = Math.round(slot.getBoundingClientRect().right - group.getBoundingClientRect().right - 12);
-    element.style.setProperty('--a-w', `${Math.min(440, Math.max(156, space))}px`);
-    room = space >= 430 ? 'wide' : space >= 330 ? 'mid' : 'tight';
-    /* the flare is a 20px blob on each side and needs that much clearance */
-    flare = space >= 240;
+    /* Clamp width between 156px and available space, expanding past 440px
+       if wide content needs extra room and space permits. */
+    const width = Math.min(Math.max(156, space), Math.max(440, readingWidth(element, 'wide')));
+    element.style.setProperty('--a-w', `${width}px`);
+    /* Select density dynamically based on content width to avoid clipping. */
+    room = densityFor(element, width);
+    /* Left fillet needs 20px clearance to titlebar items; right fillet needs
+       8px clearance to the next control to prevent overlapping it. */
+    const next = element.nextElementSibling;
+    const clearanceLeft = space + 12 - width;
+    const clearanceRight = next ? next.getBoundingClientRect().left - slot.getBoundingClientRect().right : 0;
+    flareLeft = clearanceLeft >= 20;
+    flareRight = clearanceRight >= 8;
   }
 
   $effect(() => {
@@ -45,6 +90,14 @@
     const bar = element.closest('.cd-titlebar');
     if (bar) observer.observe(bar);
     return () => observer.disconnect();
+  });
+
+  /* Re-measure when clock string length changes (e.g. digit added)
+     or a target is set, rather than on every second tick. */
+  $effect(() => {
+    void clock.length;
+    void targetMin;
+    measure();
   });
 
   /** The slot opens on hover, on keyboard focus, on a pin, or for the ask. */
@@ -88,7 +141,8 @@
       bind:this={root}
       data-state={paused ? 'paused' : 'run'}
       data-room={room}
-      data-flare={flare ? '1' : '0'}
+      data-flare-l={flareLeft ? '1' : '0'}
+      data-flare-r={flareRight ? '1' : '0'}
     >
     <div
       class="vtca__slot"
@@ -306,7 +360,8 @@
   }
   .vtca__panel::after {
     left: 100%;
-    border-top-left-radius: var(--r-tile);
+    /* 7px radius matches the 8px gap to the adjacent control without clipping. */
+    border-top-left-radius: 7px;
     box-shadow: -10px -10px 0 10px var(--ink);
   }
   .vtca__slot:is(:hover, :focus-within, [data-mode='open'], [data-mode='confirm']) .vtca__panel::before,
@@ -314,8 +369,9 @@
     opacity: 1;
     transition-delay: var(--dur-1);
   }
-  .vtca[data-flare='0'] .vtca__panel::before,
-  .vtca[data-flare='0'] .vtca__panel::after {
+  /* Hide side fillets when clearance checks fail. */
+  .vtca[data-flare-l='0'] .vtca__panel::before,
+  .vtca[data-flare-r='0'] .vtca__panel::after {
     display: none;
   }
 

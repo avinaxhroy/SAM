@@ -245,13 +245,20 @@
 </script>
 
 <div class="v-fit tfa">
-  <header class="tf-head">
-    <h1 class="tf-greet">{greeting}</h1>
-    <p class="tf-date">{dateLine}</p>
-  </header>
+  <!-- Card header with greeting and date, shared by active and clear card states. -->
+  {#snippet masthead()}
+    <header class="cd-card__head">
+      <span class="cd-ictile"><Icon name="calendar" /></span>
+      <div>
+        <h1 class="cd-card__title">{greeting}</h1>
+        <p class="cd-card__sub">{dateLine}</p>
+      </div>
+    </header>
+  {/snippet}
 
   {#if mode === 'clear'}
     <div class="tf-plank xa-plank">
+      {@render masthead()}
       <div class="tf-id">
         <p class="tf-eyebrow">
           <span class="tf-mark" aria-hidden="true"><Icon name="check" size={13} /></span>
@@ -268,6 +275,7 @@
     </div>
   {:else}
     <div class="cd-card xa-card">
+      {@render masthead()}
       <div class="tf-id">
         <p class="tf-eyebrow">
           {#if course}
@@ -326,30 +334,15 @@
 </div>
 
 <style>
-  /* Variant root stack: separates greeting masthead from focus card. */
   .tfa {
     display: grid;
     align-content: start;
-    gap: var(--space-xl);
   }
-  /* ── the head: the frame, one step under the object ─────────────────── */
-  .tf-head {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-md);
-  }
-  .tf-greet {
-    margin: 0;
-    color: var(--ink-2);
-    font-size: calc(var(--text-xl) * var(--ui-s));
-    font-weight: var(--weight-display);
-    letter-spacing: var(--track-display);
-    line-height: 1.05;
-  }
-  .tf-date {
-    margin: 0;
-    font-size: calc(var(--text-xs) * var(--ui-s));
-    color: var(--ink-3);
+  /* Span full card width and let container row-gap handle bottom spacing. */
+  .xa-card .cd-card__head,
+  .xa-plank .cd-card__head {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
   }
 
   /* ── the object · four slots ────────────────────────────────────────── */

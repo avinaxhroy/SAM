@@ -84,3 +84,17 @@
   gap: var(--space-2xs);
   align-items: center;
 }
+
+/* Layout spacing for Today:
+   - 64px (--space-4xl) gap between session card and the queue / coming-up band.
+   - 48px (--space-3xl) gap between queue card and weekly chart.
+   - Resets .cd-card top margin to avoid compounding with grid/stack gaps. */
+.tw-day {
+  gap: var(--space-4xl);
+}
+.tw-day .cd-grid-2 > .cd-stack {
+  gap: var(--space-3xl);
+}
+.tw-day .cd-card + .cd-card {
+  margin-top: 0;
+}

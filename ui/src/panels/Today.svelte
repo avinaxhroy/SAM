@@ -287,7 +287,7 @@
     </section>
   </div>
 {:else}
-  <div class="cd-stack">
+  <div class="cd-stack tw-day">
   {#if needsWork}
     <!-- Work's door: a course is in the plan and nothing hangs under it, so
          the focus slot carries the one addition that starts the loop instead

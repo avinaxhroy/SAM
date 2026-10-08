@@ -95,12 +95,12 @@
   }
 </script>
 
-<section class="tqb v-fit" id="today-queue">
-  <header class="cd-card__head tqb-head">
+<section class="cd-card tqb v-fit" id="today-queue">
+  <header class="cd-card__head">
     <span class="cd-ictile"><Icon name="checklist" /></span>
     <div>
-      <h2 class="cd-card__title">The day's queue</h2>
-      <p class="cd-card__sub">{queueSize(groups)} · {workLine(rows)}</p>
+      <h2 class="cd-card__title">The day’s queue</h2>
+      <!-- Subtitle omitted because the filter strip below displays counts. -->
     </div>
     <span class="cd-card__spacer"></span>
     <button
@@ -116,7 +116,7 @@
   </header>
 
   {#if rows.length === 0}
-    <div class="cd-dashed tqb-empty">
+    <div class="cd-dashed">
       <b>Nothing on the stack</b>
       <span>Nothing is due, late or next in this plan.</span>
     </div>
@@ -248,22 +248,8 @@
 </section>
 
 <style>
-  /* ── THE SECTION HEAD IS ON THE SURFACE (owner's call, 2026-09-30) ────────
-     Same change as A: the card around the head and the strip was a box drawn
-     around a title, so the head stands on the sheet and the strip it introduces
-     is the object. The horizontal insets the card used to pay for are gone with
-     it, so the title, the strip and the rows share one left edge. */
   .tqb {
     overflow: clip;
-  }
-  .tqb-head {
-    padding: 0;
-  }
-  .tqb-head.cd-card__head {
-    margin-bottom: var(--ui-gap);
-  }
-  .tqb-empty {
-    margin: 0;
   }
   .tqb-strip,
   .tqb-answer {
@@ -422,10 +408,9 @@
     animation-delay: calc(var(--i, 0) * 25ms);
   }
 
-  /* Narrower than a reading column the row stacks its right-hand cluster: the
-     facts keep the first line, the doors take a second one at the right edge.
-     Nothing is hidden — the course, the state and the minutes all stay. */
-  @container (max-width: 520px) {
+  /* At narrow widths (< 472px container, i.e. 520px column minus 48px padding),
+     stack action buttons onto a second line. */
+  @container (max-width: 472px) {
     .tqb-row {
       grid-template-columns: auto minmax(0, 1fr) auto calc(76px * var(--ui-s));
       grid-template-areas:

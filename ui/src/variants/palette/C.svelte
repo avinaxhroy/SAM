@@ -232,21 +232,18 @@
     transition-timing-function: var(--pa-leave);
   }
 
-  /* Search input field. */
+  /* Search field wrapper: padding is zeroed so the inner field spans full width. */
   .cd-palette__field {
     height: calc(58px * var(--ui-s));
-    padding: 0 var(--ui-pad);
+    padding: 0;
   }
   .pa-pl__field {
     align-self: stretch;
     height: auto;
-    padding: 0;
-    /* The field is the card's own head: it stretches to the card's top edge, so
-       its box reaches the top corners and it wears the corner it sits in
-       (`--r-card` less the field's own inline padding). A focused field's ring —
-       drawn 2px inside, which shrinks its radius by the same 2px — then runs
-       concentric with the card's clip instead of being squared off under it. */
-    border-radius: calc(var(--r-card) - var(--ui-pad)) calc(var(--r-card) - var(--ui-pad)) 0 0;
+    padding: 0 var(--ui-pad);
+    /* Flush with card header edges so top corners match card radius (--r-card)
+       and the inset focus ring curves concentrically with the card boundary. */
+    border-radius: var(--r-card) var(--r-card) 0 0;
     font-size: calc(var(--text-md) * var(--ui-s));
     letter-spacing: var(--track-body);
   }

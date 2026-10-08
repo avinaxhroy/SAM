@@ -3,124 +3,28 @@
     <img src="src-tauri/icons/icon.png" width="128" height="128" alt="SAM Logo" />
   </a>
 </p>
-<p align="center">
-  <a href="https://github.com/avinaxhroy/SAM/releases">
-    <img src="https://img.shields.io/badge/Download%20SAM-Latest%20Release-238636?style=for-the-badge&logo=github&logoColor=white" alt="Download SAM" />
-  </a>
-</p>
+
 <h1 align="center">SAM</h1>
 
 <p align="center">
-  A desktop study OS and command-line tool that links course syllabi, practice problems, and spaced reviews into a single system.
+  <img src="today.png" alt="SAM Today Preview" />
 </p>
 
-Most study setups isolate these pieces: to-do lists do not understand syllabus prerequisites, flashcard apps disconnect questions from the course context, and spreadsheets break down once you need review schedulers or session timers.
+<p align="center">
+  A configurable, local-first study OS for desktop and terminal.
+</p>
 
-SAM organizes your curriculum into a concrete loop: you learn a topic, prove understanding by solving practice problems, and retain it through spaced repetition scheduled directly against your course outline.
+<p align="center">
+  <a href="https://github.com/avinaxhroy/SAM/releases">
+    <img src="https://raw.githubusercontent.com/rubenpgrady/get-it-on-github/refs/heads/main/get-it-on-github.png" alt="Get it on GitHub" width="160" height="62" />
+  </a>
+</p>
 
----
+Most study tools enforce one rigid workflow: to-do lists that know nothing about course prerequisites, flashcard apps disconnected from syllabi, or opinionated dashboard apps that assume everyone studies the same way.
 
-## How to use SAM
+Real studying differs across disciplines. A medical student drilling anatomy flashcards does not work like an engineering student working through problem sets, and a university student managing weekly lecture milestones does not work like an autodidact reading through technical books.
 
-### 1. Set up your syllabus (Plan and Subjects)
-
-Add your courses (e.g. Discrete Mathematics, Computer Systems) with credits and instructor notes. Break each course into units or weeks, then add topics. Topics hold estimated study durations, topic kinds (watch, read, practice, revise), and links to external materials like lecture videos or textbook chapters.
-
-### 2. Work from the daily queue (Today)
-
-The **Today** screen is your starting point:
-
-- **Focus card**: Highlights the single next item to work on, backed by an objective reason (due date, syllabus sequence, or late status) rather than an arbitrary priority score.
-- **Session timer**: Click **Start** to run the titlebar timer. When you finish, elapsed minutes save directly to the active topic and parent course.
-- **Queue groups**: Remaining work is organized into `late`, `due`, `next`, and `stale` groups so you can work straight down the list.
-
-### 3. Practice and reviews
-
-Sitting through material does not guarantee retention:
-
-- **Practice (Proof gates)**: Topics advance from `learned` to `proved` once you satisfy proof gates (by default, logging 2 solved problems) or track standalone problem sets with accuracy metrics.
-- **Reviews (Spaced repetition)**: Proved topics enter a scheduled recall queue (`Space` to reveal, `1` Again, `2` Good) scheduled via SM-2, FSRS-6, or fixed ladders.
-
-### 4. Check progress and handle gaps (Progress)
-
-The **Progress** screen replaces streak counters with four denominator-backed ratios: revised topics out of total syllabus items, solved problems against targets, logged study minutes, and ceiling-benchmarked subject charts.
-
-If you step away for 3 or more days, SAM detects the gap on launch and offers a phased catch-up schedule to spread backlogged reviews over upcoming days.
-
----
-
-## Four interaction surfaces
-
-Every capability in SAM is accessible across four surfaces:
-
-| Surface | Interface | How to use it |
-|---|---|---|
-| **Click** | Desktop app | Graphical controls, tables, boards, and timers in Svelte 5. |
-| **Name** | Command palette | Press `⌘K` (or `Ctrl+K`) to search screens, run commands, or use quick capture (`a`). |
-| **Text** | File system | Edit JSON and JSONL files in your editor; the watcher reloads within ~150ms. |
-| **Terminal** | Headless CLI | Run `sam <command-id>` for headless automation and scripting. |
-
----
-
-## Authoring study plans with AI
-
-You can design and populate study plans with AI without installing extra skills or plugins. Plans can be stored in **any directory of your choice** using `--plan <directory>`.
-
-### 1. With an AI Coding Agent (Claude Code, Cursor, Windsurf, OpenHands, Antigravity)
-
-Paste this prompt directly into your coding agent's chat or terminal:
-
-```text
-Create a study plan for [my learning goal or syllabus] in ./my-plan using SAM. Follow the workflow in https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md:
-1. Initialize the plan folder: sam plan.new --plan ./my-plan
-2. Query active schema and options: sam --schema --json --plan ./my-plan
-3. Break down the curriculum into courses, weeks, and topics, staging them in /tmp/batch.jsonl
-4. Test with sam apply /tmp/batch.jsonl --dry-run --plan ./my-plan and commit with sam apply /tmp/batch.jsonl --plan ./my-plan
-5. Verify today's queue: sam today.view --plan ./my-plan
-```
-
-The agent executes these native CLI commands autonomously and populates your study plan end-to-end.
-
-### 2. With a Chatbot (ChatGPT, Claude, Gemini)
-
-Paste this prompt into your chatbot along with your syllabus, textbook outline, or study goal:
-
-```text
-Convert the following syllabus or learning goal into a SAM batch.jsonl file strictly following the specification at https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md:
-
-[Paste your syllabus, course outline, or learning goal here]
-```
-
-Then initialize your plan folder and import the generated file:
-
-```bash
-# 1. Initialize a clean plan in any folder of your choice
-sam plan.new --plan ./my-plan
-
-# 2. Preview and validate the generated records (dry run)
-sam apply batch.jsonl --dry-run --plan ./my-plan
-
-# 3. Ingest the records into your plan
-sam apply batch.jsonl --plan ./my-plan
-```
-
-The desktop app automatically detects the new records via its debounced file watcher (~150ms) and updates the **Plan**, **Subjects**, and **Today** views without restarting.
-
-See [`docs/ai-agents.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md) for the complete terminal automation guide and [`docs/ai-prompt.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md) for the token-optimized schema specification.
-
----
-
-## Keyboard shortcuts
-
-| Shortcut | Context | Action |
-|---|---|---|
-| `⌘K` / `Ctrl+K` | Global | Open command palette / search records |
-| `a` | Global | Quick capture a new task or topic |
-| `⌘Z` / `Ctrl+Z` | Global | Undo last persisted mutation (restores exact file bytes) |
-| `Space` | Reviews | Reveal recall card answer |
-| `1` | Reviews | Grade recall as **Again** |
-| `2` | Reviews | Grade recall as **Good** |
-| `Esc` | Global | Close open sheet, palette, or cancel draft |
+SAM is built as an operating system rather than a fixed dashboard. It stores your curriculum as plain JSON and line-delimited records on disk, lets you assemble custom screens with a drag-and-drop widget composer, and lets you choose how progress is measured for each subject.
 
 ---
 
@@ -128,50 +32,40 @@ See [`docs/ai-agents.md`](https://github.com/avinaxhroy/SAM/blob/main/docs/ai-ag
 
 ### Prebuilt releases
 
-Download prebuilt binaries for macOS, Windows, and Linux from [GitHub Releases](https://github.com/avinaxhroy/SAM/releases):
+Download prebuilt binaries for macOS, Windows, and Linux from [GitHub Releases](https://github.com/avinaxhroy/SAM/releases).
 
-[![Download SAM](https://img.shields.io/badge/Download-SAM%20Releases-238636?style=for-the-badge&logo=github&logoColor=white)](https://github.com/avinaxhroy/SAM/releases)
+#### macOS installation
 
-#### macOS: bypassing the "damaged app" warning
-
-The DMG is not code-signed (no Apple Developer Program membership yet), so after downloading from a browser, macOS Gatekeeper may show **"'SAM' is damaged and can't be opened. You should move it to the Bin."** The app is fine — Gatekeeper is rejecting the missing signature, not reporting real corruption.
-
-Fix it either way:
-
-```bash
-# If the DMG itself won't mount ("damaged"), strip its flag first:
-xattr -d com.apple.quarantine ~/Downloads/SAM_0.1.0-beta_aarch64.dmg
-
-# Option A: after dragging SAM to /Applications, strip the quarantine flag
-xattr -cr /Applications/SAM.app
-```
-
-**Option B:** download the DMG with `curl` instead of a browser — no quarantine flag is ever set:
-
-```bash
-curl -L -o ~/Downloads/SAM.dmg https://github.com/avinaxhroy/SAM/releases/latest/download/SAM_0.1.0-beta_aarch64.dmg && open ~/Downloads/SAM.dmg
-```
-
-Or install via Homebrew — the cask strips the quarantine flag for you, no manual step needed:
+Install via Homebrew:
 
 ```bash
 brew install --cask avinaxhroy/tap/sam
 ```
 
+Or download the DMG directly. Because releases are not code-signed yet, strip the quarantine flag if Gatekeeper blocks launch:
+
+```bash
+# If the downloaded DMG will not open:
+xattr -d com.apple.quarantine ~/Downloads/SAM_*.dmg
+
+# Or strip the flag after dragging SAM to /Applications:
+xattr -cr /Applications/SAM.app
+```
+
+#### Windows and Linux
+
+Download the installer or `.AppImage` / `.deb` from the releases page and launch it directly.
 
 ### Building from source
 
-#### Prerequisites
+Prerequisites:
 
-- **Rust**: 1.80 or newer (uses 2024 edition).
-- **Node.js**: v20 or newer.
-- **pnpm**: v9 or newer.
-- **Linux dependencies** (Linux only): WebKit2GTK development headers (`libwebkit2gtk-4.1-dev` on Debian/Ubuntu).
-
-### Build and run
+- Rust 1.80 or newer (2024 edition)
+- Node.js v20 or newer, with pnpm v9 or newer
+- Linux only: `libwebkit2gtk-4.1-dev` headers
 
 ```bash
-# 1. Install frontend dependencies and build web assets
+# 1. Install frontend dependencies and build assets
 pnpm -C ui install
 pnpm -C ui build
 
@@ -185,34 +79,62 @@ cargo tauri dev
 ./target/release/sam help
 ```
 
-On first launch without an existing plan, SAM presents a start screen where you can choose a preset or create a blank plan folder.
+On first launch without an existing plan, SAM opens a starter screen to select a preset or create a blank plan folder.
 
 ---
 
-## Command-line interface
+## Screen Composer
 
-Every graphical action maps to an engine command ID in the headless `sam` binary:
+Every screen in the desktop app can be modified or built from scratch using the Screen Composer.
+
+Click the pencil icon in the titlebar (or create a new screen from the sidebar) to enter edit mode:
+
+- **12 built-in widgets**: Focus card, daily queue, course list, plan spine, practice problem bank, review queue, recall card, seven-day chart, upcoming dates, weekly progress figures, mock exam calendar, and reference library.
+- **Grid widths**: Toggle any widget between half-width (`span: 1`) and full-width (`span: 2`).
+- **Inline design variants**: Cycle component styles with the `‹` and `›` chevrons directly on the widget frame.
+- **Reordering and deletion**: Drag widgets into position. Deletions show an undo toast receipt.
+- **One-click reset**: Revert any preset screen back to its default layout at any time.
+
+Screen layouts persist to `content/views.json` through atomic file transactions. Every layout change supports undo (`⌘Z` or `Ctrl+Z`).
+
+---
+
+## Pluggable study methods
+
+How you complete work is defined by progression pipelines in `content/rules.json`. Different entity types can use different completion rules:
+
+- `check`: Simple done or not-done state. Suitable for reading lists, lectures, and task outlines.
+- `pages`: Page tracking for books and articles (`reading` → `read`).
+- `progress`: Multi-step coursework and projects (`started` → `midway` → `done`).
+- `flip`: Lecture and proof workflow (`learned` → `proved` → `anchored`). Topics require target numbers of solved problems before unlocking the proved stage.
+- `srs`: Spaced repetition (`new` → `learning` → `review` → `mature`), driven by recall ratings.
+
+Switch an entity's pipeline at any time without losing historical progress:
 
 ```bash
-# Inspect the current plan and today's queue
-sam today.view --plan ./my-plan
-sam paths --plan ./my-plan --json
-
-# Add a topic and advance it past the proof gate
-sam topic.new --title "Graph Traversal" --kind practice --est 45 --course c.cs.dsa --plan ./my-plan
-sam record.advanceStage --id topic.r1 --stage proved --problems 2 --plan ./my-plan
-
-# Log a spaced review rating (calculates next due date)
-sam record.logReview --id topic.r1 --rating good --plan ./my-plan
-
-# Apply batch updates or validate configuration
-sam apply updates.jsonl --plan ./my-plan
-sam configcheck --plan ./my-plan
+sam type.setPipeline topic --pipeline check --map learned=done --map proved=done --plan ./my-plan
 ```
 
-Standard exit codes signal status: `0` (success), `1` (validation or proof gate error), `2` (usage), `3` (concurrency conflict), `4` (I/O error).
+### Review schedulers
 
-For batch transactions via stdin, optimistic concurrency flags, and the full command reference, see [`docs/cli.md`](docs/cli.md).
+When an item enters a review queue, next intervals calculate through your chosen scheduler in `rules.json`:
+
+- **FSRS-6**: Embedded Rust implementation of the Free Spaced Repetition Scheduler, using 21 configurable weights to model memory stability and retrievability.
+- **SuperMemo-2 (`sm2`)**: Traditional ease factor and repetition intervals.
+- **Fixed ladders (`fixed`)**: Explicit day intervals (by default, `[1, 7, 30]` days).
+
+---
+
+## Four interaction surfaces
+
+Every engine capability is accessible across four surfaces:
+
+| Surface      | Interface       | How to use it                                                                         |
+| ------------ | --------------- | ------------------------------------------------------------------------------------- |
+| **Click**    | Desktop app     | Graphical controls, tables, boards, and timers in Svelte 5.                           |
+| **Name**     | Command palette | Press `⌘K` (or `Ctrl+K`) to search screens, run commands, or use quick capture (`a`). |
+| **Text**     | File system     | Edit JSON and `.jsonl` files in your editor; the watcher reloads within ~150ms.       |
+| **Terminal** | Headless CLI    | Run `sam <command-id>` for scripting and automation.                                  |
 
 ---
 
@@ -224,7 +146,7 @@ A study plan is a standard directory on your computer:
 my-plan/
 ├── content/
 │   ├── types.json          # Entity schemas (course, topic, session, problemset)
-│   ├── views.json          # Screen layouts, block arrangements, and saved filters
+│   ├── views.json          # Screen layouts, block arrangements, and composer widgets
 │   ├── rules.json          # Schedulers, progression pipelines, and proof gates
 │   ├── shell.json          # Navigation destinations and icons
 │   ├── appearance.json     # Pinned theme and font scaling
@@ -237,40 +159,127 @@ my-plan/
 └── index.sqlite            # Read-only SQLite search cache (auto-generated)
 ```
 
-- Records are stored as line-delimited JSON (`.jsonl`). Each line is a self-contained record, producing clean Git diffs.
-- Plans live by default in your platform application data directory:
-  - **macOS**: `~/Library/Application Support/SAM/plans/<Plan Name>`
-  - **Linux**: `~/.local/share/SAM/plans/<Plan Name>`
-  - **Windows**: `%APPDATA%\SAM\plans\<Plan Name>`
-- You can target any custom directory with `--plan <path>`.
+Records are stored as line-delimited JSON (`.jsonl`). Each line is a self-contained record, producing clean Git diffs.
+
+Plans live by default in your platform application data directory:
+
+- **macOS**: `~/Library/Application Support/SAM/plans/<Plan Name>`
+- **Linux**: `~/.local/share/SAM/plans/<Plan Name>`
+- **Windows**: `%APPDATA%\SAM\plans\<Plan Name>`
+
+Target any custom directory with `--plan <path>`.
 
 ---
 
-## Presets
+## Bundled presets
 
-SAM includes 8 curriculum presets:
+SAM includes 8 curriculum starters:
 
-- `blank`: Empty schema ready for custom courses.
-- `university-term`: College semester with courses, units, topics, weekly schedules, and credits.
-- `self-study`: Milestone-oriented plan for online courses, textbook reading, and practical projects.
+- `blank`: Empty schema ready for custom entity definitions.
+- `university-term`: Traditional semester with courses, units, topics, weekly schedules, and credits.
+- `self-study`: Milestone-oriented plan for independent courses, books, and practical projects.
 - `jee`: High-volume problem practice across Physics, Chemistry, and Mathematics with accuracy metrics.
 - `neet`: High-retention medical entrance syllabus covering Biology, Chemistry, and Physics paired with FSRS.
 - `cbse11-pcm`: Class 11 secondary curriculum mapped to standard textbook chapters.
-- `language`: Foreign language vocabulary drills, grammar rules, reading logs, and listening practice.
+- `language`: Vocabulary acquisition, grammar rules, reading logs, and listening practice.
 - `seed`: Reference starter with sample records used for engine tests.
 
-See [`docs/presets.md`](docs/presets.md) for preset customization and authoring guides.
+Create a plan from any preset:
+
+```bash
+sam plan.new --name "Computer Systems" --preset university-term --plan ./my-plan
+```
+
+See [`docs/presets.md`](docs/presets.md) for customization guides.
 
 ---
 
-## Customizing schemas and rules
+## Command-line interface
 
-Customize your plan by editing files under `content/`:
+Every graphical action maps to a command ID in the headless `sam` binary:
 
-- **Add entity types (`content/types.json`)**: Define custom entities (e.g. `problemset`, `lab`) with typed fields, relations, and computed formula expressions.
-- **Configure proof gates and review engines (`content/rules.json`)**: Adjust stage pipelines (e.g. change required proof problem counts) or switch schedulers (`fixed`, `sm2`, or `fsrs` with custom retention targets).
+```bash
+# Inspect the current plan and today's queue
+sam today.view --plan ./my-plan
+sam paths --plan ./my-plan --json
 
-See [`docs/content-model.md`](docs/content-model.md) for the complete schema specification and expression syntax.
+# Add a topic and advance it past a proof gate
+sam topic.new --title "Graph Traversal" --kind practice --est 45 --course c.cs.dsa --plan ./my-plan
+sam record.advanceStage --id topic.r1 --stage proved --problems 2 --plan ./my-plan
+
+# Log a review rating (calculates next due date)
+sam record.logReview --id topic.r1 --rating good --plan ./my-plan
+
+# Apply batch updates or validate configuration
+sam apply updates.jsonl --plan ./my-plan
+sam configcheck --plan ./my-plan
+```
+
+Standard exit codes signal status: `0` (success), `1` (validation or proof gate error), `2` (usage), `3` (concurrency conflict), `4` (I/O error).
+
+See [`docs/cli.md`](docs/cli.md) for batch transactions via stdin and optimistic concurrency options.
+
+---
+
+## Authoring study plans with AI
+
+SAM exposes schema introspection and atomic batch ingestion via the CLI, so you can populate plans with AI coding agents or standard chatbots without special plugins.
+
+### 1. With an AI coding agent (Claude Code, Cursor, Windsurf, OpenHands, Antigravity)
+
+Paste this prompt into your agent's chat or terminal:
+
+```text
+Create a study plan for [my learning goal or syllabus] in ./my-plan using SAM. Follow the workflow in https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md:
+1. Initialize the plan folder: sam plan.new --plan ./my-plan
+2. Query active schema and options: sam --schema --json --plan ./my-plan
+3. Break down the curriculum into courses, weeks, and topics, staging them in /tmp/batch.jsonl
+4. Test with sam apply /tmp/batch.jsonl --dry-run --plan ./my-plan and commit with sam apply /tmp/batch.jsonl --plan ./my-plan
+5. Verify today's queue: sam today.view --plan ./my-plan
+```
+
+The agent runs these CLI commands directly and populates your study plan.
+
+### 2. With a chatbot (ChatGPT, Claude, Gemini)
+
+Generate a batch file using the schema specification at [`docs/ai-prompt.md`](docs/ai-prompt.md):
+
+```text
+Convert the following syllabus or learning goal into a SAM batch.jsonl file strictly following the specification at https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md:
+
+[Paste your syllabus, course outline, or learning goal here]
+```
+
+Ingest the generated file:
+
+```bash
+# 1. Initialize a plan in any folder
+sam plan.new --plan ./my-plan
+
+# 2. Preview and validate records (dry run)
+sam apply batch.jsonl --dry-run --plan ./my-plan
+
+# 3. Commit records to disk
+sam apply batch.jsonl --plan ./my-plan
+```
+
+The desktop app detects the new records via its file watcher (~150ms) and updates active views without restarting.
+
+See [`docs/ai-agents.md`](docs/ai-agents.md) for terminal workflows and [`docs/ai-prompt.md`](docs/ai-prompt.md) for the schema specification.
+
+---
+
+## Keyboard shortcuts
+
+| Shortcut        | Context | Action                                                   |
+| --------------- | ------- | -------------------------------------------------------- |
+| `⌘K` / `Ctrl+K` | Global  | Open command palette / search records                    |
+| `a`             | Global  | Quick capture a new task or topic                        |
+| `⌘Z` / `Ctrl+Z` | Global  | Undo last persisted mutation (restores exact file bytes) |
+| `Space`         | Reviews | Reveal recall card answer                                |
+| `1`             | Reviews | Grade recall as **Again**                                |
+| `2`             | Reviews | Grade recall as **Good**                                 |
+| `Esc`           | Global  | Close open sheet, palette, or cancel draft               |
 
 ---
 

@@ -88,6 +88,9 @@
     measure();
   });
 
+  /** Total queue count and estimated duration string for the header. */
+  const dayLine = $derived(`${queueSize(groups)} · ${workLine(rows)}`);
+
   const answer = $derived(
     slice.length === 0
       ? 'nothing left'
@@ -112,12 +115,12 @@
   }
 </script>
 
-<section class="tqc v-fit" id="today-queue">
-  <header class="cd-card__head tqc-head">
+<section class="cd-card tqc v-fit" id="today-queue">
+  <header class="cd-card__head">
     <span class="cd-ictile"><Icon name="checklist" /></span>
     <div>
-      <h2 class="cd-card__title">The day's queue</h2>
-      <p class="cd-card__sub">{queueSize(groups)} · {workLine(rows)}</p>
+      <h2 class="cd-card__title">The day’s queue</h2>
+      <p class="cd-card__sub">{dayLine}</p>
     </div>
     <span class="cd-card__spacer"></span>
     <button
@@ -133,7 +136,7 @@
   </header>
 
   {#if rows.length === 0}
-    <div class="cd-dashed tqc-empty">
+    <div class="cd-dashed">
       <b>Nothing on the stack</b>
       <span>Nothing is due, late or next in this plan.</span>
     </div>
@@ -174,7 +177,8 @@
     </div>
 
     <p class="tqc-answer" aria-live="polite">
-      <span class="num">{answer}</span>
+      <!-- Hide filter summary when all items match, avoiding duplication with header. -->
+      <span class="num">{answer === dayLine ? '' : answer}</span>
     </p>
 
     <div
@@ -252,22 +256,8 @@
 </section>
 
 <style>
-  /* ── THE SECTION HEAD IS ON THE SURFACE (owner's call, 2026-09-30) ────────
-     Same change as A and B: the card held nothing but the head, the three
-     state pills and the list, so the head stands on the sheet and the pills are
-     the object. The card's horizontal insets went with it, which is what keeps
-     the title, the pills and the rows on one left edge. */
   .tqc {
     overflow: clip;
-  }
-  .tqc-head {
-    padding: 0;
-  }
-  .tqc-head.cd-card__head {
-    margin-bottom: var(--ui-gap);
-  }
-  .tqc-empty {
-    margin: 0;
   }
 
   /* ── the three pills and the one thumb ───────────────────────────────── */
@@ -417,7 +407,8 @@
     display: none;
   }
 
-  @container (max-width: 520px) {
+  /* Container width < 472px (520px column minus 48px padding). */
+  @container (max-width: 472px) {
     .tqc-row {
       grid-template-columns: auto minmax(0, 1fr) calc(76px * var(--ui-s));
       grid-template-areas:

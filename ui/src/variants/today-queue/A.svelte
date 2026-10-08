@@ -1,11 +1,11 @@
-<!-- TODAY · The Day's Queue · A · The Working Stack. Stacked card queue with active item lifted above the pile. -->
+<!-- TODAY · The Day's Queue · A · The Day's Weight.
+     Queue items sized proportionally to duration estimates, with active task featured above. -->
 <script lang="ts">
   import Icon from '../../shell/Icon.svelte';
   import {
     courseOf,
     isDated,
-    minutesText,
-    minutesWords,
+    plural,
     queueSize,
     stateOf,
     stateWord,
@@ -32,9 +32,33 @@
 
   /** The thing being worked on — the student's own press, never a re-order. */
   let liftedId = $state<string | null>(null);
-
   const lift = $derived(rows.find((row) => row.item.id === liftedId) ?? rows[0] ?? null);
   const rest = $derived(rows.filter((row) => row !== lift));
+
+  /* Groups for remaining items; empty groups are omitted. */
+  const bands = $derived(
+    groups
+      .map((group) => ({ group, rows: rest.filter((row) => row.group === group.id) }))
+      .filter((band) => band.rows.length > 0),
+  );
+
+  /* Fold overflow items for later groups ('next', 'stale') after 4 items. */
+  const FOLD_AFTER = 4;
+  const LATER = new Set(['next', 'stale']);
+  let opened = $state<Record<string, boolean>>({});
+  const folds = (band: { group: { id: string }; rows: QueueRow[] }): boolean =>
+    LATER.has(band.group.id) && band.rows.length > FOLD_AFTER && !opened[band.group.id];
+  const shown = (band: { group: { id: string }; rows: QueueRow[] }): QueueRow[] =>
+    folds(band) ? band.rows.slice(0, FOLD_AFTER) : band.rows;
+  const behind = (band: { rows: QueueRow[] }): QueueRow[] => band.rows.slice(FOLD_AFTER);
+
+  /* Scale row height by estimated duration (40px base + 0.8px/min), clamped
+     between 56px and 120px. Defaults to 56px when unestimated. */
+  const blockH = (row: QueueRow): number => {
+    const est = row.item.est;
+    if (est === null) return 56;
+    return Math.round(Math.min(120, Math.max(56, 40 + est * 0.8)));
+  };
 
   /** The running session's clock. Ticks only while a session runs. */
   let now = $state(Date.now());
@@ -52,21 +76,31 @@
         })(),
   );
 
+  /** Course and due date metadata line. */
+  const metaOf = (row: QueueRow): string => {
+    const course = courseOf(row.item);
+    const word = isDated(stateOf(row.group)) ? stateWord(row.item) : null;
+    return [course?.label, word].filter(Boolean).join(' · ');
+  };
+
   const reading = (row: QueueRow): string => {
     const place = rows.indexOf(row) + 1;
     return (
-      `${titleOf(row.item)} — ${place} of ${rows.length} on the stack, ` +
-      `${minutesWords(row.item)}${stateWord(row.item) ? `, ${stateWord(row.item)}` : ''}`
+      `${titleOf(row.item)} — ${place} of ${rows.length} in the day’s queue, ` +
+      `${row.item.est === null ? 'no estimate' : `${row.item.est} minutes`}` +
+      `${stateWord(row.item) ? `, ${stateWord(row.item)}` : ''}`
     );
   };
 </script>
 
-<section class="tqa v-fit" id="today-queue">
-  <header class="cd-card__head tqa-head">
+<section class="cd-card tqa v-fit" id="today-queue">
+  <header class="cd-card__head">
     <span class="cd-ictile"><Icon name="checklist" /></span>
     <div>
-      <h2 class="cd-card__title">The day's queue</h2>
-      <p class="cd-card__sub">{queueSize(groups)} on the stack · {workLine(rows)}</p>
+      <h2 class="cd-card__title">The day’s queue</h2>
+      {#if rows.length > 0}
+        <p class="cd-card__sub">{queueSize(groups)} · {workLine(rows)}</p>
+      {/if}
     </div>
     <span class="cd-card__spacer"></span>
     <button
@@ -82,62 +116,63 @@
   </header>
 
   {#if rows.length === 0}
-    <div class="cd-dashed tqa-empty">
-      <b>Nothing on the stack</b>
+    <div class="cd-dashed">
+      <b>Nothing in the queue</b>
       <span>Nothing is due, late or next in this plan.</span>
     </div>
   {:else if lift}
-    {@const state = stateOf(lift.group)}
-    {@const course = courseOf(lift.item)}
-    {@const word = stateWord(lift.item)}
+    {@const liftMeta = metaOf({ item: lift.item, group: lift.group, label: lift.label })}
     <div class="tqa-body">
-    <div class="tqa-lift">
-      <span class="tqa-tick" data-s={state} aria-hidden="true"><i></i></span>
-      <div class="tqa-lift__main">
-        <span class="tqa-lift__t">{titleOf(lift.item)}</span>
-        <span class="tqa-lift__meta">
-          {#if course}
-            <span class="cd-chip cd-chip--code" data-w={course.wash}>{course.label}</span>
+      <!-- THE THING BEING WORKED. The day's one block that carries controls,
+           so it is a `div` and not a button, in the app's own selected fill
+           (`collection.css` §3) rather than a fill of this file's. -->
+      <div
+        class="tqa-hero"
+        data-state={stateOf(lift.group)}
+        style="--h: {blockH(lift)}px"
+        aria-current="true"
+      >
+        <span class="tqa-hero__t">{titleOf(lift.item)}</span>
+        <span class="tqa-hero__facts">
+          {#if liftMeta}<span class="tqa-meta">{liftMeta}</span>{/if}
+          {#if runningId === lift.item.id}
+            <span class="cd-chip cd-chip--info">
+              <Icon name="clock" size={11} />
+              <span class="num">{elapsed ?? 'running'}</span>
+            </span>
           {/if}
-          {#if word}
-            <span class="tqa-why">{word}</span>
-          {/if}
-          <span class="num">{minutesText(lift.item)}</span>
         </span>
-      </div>
-      <span class="tqa-acts">
-        <button
-          class="cd-iconbtn"
-          type="button"
-          aria-label={lift.group === 'committed'
-            ? `Take ${titleOf(lift.item)} off today`
-            : `Plan ${titleOf(lift.item)} for today`}
-          onclick={() => (lift.group === 'committed' ? onRemove(lift.item) : onAdd(lift.item))}
-        >
-          <Icon name={lift.group === 'committed' ? 'close' : 'plus'} size={14} />
-        </button>
-        <button
-          class="cd-pill cd-pill--quiet cd-pill--sm"
-          type="button"
-          data-command={sessionCommand ?? undefined}
-          data-placement="today.screen"
-          disabled={!sessionCommand}
-          aria-label={`Log ${targetMin} min on ${titleOf(lift.item)} without starting a timer`}
-          onclick={() => onLog(lift.item)}
-        >
-          <Icon name="clock" size={13} />
-          Log {targetMin} min
-        </button>
-        {#if runningId === lift.item.id}
-          <span class="tqa-run">
-            {#if elapsed}
-              <span class="cd-chip cd-chip--info">
-                <Icon name="clock" size={11} />
-                <span class="num">{elapsed}</span>
-              </span>
-            {:else}
-              <span class="cd-chip cd-chip--info">running</span>
-            {/if}
+        <span class="tqa-hero__min num">
+          {#if lift.item.est === null}
+            <span class="tqa-none">no estimate</span>
+          {:else}
+            {lift.item.est}<i>min</i>
+          {/if}
+        </span>
+        <span class="tqa-acts">
+          <button
+            class="cd-iconbtn"
+            type="button"
+            aria-label={lift.group === 'committed'
+              ? `Take ${titleOf(lift.item)} off today`
+              : `Plan ${titleOf(lift.item)} for today`}
+            onclick={() => (lift.group === 'committed' ? onRemove(lift.item) : onAdd(lift.item))}
+          >
+            <Icon name={lift.group === 'committed' ? 'close' : 'plus'} size={14} />
+          </button>
+          <button
+            class="cd-pill cd-pill--quiet cd-pill--sm"
+            type="button"
+            data-command={sessionCommand ?? undefined}
+            data-placement="today.screen"
+            disabled={!sessionCommand}
+            aria-label={`Log ${targetMin} min on ${titleOf(lift.item)} without starting a timer`}
+            onclick={() => onLog(lift.item)}
+          >
+            <Icon name="clock" size={13} />
+            Log {targetMin} min
+          </button>
+          {#if runningId === lift.item.id}
             <button
               class="cd-pill cd-pill--quiet cd-pill--sm"
               type="button"
@@ -147,275 +182,232 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><rect x="7" y="7" width="10" height="10" rx="2" /></svg>
               Stop
             </button>
-          </span>
-        {:else}
-          <button
-            class="cd-pill cd-pill--quiet cd-pill--sm"
-            type="button"
-            data-command={sessionCommand ?? undefined}
-            data-placement="today.screen"
-            disabled={!sessionCommand}
-            aria-label={`Start a session on ${titleOf(lift.item)}`}
-            onclick={() => onStart(lift.item)}
-          >
-            <Icon name="play" size={13} />
-            Start
-          </button>
-        {/if}
-      </span>
-    </div>
+          {:else}
+            <button
+              class="cd-pill cd-pill--quiet cd-pill--sm"
+              type="button"
+              data-command={sessionCommand ?? undefined}
+              data-placement="today.screen"
+              disabled={!sessionCommand}
+              aria-label={`Start a session on ${titleOf(lift.item)}`}
+              onclick={() => onStart(lift.item)}
+            >
+              <Icon name="play" size={13} />
+              Start
+            </button>
+          {/if}
+        </span>
+      </div>
 
-    {#if rest.length > 0}
-      <div class="tqa-tray">
-        {#each rest as row (row.item.id)}
-          {@const slipState = stateOf(row.group)}
-          {@const slipCourse = courseOf(row.item)}
-          {@const slipWord = stateWord(row.item)}
+      <!-- THE SHELVES. One sentence a shelf, no rule and no caps: the name on
+           the left in the label face, the shelf's own arithmetic on the right. -->
+      {#each bands as band (band.group.id)}
+        {@const held = band.rows}
+        <p class="tqa-shelf">
+          <span class="tqa-shelf__t">{band.group.label}</span>
+          <span class="tqa-shelf__n num">{plural(held.length, 'thing', 'things')} · {workLine(held)}</span>
+        </p>
+        {#each shown(band) as row (row.item.id)}
+          {@const rowMeta = metaOf(row)}
           <button
-            class="tqa-slip"
+            class="tqa-block"
             type="button"
-            data-dated={isDated(slipState) ? '1' : undefined}
+            data-state={stateOf(row.group)}
+            style="--h: {blockH(row)}px"
             aria-label="Bring up {reading(row)}{runningId === row.item.id ? ' — a session is running on it' : ''}"
             onclick={() => (liftedId = row.item.id)}
           >
-            <span class="tqa-tick" data-s={slipState} aria-hidden="true"><i></i></span>
-            <span class="tqa-slip__t">{titleOf(row.item)}</span>
-            <!-- Every slot is rendered, empty or not, so the columns line up
-                 down all the slips: a missing cell would shift the minutes and
-                 the arrow one column left. -->
-            {#if slipCourse}
-              <span class="cd-chip cd-chip--code tqa-slip__chip" data-w={slipCourse.wash}>{slipCourse.label}</span>
-            {:else}
-              <span class="tqa-slip__chip" aria-hidden="true"></span>
-            {/if}
-            <span class="tqa-why tqa-slip__why">
-              {isDated(slipState) && slipWord ? slipWord : ''}
+            <span class="tqa-block__body">
+              <span class="tqa-block__t">{titleOf(row.item)}</span>
+              {#if rowMeta}<span class="tqa-meta">{rowMeta}</span>{/if}
             </span>
-            <span class="tqa-slip__run">
-              {#if runningId === row.item.id}
-                <span class="cd-chip cd-chip--info">running</span>
+            <span class="tqa-block__min num">
+              {#if row.item.est === null}
+                <span class="tqa-none">no estimate</span>
+              {:else}
+                {row.item.est}<i>min</i>
               {/if}
             </span>
-            <span class="tqa-slip__m num">{minutesText(row.item)}</span>
-            <span class="tqa-slip__up" aria-hidden="true"><Icon name="arrowup" size={14} /></span>
           </button>
         {/each}
-      </div>
-    {/if}
+        {#if folds(band)}
+          <button
+            class="cd-pill cd-pill--quiet cd-pill--sm tqa-more"
+            type="button"
+            aria-expanded="false"
+            onclick={() => (opened = { ...opened, [band.group.id]: true })}
+          >
+            Show all {plural(held.length, 'thing', 'things')} · {workLine(behind(band))}
+          </button>
+        {/if}
+      {/each}
     </div>
   {/if}
 </section>
 
 <style>
-  /* ── THE SECTION HEAD IS ON THE SURFACE (owner's call, 2026-09-30) ────────
-     The card was never the object: it was a box drawn around a title and the
-     tray that title introduces, so the section read as a card title and then a
-     card. The head now stands on the sheet like Today's own greeting, and the
-     lift and the tray under it are the object — the same pixels the card
-     contained, with the insets the card was paying for removed, so the title
-     and the tray share one left edge. */
-  .tqa-head {
-    padding: 0;
-  }
-  .tqa-head.cd-card__head {
-    margin-bottom: var(--ui-gap);
-  }
-  .tqa-empty {
-    margin: 0;
+  .tqa {
+    --tqa-gap: var(--space-xs);
+    --tqa-num-w: 58px;
   }
 
-  /* ── the lifted card ─────────────────────────────────────────────────── */
-  .tqa-lift {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: 2px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: var(--ui-gap-sm);
-    margin: 0 calc(-8px * var(--ui-s)) calc(-6px * var(--ui-s));
-    padding: var(--ui-pad-y) var(--ui-pad);
-    background: var(--card);
-    border-radius: var(--r-card);
-    box-shadow: var(--sh-2);
+  .tqa-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tqa-gap);
   }
-  .tqa-lift__main {
+
+  /* ── Queue row block ──────────────────────────────────────────────────────
+     Row height set dynamically via --h based on estimate.
+     Background tint indicates state (late, due, planned). */
+  .tqa-block {
     display: grid;
-    gap: var(--space-3xs);
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-md);
+    min-height: var(--h, 56px);
+    padding: var(--space-sm) var(--space-md);
+    border: 0;
+    border-radius: var(--r-tile);
+    background: var(--well);
+    color: var(--ink);
+    text-align: start;
+    cursor: pointer;
+    transition:
+      box-shadow var(--dur-1) var(--ease),
+      transform var(--dur-1) var(--ease);
+  }
+  .tqa-block[data-state='late'] { background: var(--chip-overdue); }
+  .tqa-block[data-state='due'] { background: var(--chip-risk); }
+  .tqa-block:hover { box-shadow: var(--sh-1); }
+  .tqa-block:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }
+
+  .tqa-block__body {
+    display: grid;
+    gap: var(--space-2xs);
     min-width: 0;
   }
-  .tqa-lift__t {
-    font-size: var(--text-md);
-    font-weight: var(--weight-label);
-    letter-spacing: var(--track-title);
-    line-height: 1.15;
-  }
-  .tqa-lift__meta {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    font-size: var(--text-xs);
-    color: var(--ink-3);
-    flex-wrap: wrap;
-  }
-  .tqa-lift__meta .num {
-    color: var(--ink-2);
-  }
-  .tqa-acts > *,
-  .tqa-acts .cd-iconbtn {
-    flex: none;
-  }
-  .tqa-acts {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2xs);
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .tqa-run {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2xs);
-  }
-
-  /* The state tick: a 2×16 bar whose height is the state — a bar, never a dot,
-     so nine of them read as one hairline ledger down the pile. The row's own
-     state word carries the reading, so the mark is `aria-hidden`. */
-  .tqa-tick {
-    display: grid;
-    align-items: end;
-    justify-items: start;
-    width: 2px;
-    height: 16px;
-    flex: none;
-  }
-  .tqa-tick i {
-    display: block;
-    width: 2px;
-    border-radius: var(--r-pill);
-    height: var(--h, 16px);
-    background: var(--bg, var(--rule-strong));
-  }
-  .tqa-tick[data-s='late'] i {
-    --h: 16px;
-    --bg: var(--ink);
-  }
-  .tqa-tick[data-s='due'] i {
-    --h: 9px;
-    --bg: var(--ink);
-  }
-  .tqa-tick[data-s='planned'] i {
-    --h: 16px;
-    --bg: var(--rule-strong);
-  }
-  .tqa-why {
-    color: var(--ink-2);
-    font-weight: var(--weight-label);
-  }
-
-  /* ── the tray of slips ───────────────────────────────────────────────── */
-  .tqa-tray {
-    padding: var(--ui-pad) var(--space-xs) var(--space-xs);
-    background: var(--well);
-    border-radius: var(--r-tile);
-    overflow: clip;
-  }
-  .tqa-slip {
-    display: grid;
-    grid-template-columns: 2px minmax(0, 1fr) auto auto auto auto 20px;
-    align-items: center;
-    gap: var(--ui-gap-sm);
-    width: 100%;
-    min-height: calc(48px * var(--ui-s));
-    padding: var(--space-2xs) var(--ui-pad);
-    background: var(--card);
-    border-radius: var(--r-item);
-    box-shadow: var(--sh-1);
-    text-align: left;
-    transition: box-shadow var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
-  }
-  .tqa-slip + .tqa-slip {
-    margin-top: calc(6px * var(--ui-s));
-  }
-  .tqa-slip:hover {
-    box-shadow: var(--sh-2);
-    transform: translateY(-1px);
-  }
-  .tqa-slip:active {
-    box-shadow: var(--sh-1);
-    transform: none;
-  }
-  .tqa-slip:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: -2px;
-  }
-  .tqa-slip__t {
+  .tqa-block__t {
     font-size: var(--text-base);
+    font-weight: var(--weight-label);
     letter-spacing: var(--track-title);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Course and due date metadata line. */
+  .tqa-meta {
+    font-size: var(--text-xs);
     color: var(--ink-2);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* The four things that are dated take the ink; the rest stay one step down,
-     which is where the eye's first pass lands. */
-  .tqa-slip[data-dated] .tqa-slip__t {
-    color: var(--ink);
-    font-weight: var(--weight-label);
-  }
-  .tqa-slip__m {
-    font-size: var(--text-xs);
-    font-weight: var(--weight-label);
-    color: var(--ink-2);
-    text-align: right;
+
+  /* ── Duration numeral ─────────────────────────────────────────────────────
+     Right-aligned duration numbers aligned across rows using --tqa-num-w. */
+  .tqa-block__min,
+  .tqa-hero__min {
+    flex: none;
+    min-width: var(--tqa-num-w);
+    text-align: end;
     white-space: nowrap;
+    font-size: var(--text-lg);
+    font-weight: var(--weight-display);
+    letter-spacing: var(--track-title);
+    line-height: 1;
   }
-  .tqa-slip__run {
-    display: flex;
-    align-items: center;
-  }
-  .tqa-slip__up {
+  .tqa-block__min i,
+  .tqa-hero__min i {
+    font-style: normal;
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-label);
     color: var(--ink-3);
-    display: grid;
-    place-items: center;
-    transition: color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+    margin-inline-start: 3px;
   }
-  .tqa-slip:hover .tqa-slip__up {
-    color: var(--ink);
-    transform: translateY(-2px);
+  .tqa-none {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-body);
+    letter-spacing: var(--track-body);
+    color: var(--ink-3);
   }
 
-  /* The card is 60% of the canvas on Today; narrower than a reading column the
-     slips give up their course chip and their state word — the row's own
-     accessible name still says both — and keep the tick, the title, the
-     minutes and the arrow that is the slip's own affordance. */
-  @container (max-width: 560px) {
-    .tqa-slip {
-      grid-template-columns: 2px minmax(0, 1fr) auto auto;
-    }
-    .tqa-slip__why,
-    .tqa-slip__chip,
-    .tqa-slip__run {
-      display: none;
-    }
-    .tqa-lift {
-      grid-template-columns: 2px minmax(0, 1fr);
-    }
-    .tqa-acts {
-      grid-column: 2;
-      justify-content: flex-start;
-    }
+  /* ── Active hero block ───────────────────────────────────────────────────
+     Selected active item with inline action buttons. Min-height 88px to fit
+     controls, or scaled higher if duration estimate exceeds 88px. */
+  .tqa-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-xs) var(--space-md);
+    min-height: max(88px, var(--h, 88px));
+    padding: var(--space-md) var(--space-md) var(--space-md) var(--space-lg);
+    border-radius: var(--r-tile);
+    background: var(--well-2);
+  }
+  /* Status accent line on left edge for late/due active items. */
+  .tqa-hero::before {
+    content: '';
+    position: absolute;
+    inset-block: var(--space-sm);
+    inset-inline-start: var(--space-xs);
+    width: 3px;
+    border-radius: var(--r-pill);
+    background: transparent;
+  }
+  .tqa-hero[data-state='late']::before { background: var(--on-overdue); }
+  .tqa-hero[data-state='due']::before { background: var(--on-risk); }
+  .tqa-hero__t {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-display);
+    letter-spacing: var(--track-title);
+  }
+  .tqa-hero__facts {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .tqa-hero__min {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .tqa-acts {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+  }
+
+  /* ── Group shelf header ────────────────────────────────────────────────── */
+  .tqa-shelf {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin: var(--space-lg) 0 0;
+    font-size: var(--text-xs);
+  }
+  .tqa-body .tqa-shelf { margin-block-start: var(--space-lg); }
+  .tqa-shelf__t {
+    font-weight: var(--weight-label);
+    color: var(--ink-2);
+  }
+  .tqa-shelf__n { color: var(--ink-3); }
+
+  /* 'Show all' toggle for folded overflow items. */
+  .tqa-more {
+    align-self: flex-start;
+    margin-block-start: var(--space-2xs);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .tqa-slip,
-    .tqa-slip__up {
-      transition: none;
-    }
-    .tqa-slip:hover {
-      transform: none;
-    }
-    .tqa-slip:hover .tqa-slip__up {
-      transform: none;
-    }
+    .tqa-block { transition: none; }
+    .tqa-block:hover { transform: none; }
   }
 </style>
