@@ -372,35 +372,6 @@
   opacity: 0.55;
 }
 
-.cd-deck__select {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  font-family: var(--font-body);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  color: var(--ink-2);
-  padding: 0;
-  max-width: calc(var(--deck-w) / 4);
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-
-.cd-deck__select:focus-visible {
-  outline: none;
-  color: var(--ink);
-}
-
-.cd-deck__chev {
-  position: absolute;
-  right: 5px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
-  color: var(--ink-3);
-  pointer-events: none;
-}
-
 .cd-deck__custom {
   height: var(--chip-h);
   width: calc(var(--deck-w) / 4);
@@ -540,13 +511,13 @@
   }
 }
 
-/* ── the model picker: the pill opens a searchable listbox ─────────────── */
+/* ── the deck's pills: each opens a searchable listbox ──────────────────── */
 
-.cd-mpick {
+.cd-pick {
   position: relative;
 }
 
-.cd-mpick__b {
+.cd-pick__b {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
@@ -561,24 +532,29 @@
   cursor: pointer;
 }
 
-.cd-mpick__b:disabled {
+.cd-pick__b:disabled {
   cursor: default;
 }
 
-.cd-mpick__b:focus-visible {
+.cd-pick__b:focus-visible {
   outline: none;
   color: var(--ink);
 }
 
-.cd-mpick__value {
+.cd-pick__value {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cd-mpick__card {
+/* The deck docks to the floor, so the card opens *upward* over the page: the
+   only thing below the head is the prompt well, then the window edge, which ate
+   the hint and the last rows of a 340px card. It clears the deck's own padding,
+   plus the 4px gap a downward card would have kept from the pill. */
+.cd-pick__card {
   position: absolute;
-  top: calc(100% + var(--space-2xs));
+  top: auto;
+  bottom: calc(100% + var(--space-md) + var(--space-2xs));
   right: 0;
   z-index: 5;
   width: min(340px, calc(var(--deck-w) - 2 * var(--space-md)));
@@ -590,7 +566,7 @@
   box-shadow: var(--sh-pop);
 }
 
-.cd-mpick__q {
+.cd-pick__q {
   height: var(--hit);
   border: 0;
   border-radius: var(--r-mini);
@@ -601,16 +577,16 @@
   color: var(--ink);
 }
 
-.cd-mpick__q::placeholder {
+.cd-pick__q::placeholder {
   color: var(--ink-3);
 }
 
-.cd-mpick__q:focus-visible {
+.cd-pick__q:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
-.cd-mpick__list {
+.cd-pick__list {
   display: grid;
   gap: 1px;
   max-height: 264px;
@@ -618,7 +594,7 @@
   overscroll-behavior: contain;
 }
 
-.cd-mpick__mark {
+.cd-pick__mark {
   padding: var(--space-2xs) var(--space-xs) 0;
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -627,7 +603,7 @@
   color: var(--ink-3);
 }
 
-.cd-mpick__row {
+.cd-pick__row {
   display: flex;
   align-items: baseline;
   gap: var(--space-xs);
@@ -643,24 +619,23 @@
   cursor: pointer;
 }
 
-.cd-mpick__row[data-on] {
+.cd-pick__row[data-on] {
   background: var(--well);
   color: var(--ink);
 }
 
-.cd-mpick__row:focus-visible {
+.cd-pick__row:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
-.cd-mpick__name {
+.cd-pick__name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cd-mpick__id,
-.cd-mpick__note {
+.cd-pick__note {
   margin-left: auto;
   max-width: 45%;
   overflow: hidden;
@@ -671,14 +646,14 @@
   color: var(--ink-3);
 }
 
-.cd-mpick__none {
+.cd-pick__none {
   margin: 0;
   padding: var(--space-sm) var(--space-xs);
   font-size: var(--text-2xs);
   color: var(--ink-3);
 }
 
-.cd-mpick__hint {
+.cd-pick__hint {
   margin: 0;
   min-height: var(--chip-h);
   padding: var(--space-2xs) var(--space-xs) var(--space-3xs);

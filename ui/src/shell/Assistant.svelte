@@ -26,6 +26,7 @@
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
+  import DeckPicker from './DeckPicker.svelte';
   import ModelPicker from './ModelPicker.svelte';
   import { assistant, buildAppContext } from '../assistant.svelte';
   import { app } from '../session.svelte';
@@ -38,6 +39,18 @@
   const desktop = transport() === 'tauri';
   const agents = $derived(assistant.available());
   const nothingInstalled = $derived(desktop && assistant.agents !== null && agents.length === 0);
+
+  // The CLI pill reads exactly what the old native `<select>` showed: one row
+  // per detected CLI, its version alongside the name it answers to.
+  const cliRows = $derived(
+    agents.map((agent) => ({
+      id: agent.id,
+      label: agent.version ? `${agent.name} · ${agent.version}` : agent.name,
+    })),
+  );
+  const cliLabel = $derived(
+    cliRows.find((row) => row.id === assistant.agentId)?.label ?? 'the CLI to run',
+  );
 
   const blockers = $derived.by<string[]>(() => {
     const lines: string[] = [];
@@ -133,23 +146,16 @@
     {/if}
 
     {#if agents.length > 0}
-      <label class="cd-deck__pill" class:is-disabled={assistant.running}>
-        <Icon name="terminal" size={13} />
-        <select
-          class="cd-deck__select"
-          value={assistant.agentId ?? ''}
-          disabled={assistant.running}
-          aria-label="Which agent CLI to run"
-          onchange={(event) => assistant.choose(event.currentTarget.value || null)}
-        >
-          {#each agents as agent (agent.id)}
-            <option value={agent.id}>
-              {agent.name}{agent.version ? ` · ${agent.version}` : ''}
-            </option>
-          {/each}
-        </select>
-        <span class="cd-deck__chev" aria-hidden="true"><Icon name="chevronDown" size={12} /></span>
-      </label>
+      <DeckPicker
+        icon="terminal"
+        label={cliLabel}
+        value={assistant.agentId ?? ''}
+        groups={[{ name: '', rows: cliRows }]}
+        disabled={assistant.running}
+        placeholder="Search agents…"
+        listLabel="Which agent CLI to run"
+        onPick={(id) => assistant.choose(id)}
+      />
     {/if}
 
     <button

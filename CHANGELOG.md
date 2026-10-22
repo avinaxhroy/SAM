@@ -11,7 +11,7 @@
 - **The assistant.** Titlebar sparkle (⌘J): one turn of an installed CLI against the open plan — Claude Code, OpenCode, Copilot, Antigravity (`agy`), Oh My Pi, Pi, or a declared profile. No model, API or key of its own. The agent writes through `sam` (dry-run → `--if-revision`). Screens reload as it works; the turn ends with a receipt and one Undo. `sam agent.list`, `sam agent.run`; new verbs `agent.list`, `agent.models`, `agent.run`, `agent.cancel`, `app.assistant`.
 - **App context per turn.** Open screen, selected record, held revision, rail destinations, composed screens.
 - **Plan per command.** Quoted `--plan "<folder>"` in argv and `SAM_PLAN` in the env; the flag wins. Sessions resume per CLI and per plan.
-- **Model picker.** Searchable, provider grouping, *Default* first, *Custom…* last. Read on open; a second open joins it.
+- **Model picker.** Searchable, provider grouping, *Default* first, *Custom…* last. Read on open; a second open joins it. The CLI pill beside it is the same listbox, filled from `agent.list`; both open upward off the floor-docked deck.
 - **`sam <id> --help`.** Full registry definition (parameters, types, effect, JSON id) in text or `--json`, no plan load. A wrong flag lists the command's parameters; a mistyped verb suggests near ids. `sam help <id>` for humans.
 - **`sam --schema --json`.** Block vocabulary: `list` … `repeat`, keys, folds, a minimal example each. Generated from the loader/renderer tables.
 - **Conversation resume.** Claude Code and OpenCode sessions captured from the stream.
