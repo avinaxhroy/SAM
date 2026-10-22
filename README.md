@@ -313,17 +313,9 @@ A plan's bindings live in `content/shell.json`; Settings → *How you work* list
 ```bash
 # Workspace unit and integration tests
 cargo test --workspace
-
-# Design and specification checks
-node tools/tokenlint.mjs
-node tools/plancheck.mjs
-node tools/presets.mjs
-
-# Browser, accessibility, and census suite
-node tools/gates.mjs
 ```
 
-[`docs/development.md`](docs/development.md) covers the full setup, the browser harness, the quality gates, and the architectural rules, including the integration test that keeps Tauri out of the engine crates.
+The workspace run includes `crates/sam-cli/tests/no_tauri.rs`, which fails if the engine crates pull in a windowing framework. [`docs/architecture.md`](docs/architecture.md#engine-and-shell-isolation) covers the crate split.
 
 ---
 
@@ -335,7 +327,6 @@ node tools/gates.mjs
 - [Presets and curriculum templates](docs/presets.md)
 - [Authoring with AI agents and chatbots](docs/ai-agents.md)
 - [Schema specification for AI](docs/ai-prompt.md)
-- [Development and contributing](docs/development.md)
 
 ---
 
