@@ -20,13 +20,9 @@
   </a>
 </p>
 
-Most study tools enforce one rigid workflow: to-do lists that know nothing about course prerequisites, flashcard apps disconnected from syllabi, or dashboards that assume everyone studies the same way.
+Study tools assume one workflow: a to-do list with no idea of course prerequisites, flashcards detached from the syllabus, a dashboard built for a single kind of student. Studying doesn't look like that. Anatomy drills, engineering problem sets, and a slow read of a technical book want different screens and different ways of measuring progress.
 
-Real studying differs across disciplines. A medical student drilling anatomy, an engineering student working problem sets, and an autodidact reading technical books need different screens and different measures of progress.
-
-SAM is built as an operating system rather than a fixed dashboard. Your curriculum is plain JSON and line-delimited records on disk, the study screens are assembled from widgets, and each kind of work can follow its own progression pipeline while reviews follow the plan's scheduler. The desktop app and the `sam` command line read the same plan folder, so the same work is available by mouse, by keyboard, by editing the files, and by script.
-
-When you want help authoring, the built-in assistant runs an agent CLI you already have and writes through the same `sam` commands.
+SAM is built as an operating system rather than a fixed dashboard. Your curriculum, screens, and rules are plain JSON and line-delimited records on disk. Each kind of work carries its own progression pipeline, and reviews follow the plan's scheduler. The desktop app and the `sam` CLI read the same folder, so the same work is reachable by mouse, by keyboard, by editing the files, and by script.
 
 ---
 
@@ -34,17 +30,15 @@ When you want help authoring, the built-in assistant runs an agent CLI you alrea
 
 ### Prebuilt releases
 
-Download prebuilt binaries for macOS, Windows, and Linux from [GitHub Releases](https://github.com/avinaxhroy/SAM/releases): a `.dmg`, an `.exe`, and an `.AppImage` or `.deb`. The desktop app requires macOS 13 or newer, Windows 10/11 with WebView2 109 or newer, or a Linux desktop with WebKitGTK 4.1. The published macOS build targets Apple Silicon; Intel Macs build from source.
+Prebuilt binaries for macOS, Windows, and Linux are on [GitHub Releases](https://github.com/avinaxhroy/SAM/releases): a `.dmg`, an `.exe`, and an `.AppImage` or `.deb`. The desktop app needs macOS 13 or newer, Windows 10/11 with WebView2 109 or newer, or a Linux desktop with WebKitGTK 4.1. The published macOS build targets Apple Silicon; Intel Macs build from source.
 
 #### macOS installation
-
-Install via Homebrew:
 
 ```bash
 brew install --cask avinaxhroy/tap/sam
 ```
 
-Or download the DMG directly. Releases are ad-hoc signed rather than notarized, so Gatekeeper may block the first launch:
+Or download the DMG. Releases are ad-hoc signed rather than notarized, so Gatekeeper may block the first launch:
 
 ```bash
 # If the downloaded DMG will not open:
@@ -56,7 +50,7 @@ xattr -cr /Applications/SAM.app
 
 #### The `sam` CLI on your PATH
 
-The app carries the CLI inside its bundle. *Install command line tool* in the View menu links it into a directory already on `PATH`: a symlink on macOS and Linux, asking the system to authorize the write where rights are needed, and a user-`PATH` append on Windows. After that, `sam` works in any terminal, and agents like Claude Code or OpenCode can edit plans through the same commands the in-app assistant uses.
+The app carries the CLI inside its bundle. *Install command line tool* in the View menu links it into a directory already on `PATH`: a symlink on macOS and Linux, asking the system to authorize the write where rights are needed, and a `PATH` append on Windows. After that `sam` works in any terminal, and agents like Claude Code or OpenCode can edit plans through the same commands the in-app assistant uses.
 
 ### Building from source
 
@@ -67,25 +61,25 @@ Prerequisites:
 - **Tauri CLI** 2: `cargo install tauri-cli --version "^2" --locked`.
 - **Linux only:** `libwebkit2gtk-4.1-dev` and the usual Tauri build dependencies.
 
-The desktop shell embeds the built frontend at compile time, so the UI comes first:
+The desktop shell embeds the built frontend at compile time, so build the UI first:
 
 ```bash
-# 1. Install frontend dependencies and build the bundle
+# Frontend bundle
 pnpm -C ui install
 pnpm -C ui build
 
-# 2. Build the workspace, including the sam CLI
+# Workspace, including the sam CLI
 cargo build --workspace --release
 
-# 3. Copy the CLI to the name Tauri's bundle expects
+# Copy the CLI to the name Tauri's bundler expects
 node scripts/sidecar.mjs
 
-# 4. Run the app, or produce a bundle
+# Run the app, or produce a bundle
 cargo tauri dev
 cargo tauri build
 ```
 
-Step 3 copies the binary; nothing here compiles the CLI except step 2. `cargo tauri build` runs the same copy through its build hook, so it needs step 2 to have run.
+`sidecar.mjs` copies the release binary to `src-tauri/binaries/sam-<triple>`; it does not build anything. `cargo tauri build` runs the same copy through its build hook, so it needs the workspace build to have run.
 
 The CLI is left at `target/release/sam`. A plain cargo build creates no `Resources` folder at `target/Resources`, where that binary looks for presets, themes, and tokens, so commands that read them fail. Point `SAM_RESOURCES` at the source resources when running from the checkout:
 
@@ -97,9 +91,45 @@ On first launch SAM asks for a plan name and a folder. The blank starter is the 
 
 ---
 
-## Screen Composer
+## The plan on disk
 
-The rail's study screens (Today, Plan, Courses, Reviews, Library, Notes, Progress) are built from widgets. Click the pencil in the titlebar to edit the current screen; **Add** in the rail opens the sheet for a new one.
+A study plan is a directory on your computer:
+
+```
+my-plan/
+├── README.md              # what the plan is
+├── content/
+│   ├── types.json         # entity schemas (course, topic, session, assessment…)
+│   ├── views.json         # screen layouts, block arrangements, and composed widgets
+│   ├── rules.json         # schedulers, progression pipelines, and proof gates
+│   ├── shell.json         # navigation destinations and keybindings
+│   ├── appearance.json    # pinned theme and text scale
+│   └── records/           # one file per kind, created with the first record
+│       ├── course.jsonl   # line-by-line course records
+│       ├── topic.jsonl    # syllabus topics with estimates and links
+│       └── session.jsonl  # logged study sessions
+├── state/
+│   └── state.json         # progress and review history (created once there is progress)
+└── .sam/                  # lock, settings, transaction journal and before-images
+```
+
+Records are line-delimited JSON (`.jsonl`): one record per line, so a change appears as one line in `git diff`. Git is optional. `.sam/` holds the lock, settings, journal, and before-images, never content.
+
+The SQLite search index is derived, not part of the plan. It lives under the app's data directory at `indexes/<plan-name>-<hash>/index.sqlite`, rebuilds incrementally from the records, and can be deleted at any time. `sam paths --plan <dir> --json` prints the indexes folder and, when one exists, the index's path.
+
+Plans live in the platform application data directory by default:
+
+- **macOS**: `~/Library/Application Support/SAM/plans/<Plan Name>`
+- **Linux**: `~/.local/share/SAM/plans/<Plan Name>`
+- **Windows**: `%APPDATA%\SAM\plans\<Plan Name>`
+
+`--plan <path>` targets any other directory.
+
+---
+
+## Screen composer
+
+The rail's screens (Today, Plan, Courses, Reviews, Library, Notes, Progress) are built from widgets. Click the pencil in the titlebar to edit the current screen; **Add** in the rail opens the sheet for a new one.
 
 - **12 widgets**, in two groups:
   - Today: Session card, Today's queue, Coming up, Week chart.
@@ -108,15 +138,15 @@ The rail's study screens (Today, Plan, Courses, Reviews, Library, Notes, Progres
 - **Variants**: the `‹` and `›` chevrons on a frame cycle the designs that fit it.
 - **Order**: drag a frame to a new position.
 - **Removal**: the frame's own button, with an undo receipt.
-- **Reset**: *Use SAM’s design again* takes your components off and redraws the screen as SAM designed it.
+- **Reset**: *Use SAM's design again* takes your components off and redraws the screen as SAM designed it.
 
 The right-hand sidebar follows the selection: the screen's actions with nothing selected, the selected widget's own controls once a frame is pressed, and the record's fields once a row is pressed.
 
-Layout edits write to `content/views.json` in one atomic transaction, and `⌘Z` undoes them.
+Layout edits write to `content/views.json` in one atomic transaction. `⌘Z` undoes them.
 
 ---
 
-## Pluggable study methods
+## Study methods
 
 How you complete work is defined by progression pipelines in `content/rules.json`. Different kinds can use different completion rules:
 
@@ -142,9 +172,9 @@ When an item enters a review queue, the plan's scheduler sets the next interval:
 
 ---
 
-## Four interaction surfaces
+## Four surfaces
 
-Every engine capability is accessible across four surfaces:
+Every engine capability has four surfaces:
 
 | Surface      | Interface              | How to use it                                                                                               |
 | ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -152,66 +182,6 @@ Every engine capability is accessible across four surfaces:
 | **Name**     | Command palette (`⌘K`) | Capture a record, run any command, or jump to a screen or record.                                           |
 | **Text**     | Files and source pane  | Edit the plan's JSON and JSONL directly, or in the source pane (`⌘⇧J`); the watcher reloads within ~150 ms. |
 | **Terminal** | `sam` CLI              | Every command id, with `--json` for scripts and agents.                                                     |
-
----
-
-## Plan structure on disk
-
-A study plan is a directory on your computer:
-
-```
-my-plan/
-├── README.md              # what the plan is
-├── content/
-│   ├── types.json         # entity schemas (course, topic, session, assessment…)
-│   ├── views.json         # screen layouts, block arrangements, and composed widgets
-│   ├── rules.json         # schedulers, progression pipelines, and proof gates
-│   ├── shell.json         # navigation destinations and keybindings
-│   ├── appearance.json    # pinned theme and text scale
-│   └── records/           # one file per kind, created with the first record
-│       ├── course.jsonl   # line-by-line course records
-│       ├── topic.jsonl    # syllabus topics with estimates and links
-│       └── session.jsonl  # logged study sessions
-├── state/
-│   └── state.json         # progress and review history (created once there is progress)
-└── .sam/                  # lock, settings, transaction journal and before-images
-```
-
-Records are line-delimited JSON (`.jsonl`). Each line is one record, so a change appears as one line in `git diff`. Git is optional; `.sam/` holds the lock, settings, journal, and before-images rather than content.
-
-The derived SQLite search index is not part of the plan. It lives under the app's data directory as `indexes/<plan-name>-<hash>/index.sqlite`, is rebuilt incrementally from the records, and can be deleted at any time; `sam paths --plan <dir> --json` prints the indexes folder and, when one exists, the index's path.
-
-Plans live by default in your platform application data directory:
-
-- **macOS**: `~/Library/Application Support/SAM/plans/<Plan Name>`
-- **Linux**: `~/.local/share/SAM/plans/<Plan Name>`
-- **Windows**: `%APPDATA%\SAM\plans\<Plan Name>`
-
-Target any custom directory with `--plan <path>`.
-
----
-
-## Bundled presets
-
-SAM ships eight presets:
-
-- `blank`: starter schema, no records — twelve kinds, starter views, and the flip progression with its proof gate. A new plan starts here.
-- `seed`: the same schema with a set of example records; the engine's test fixture.
-- `university-term`: a one-term computer science plan — four courses, their units and topics, credits, and a weekly schedule.
-- `self-study`: tracks broken into stages, worked through a flip loop where solved problems prove readiness.
-- `jee`: JEE (Main + Advanced) preparation across Physics, Chemistry, and Mathematics, with problem sets.
-- `neet`: NEET (UG) preparation with three chapter spines and problem sets.
-- `cbse11-pcm`: Class 11 CBSE Physics, Chemistry, and Mathematics, chapter by chapter.
-- `language`: words, sentences, dialogues, and a kana board, reviewed on FSRS.
-
-Create a plan from a preset, either under the default plans folder or exactly where you point it:
-
-```bash
-sam plan.new --name "Computer Systems" --preset university-term
-sam plan.new --preset university-term --plan ./my-plan
-```
-
-See [`docs/presets.md`](docs/presets.md) for what each preset contains and how to author your own.
 
 ---
 
@@ -225,7 +195,7 @@ Settings (`⌘,`) has five places, and the find field narrows any list:
 - **Component styles**: the design each component draws with.
 - **This plan**: export, import, which kinds stay personal, and every file the plan keeps.
 
-Export writes a `*.samprofile` holding the plan's five config documents — schema, views, rules, shell, and appearance — plus the records that are not personal. Kinds marked personal stay behind unless you include them, and including them also carries progress. Import writes a new plan and opens it, and the app opens `.samprofile` files from the desktop.
+Export writes a `*.samprofile` holding the plan's five config documents (schema, views, rules, shell, and appearance) plus the records that are not personal. Kinds marked personal stay behind unless you include them, and including them also carries progress. Import writes a new plan and opens it, and the app opens `.samprofile` files from the desktop.
 
 ---
 
@@ -256,38 +226,38 @@ sam configcheck --plan ./my-plan
 
 Each kind also gets its own `.new` command (`sam topic.new`, `sam course.new`), so a record's fields are plain flags. `--json` is the default when output is not a terminal, and `sam --commands --plan ./my-plan --json` lists every id the plan exposes.
 
-Exit codes: `0` success; `1` invalid plan or a refused write, including a failed proof gate; `2` usage; `3` conflicting concurrent write; `4` I/O failure; `5` presentation — the command reports the desktop action it needs, because no window is attached.
+Exit codes: `0` success; `1` invalid plan or a refused write, including a failed proof gate; `2` usage; `3` conflicting concurrent write; `4` I/O failure; `5` presentation, where the command reports the desktop action it needs because no window is attached.
 
 See [`docs/cli.md`](docs/cli.md) for batch transactions via stdin, revision pinning, and the full command surface.
 
 ---
 
-## Authoring study plans with AI
+## Authoring with AI
 
-SAM exposes schema introspection and atomic batch ingestion through the CLI, so plans can be populated by the in-app assistant, by an AI coding agent at the terminal, or by a chatbot producing a batch file.
+SAM exposes schema introspection and atomic batch ingestion through the CLI, so plans can be populated by the in-app assistant, by a coding agent at the terminal, or by a chatbot producing a batch file.
 
-### 1. From the app's assistant
+### In the app
 
-The titlebar's sparkle (`⌘J`) opens the assistant. It runs one turn of an agent CLI already installed on this machine — Claude Code, OpenCode, GitHub Copilot CLI, Antigravity, Gemini CLI, Oh My Pi, or Pi — against the plan the window has open, wherever that folder lives. The agent writes through `sam` (stage, dry-run, commit against the revision it read), so its work lands as the same transactions yours do, and open screens reload as records appear. While the turn runs the room dims behind a slow field of light; when it ends you get a receipt with one Undo. The model pill lists the models the chosen CLI reports.
+The titlebar's sparkle (`⌘J`) opens the assistant. It runs one turn of an agent CLI already installed on this machine: Claude Code, OpenCode, GitHub Copilot CLI, Antigravity, Gemini CLI, Oh My Pi, or Pi. It works against the plan the window has open, wherever that folder lives, and writes through `sam` (stage, dry-run, commit against the revision it read), so its work lands as the same transactions yours do and open screens reload as records appear. A turn ends with a receipt and one Undo, and the model pill lists the models the chosen CLI reports.
 
-SAM ships no model and no API keys; the CLI you already have does the thinking. The same turn runs headless: `sam agent.list` finds the installed CLIs, and `sam agent.run <prompt> --plan ./my-plan` runs one. See [`docs/ai-agents.md`](docs/ai-agents.md#3-using-the-assistant-inside-the-app) for the adapters and the receipt.
+SAM ships no model and no API keys; the CLI you already have does the thinking. The same turn runs headless: `sam agent.list` finds the installed CLIs, and `sam agent.run <prompt> --plan ./my-plan` runs one. See [`docs/ai-agents.md`](docs/ai-agents.md#3-using-the-assistant-inside-the-app) for the adapters.
 
-### 2. With an AI coding agent
+### With a coding agent
 
 An agent that can run shell commands can build a plan. Paste this prompt into its chat or terminal:
 
 ```text
 Create a study plan for [my learning goal or syllabus] in ./my-plan using SAM. Follow the workflow in https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md:
 1. Initialize the plan folder: sam plan.new --plan ./my-plan
-2. Query active schema and options: sam --schema --json --plan ./my-plan
-3. Break down the curriculum into courses, weeks, and topics, staging them in /tmp/batch.jsonl
-4. Test with sam apply /tmp/batch.jsonl --dry-run --plan ./my-plan and commit with sam apply /tmp/batch.jsonl --plan ./my-plan
+2. Query the active schema and options: sam --schema --json --plan ./my-plan
+3. Break the curriculum into courses, weeks, and topics, staging them in /tmp/batch.jsonl
+4. Test with sam apply /tmp/batch.jsonl --dry-run --plan ./my-plan, then commit with sam apply /tmp/batch.jsonl --plan ./my-plan
 5. Verify today's queue: sam today.view --plan ./my-plan
 ```
 
-### 3. With a chatbot
+### With a chatbot
 
-Generate a batch file using the schema specification at [`docs/ai-prompt.md`](docs/ai-prompt.md):
+A chatbot cannot run commands, so it writes a batch file instead. Give it the schema specification at [`docs/ai-prompt.md`](docs/ai-prompt.md):
 
 ```text
 Convert the following syllabus or learning goal into a SAM batch.jsonl file strictly following the specification at https://github.com/avinaxhroy/SAM/blob/main/docs/ai-prompt.md:
@@ -295,7 +265,7 @@ Convert the following syllabus or learning goal into a SAM batch.jsonl file stri
 [Paste your syllabus, course outline, or learning goal here]
 ```
 
-Ingest the generated file:
+Then ingest the file:
 
 ```bash
 # 1. Initialize a plan in any folder
@@ -308,9 +278,7 @@ sam apply batch.jsonl --dry-run --plan ./my-plan
 sam apply batch.jsonl --plan ./my-plan
 ```
 
-The desktop app detects the new records via its file watcher (~150 ms) and updates active views without restarting.
-
-See [`docs/ai-agents.md`](docs/ai-agents.md) for terminal workflows and [`docs/ai-prompt.md`](docs/ai-prompt.md) for the schema specification.
+The app's watcher picks the new records up without a restart.
 
 ---
 
@@ -348,7 +316,7 @@ node tools/presets.mjs
 node tools/gates.mjs
 ```
 
-[`docs/development.md`](docs/development.md) covers the full setup, the browser harness, the quality gates, and the architectural rules — including the integration test that keeps Tauri out of the engine crates.
+[`docs/development.md`](docs/development.md) covers the full setup, the browser harness, the quality gates, and the architectural rules, including the integration test that keeps Tauri out of the engine crates.
 
 ---
 
