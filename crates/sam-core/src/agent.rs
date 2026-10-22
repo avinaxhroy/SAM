@@ -654,7 +654,7 @@ pub fn compose_prompt(
     context: Option<&str>,
     user_prompt: &str,
 ) -> String {
-    let skill = strip_frontmatter(include_str!("../../../.agents/skills/sam-authoring/SKILL.md"));
+    let skill = strip_frontmatter(include_str!("../assets/sam-authoring.md"));
     let sam_line = match sam {
         Some(path) => format!(
             "`sam` is at `{}` — if your shell cannot find `sam`, call it by that absolute path.",
@@ -1695,6 +1695,26 @@ mod tests {
         assert!(
             prompt.contains("sam apply <file> --dry-run --json --plan '/tmp/plan'"),
             "{prompt}"
+        );
+    }
+
+    /// The prompt embeds a copy of the repo skill (`assets/sam-authoring.md`)
+    /// because a packaged crate cannot read `.agents/` from the checkout. The
+    /// copy is what ships; this is the guard that keeps it honest. Absent in a
+    /// packaged crate, where there is nothing to compare against.
+    #[test]
+    fn the_embedded_skill_matches_the_repo_skill() {
+        let repo_skill = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.agents/skills/sam-authoring/SKILL.md");
+        if !repo_skill.exists() {
+            return;
+        }
+        let repo = std::fs::read_to_string(&repo_skill).expect("repo skill is readable");
+        assert_eq!(
+            repo,
+            include_str!("../assets/sam-authoring.md"),
+            "edits to {} must be copied into crates/sam-core/assets/sam-authoring.md",
+            repo_skill.display()
         );
     }
 

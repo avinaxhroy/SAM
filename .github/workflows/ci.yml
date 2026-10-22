@@ -1,3 +1,6 @@
+# CI — one Linux job that mirrors the gates the release runs: frontend build +
+# typecheck, then the workspace test run. `ui/dist` must exist before any cargo
+# step because `tauri::generate_context!` embeds it at compile time.
 name: CI
 
 on:
@@ -5,24 +8,32 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   check:
     name: Test and Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install system dependencies (Linux)
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
             librsvg2-dev \
             patchelf \
@@ -40,16 +51,18 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 12
           run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
 
       - name: Install frontend dependencies
         run: pnpm -C ui install --frozen-lockfile
@@ -57,5 +70,8 @@ jobs:
       - name: Build frontend
         run: pnpm -C ui build
 
+      - name: Typecheck frontend
+        run: pnpm -C ui exec tsc --noEmit -p tsconfig.json
+
       - name: Run workspace tests
-        run: cargo test --workspace
+        run: cargo test --workspace --locked

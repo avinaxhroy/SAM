@@ -42,11 +42,12 @@ const startIdx = match.index + match[0].length;
 const rest = content.slice(startIdx);
 const nextHeaderIdx = rest.search(/^##\s+/m);
 const rawNotes = (nextHeaderIdx === -1 ? rest : rest.slice(0, nextHeaderIdx)).trim();
-// Pre-pended to every generated release body. Explains macOS Gatekeeper rejection of
-// the unsigned DMG ("damaged and can't be opened") and the two zero-cost workarounds.
+// Pre-pended to every generated release body. Explains the macOS Gatekeeper
+// refusal of a non-notarized build ("damaged and can't be opened" / "unidentified
+// developer") and the two zero-cost workarounds.
 const installNotes = `### macOS install note
 
-The DMG is not code-signed (no Apple Developer Program yet), so macOS may show **"'SAM' is damaged and can't be opened"** on first launch. The app is fine — that's Gatekeeper rejecting the missing signature. Fix with either:
+The app is not notarized by Apple, so macOS may refuse the first launch with **"'SAM' is damaged and can't be opened"** or an "unidentified developer" warning. The app is fine — that is Gatekeeper checking a signature it cannot verify. Fix with either:
 
 \`\`\`bash
 # Option A: after dragging SAM to /Applications, strip the quarantine flag

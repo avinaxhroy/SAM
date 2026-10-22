@@ -1,3 +1,17 @@
+# Release — a CHANGELOG push (or a manual dispatch) builds the CLI sidecar and
+# the desktop bundle on each platform, then publishes one GitHub Release.
+#
+# Gate: a `verify` job runs the workspace test suite before anything is built,
+# so a red suite can never ship. `.github/workflows/ci.yml` runs the same gates.
+#
+# macOS signing: the bundle is ad-hoc signed unless the full Developer ID secret
+# set exists. Supply APPLE_SIGNING_IDENTITY, APPLE_CERTIFICATE,
+# APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD (an app-specific password,
+# not the account one) and APPLE_TEAM_ID to get a notarized, Gatekeeper-clean
+# build. The App Store Connect API-key route (APPLE_API_ISSUER, APPLE_API_KEY,
+# APPLE_API_KEY_PATH) needs a key file, so it is not wired here. A partial secret
+# set keeps ad-hoc signing instead of half-signing; `codesign -dv --verbose=4
+# SAM.app` reports what ran.
 name: Release on Changelog Update
 
 on:
@@ -14,17 +28,21 @@ on:
         type: boolean
         default: false
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   check-changelog:
     name: Parse Changelog
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       version: ${{ steps.parse.outputs.version }}
       tag: ${{ steps.parse.outputs.tag }}
@@ -34,14 +52,24 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
+
+      - name: Verify release tooling parses
+        run: |
+          set -euo pipefail
+          for file in scripts/*.mjs; do
+            node --check "$file"
+          done
+
+      - name: Fetch tags
+        run: git fetch --tags --force
 
       - name: Parse latest version and notes from CHANGELOG
         id: parse
@@ -55,6 +83,11 @@ jobs:
           TAG: ${{ steps.parse.outputs.tag }}
           FORCE: ${{ inputs.force }}
         run: |
+          set -euo pipefail
+          if [ -z "${TAG:-}" ]; then
+            echo "::error::extract-release-notes.mjs produced an empty tag"
+            exit 1
+          fi
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists in git repository."
             if [ "$FORCE" = "true" ]; then
@@ -70,14 +103,72 @@ jobs:
           fi
 
       - name: Upload release notes artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-notes
           path: notes.md
+          if-no-files-found: error
+
+  verify:
+    name: Test Before Release
+    needs: check-changelog
+    if: needs.check-changelog.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install system dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm -C ui install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm -C ui build
+
+      - name: Typecheck frontend
+        run: pnpm -C ui exec tsc --noEmit -p tsconfig.json
+
+      - name: Run workspace tests
+        run: cargo test --workspace --locked
 
   build-and-release:
     name: Build & Release (${{ matrix.platform }})
-    needs: check-changelog
+    needs: [check-changelog, verify]
     if: needs.check-changelog.outputs.should_release == 'true'
     strategy:
       fail-fast: false
@@ -97,13 +188,14 @@ jobs:
             args: '--bundles nsis'
 
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download release notes
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-notes
           path: ./
@@ -112,7 +204,7 @@ jobs:
         if: matrix.os == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
             librsvg2-dev \
             patchelf \
@@ -130,16 +222,18 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 12
           run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
 
       - name: Install frontend dependencies
         run: pnpm -C ui install --frozen-lockfile
@@ -147,15 +241,23 @@ jobs:
       - name: Build frontend
         run: pnpm -C ui build
 
-      - name: Build CLI and Shell binaries
-        run: cargo build --workspace --release
+      # The sidecar is a copy of target/release/sam, so the CLI is built first
+      # and `src-tauri/binaries/` exists before the shell compiles (see
+      # scripts/sidecar.mjs: it copies, it does not build).
+      - name: Build the CLI (sidecar source)
+        run: cargo build --release -p sam-cli --locked
 
       - name: Populate CLI sidecar for Tauri bundling
         run: node scripts/sidecar.mjs
 
+      - name: Build workspace binaries
+        run: cargo build --workspace --release --locked
+
       - name: Package CLI binary (Unix)
         if: matrix.os != 'windows'
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dist-cli
           cp target/release/sam dist-cli/sam
           tar -czf "sam-${{ needs.check-changelog.outputs.tag }}-${{ matrix.target }}.tar.gz" -C dist-cli sam
@@ -164,14 +266,42 @@ jobs:
         if: matrix.os == 'windows'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path dist-cli
+          New-Item -ItemType Directory -Force -Path dist-cli | Out-Null
           Copy-Item target/release/sam.exe dist-cli/sam.exe
           Compress-Archive -Path dist-cli/sam.exe -DestinationPath "sam-${{ needs.check-changelog.outputs.tag }}-${{ matrix.target }}.zip" -Force
 
-      - name: Build Tauri Desktop App & Create GitHub Release
-        uses: tauri-apps/tauri-action@v0
+      # Ad-hoc signing is the documented Tauri fallback (`-`) and keeps the
+      # bundle runnable; notarization needs the Developer ID secrets below.
+      - name: Choose macOS signing identity
+        if: matrix.os == 'macos'
         env:
-          APPLE_SIGNING_IDENTITY: '-'
+          DEV_ID: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          CERT: ${{ secrets.APPLE_CERTIFICATE }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          NOTARY_ID: ${{ secrets.APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          NOTARY_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "$DEV_ID" ] && [ -n "$CERT" ] && [ -n "$CERT_PASSWORD" ] \
+            && [ -n "$NOTARY_ID" ] && [ -n "$NOTARY_PASSWORD" ] && [ -n "$NOTARY_TEAM" ]; then
+            {
+              echo "APPLE_SIGNING_IDENTITY=$DEV_ID"
+              echo "APPLE_CERTIFICATE=$CERT"
+              echo "APPLE_CERTIFICATE_PASSWORD=$CERT_PASSWORD"
+              echo "APPLE_ID=$NOTARY_ID"
+              echo "APPLE_PASSWORD=$NOTARY_PASSWORD"
+              echo "APPLE_TEAM_ID=$NOTARY_TEAM"
+            } >> "$GITHUB_ENV"
+            echo "::notice::Developer ID signing + notarization configured."
+          else
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+            echo "::notice::No complete Developer ID secret set — the bundle is ad-hoc signed, not notarized."
+          fi
+
+      - name: Build Tauri Desktop App & Create GitHub Release
+        uses: tauri-apps/tauri-action@v1
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ needs.check-changelog.outputs.tag }}
@@ -180,20 +310,55 @@ jobs:
           releaseDraft: false
           prerelease: ${{ needs.check-changelog.outputs.prerelease == 'true' }}
           args: ${{ matrix.args }}
+          # One retry covers a flaky asset upload; a real build failure still
+          # surfaces, just a few minutes later.
+          retryAttempts: 1
+
+      # tauri-action owns the build, so the bundle is checked after it is
+      # uploaded: `tauri build` aborts before upload when signing fails, and
+      # this step proves which signature actually shipped.
+      - name: Verify macOS signature
+        if: matrix.os == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP=""
+          for candidate in target/release/bundle/macos/*.app target/*/release/bundle/macos/*.app; do
+            if [ -d "$candidate" ]; then APP="$candidate"; break; fi
+          done
+          if [ -z "$APP" ]; then
+            echo "::error::no .app bundle produced"
+            exit 1
+          fi
+          codesign --verify --verbose=2 "$APP"
+          SIG=$(codesign -dv --verbose=4 "$APP" 2>&1)
+          echo "$SIG"
+          if grep -q '^Authority=Developer ID Application' <<<"$SIG"; then
+            echo "::notice::$APP is Developer ID signed."
+          elif grep -q '^Signature=adhoc' <<<"$SIG"; then
+            echo "::notice::$APP is ad-hoc signed — runnable, not notarized."
+          else
+            echo "::error::$APP carries no signature"
+            exit 1
+          fi
 
       - name: Upload CLI release archive
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.check-changelog.outputs.tag }}
+          TARGET: ${{ matrix.target }}
         shell: bash
         run: |
+          set -euo pipefail
           if [ "${{ matrix.os }}" = "windows" ]; then
-            FILE="sam-${TAG}-${{ matrix.target }}.zip"
+            FILE="sam-${TAG}-${TARGET}.zip"
           else
-            FILE="sam-${TAG}-${{ matrix.target }}.tar.gz"
+            FILE="sam-${TAG}-${TARGET}.tar.gz"
           fi
-          if [ -f "$FILE" ]; then
-            echo "Uploading $FILE to GitHub Release $TAG..."
-            gh release upload "$TAG" "$FILE" --clobber
+          if [ ! -f "$FILE" ]; then
+            echo "::error::missing release archive $FILE"
+            exit 1
           fi
+          echo "Uploading $FILE to GitHub Release $TAG..."
+          gh release upload "$TAG" "$FILE" --clobber
