@@ -178,10 +178,15 @@ jobs:
             os: 'macos'
             target: 'aarch64-apple-darwin'
             args: '--bundles dmg'
+          # `deb` only: rpm refuses a prerelease version (`invalid version
+          # "0.2.0-beta"` — its Version field forbids `-`), and AppImage pulls
+          # linuxdeploy from the network at bundle time. Add `,appimage` when
+          # that download is acceptable, `,rpm` only once the version drops the
+          # `-beta` suffix.
           - platform: 'ubuntu-22.04'
             os: 'linux'
             target: 'x86_64-unknown-linux-gnu'
-            args: ''
+            args: '--bundles deb'
           - platform: 'windows-latest'
             os: 'windows'
             target: 'x86_64-pc-windows-msvc'
@@ -314,24 +319,45 @@ jobs:
           # surfaces, just a few minutes later.
           retryAttempts: 1
 
-      # tauri-action owns the build, so the bundle is checked after it is
-      # uploaded: `tauri build` aborts before upload when signing fails, and
-      # this step proves which signature actually shipped.
+      # tauri-action owns the build, so the signature is read from what it left
+      # behind: `tauri build` aborts before upload when signing fails, and this
+      # step names the signature that actually shipped. A `--bundles dmg` build
+      # keeps no loose `.app`, so the DMG is mounted and its app checked.
       - name: Verify macOS signature
         if: matrix.os == 'macos'
         shell: bash
         run: |
           set -euo pipefail
           APP=""
+          DMG=""
+          MOUNT=""
+          cleanup() {
+            if [ -n "$MOUNT" ]; then hdiutil detach "$MOUNT" >/dev/null 2>&1 || true; fi
+          }
+          trap cleanup EXIT
           for candidate in target/release/bundle/macos/*.app target/*/release/bundle/macos/*.app; do
             if [ -d "$candidate" ]; then APP="$candidate"; break; fi
           done
-          if [ -z "$APP" ]; then
-            echo "::error::no .app bundle produced"
+          for candidate in target/release/bundle/dmg/*.dmg target/*/release/bundle/dmg/*.dmg; do
+            if [ -f "$candidate" ]; then DMG="$candidate"; break; fi
+          done
+          if [ -z "$APP" ] && [ -z "$DMG" ]; then
+            echo "::error::no .app or .dmg bundle was produced"
             exit 1
           fi
+          if [ -z "$APP" ]; then
+            MOUNT=$(mktemp -d)
+            hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT" >/dev/null
+            for candidate in "$MOUNT"/*.app; do
+              if [ -d "$candidate" ]; then APP="$candidate"; break; fi
+            done
+            if [ -z "$APP" ]; then
+              echo "::error::$DMG carries no .app"
+              exit 1
+            fi
+          fi
           codesign --verify --verbose=2 "$APP"
-          SIG=$(codesign -dv --verbose=4 "$APP" 2>&1)
+          SIG=$(codesign -dv --verbose=4 "$APP" 2>&1 || true)
           echo "$SIG"
           if grep -q '^Authority=Developer ID Application' <<<"$SIG"; then
             echo "::notice::$APP is Developer ID signed."

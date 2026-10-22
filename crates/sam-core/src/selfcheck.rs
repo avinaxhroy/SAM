@@ -2454,10 +2454,9 @@ fn readonly_check(harness: &Harness, resources_dir: &Path) -> CheckResult {
         original
     };
     #[cfg(not(unix))]
-    let restore = {
+    {
         std::fs::create_dir_all(plan.join(".sam/lock")).ok();
-        ()
-    };
+    }
 
     let outcome = harness.run(
         &[
