@@ -13,6 +13,7 @@
     onOpen,
     onClose,
     onTopic,
+    onWatch,
     onNewCourse,
     onNewTopic,
   }: CoursesProps = $props();
@@ -91,15 +92,18 @@
           <h2 class="crsc-chaplabel">{chapter.label}</h2>
           <div class="cd-card crsc-topics">
             {#each chapter.topics as topic (topic.id)}
-              <button
-                class="crsc-topic"
-                type="button"
-                data-next={topic.id === opened.nextId ? '1' : undefined}
-                data-command="record.panel"
-                data-placement="recordTable.rowContext"
-                aria-label={`${topic.label} — ${topic.stage}`}
-                onclick={() => onTopic(topic.id)}
-              >
+              <div class="crsc-topicrow">
+                <button
+                  class="crsc-topic"
+                  type="button"
+                  data-next={topic.id === opened.nextId ? '1' : undefined}
+                  data-command="record.panel"
+                  data-placement="recordTable.rowContext"
+                  data-record-id={topic.id}
+                  data-record-type={topic.type}
+                  aria-label={`${topic.label} — ${topic.stage}`}
+                  onclick={() => onTopic(topic.id)}
+                >
                 <span class="crsc-sq" data-s={topic.state} aria-hidden="true">
                   {#if topic.state === 'done'}
                     <svg width="16" height="16" viewBox="0 0 16 16" focusable="false"><path d="M4.6 8.5 7 10.9 11.4 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -107,9 +111,22 @@
                     <i style={`--v: ${squareFill(topic)}%`}></i>
                   {/if}
                 </span>
-                <span class="crsc-topic__t">{topic.label}</span>
-                <span class="crsc-topic__m num">{topic.minutes === null ? '' : `${topic.minutes} min`}</span>
-              </button>
+                  <span class="crsc-topic__t">{topic.label}</span>
+                  <span class="crsc-topic__m num">{topic.minutes === null ? '' : `${topic.minutes} min`}</span>
+                </button>
+                {#if topic.link}
+                  <!-- Only when the plan names material — no placeholder. -->
+                  <button
+                    class="cd-iconbtn crsc-watch"
+                    type="button"
+                    title="Open the material in your browser"
+                    aria-label={`Watch ${topic.label}`}
+                    onclick={() => onWatch(topic.id)}
+                  >
+                    <Icon name="play" size={13} />
+                  </button>
+                {/if}
+              </div>
             {/each}
           </div>
         </section>
@@ -373,7 +390,19 @@
     text-align: left;
     transition: background var(--dur-1) var(--ease);
   }
-  .crsc-topic + .crsc-topic {
+  .crsc-topicrow {
+    display: flex;
+    align-items: stretch;
+  }
+  .crsc-topicrow > .crsc-topic {
+    flex: 1;
+    min-width: 0;
+  }
+  .crsc-watch {
+    align-self: center;
+    margin-inline-end: var(--space-md);
+  }
+  .crsc-topicrow + .crsc-topicrow .crsc-topic {
     border-top: 1px dashed var(--rule-strong);
   }
   .crsc-topic:hover {

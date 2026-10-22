@@ -4,6 +4,7 @@
 //! possible writers: the loader tolerates what external editors produce (CRLF,
 //! a missing final newline) and rejects what the contract forbids (§4.1).
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -57,10 +58,21 @@ pub struct PositionedRecord {
 
 // ── plan-root resolution (§4.1 scope 2) ─────────────────────────────────────
 
-/// Explicit `--plan <dir>` wins; otherwise exactly one plan must exist under
-/// the platform data directory's `SAM/plans/`. None → I/O error; several →
-/// ambiguous (the UI's plan picker is Phase 4).
+/// Explicit `--plan <dir>` wins; then the `SAM_PLAN` environment form (the
+/// assistant's seam, `resources::PLAN_ENV`); otherwise exactly one plan must
+/// exist under the platform data directory's `SAM/plans/`. None → I/O error;
+/// several → ambiguous (the UI's plan picker is Phase 4).
 pub fn plan_root(explicit: Option<&Path>) -> Result<(PathBuf, String), ConfigStoreError> {
+    let from_environment = std::env::var_os(crate::resources::PLAN_ENV).map(PathBuf::from);
+    plan_root_with(explicit, from_environment.as_deref())
+}
+
+/// The resolution without reading the process environment, so tests stay
+/// hermetic (nothing here races another test's `set_var`).
+pub fn plan_root_with(
+    explicit: Option<&Path>,
+    environment: Option<&Path>,
+) -> Result<(PathBuf, String), ConfigStoreError> {
     if let Some(explicit) = explicit {
         if !explicit.is_dir() {
             return Err(ConfigStoreError::Io(format!(
@@ -69,6 +81,16 @@ pub fn plan_root(explicit: Option<&Path>) -> Result<(PathBuf, String), ConfigSto
             )));
         }
         return Ok((explicit.to_path_buf(), "explicit".into()));
+    }
+
+    if let Some(root) = environment {
+        if !root.is_dir() {
+            return Err(ConfigStoreError::Io(format!(
+                "SAM_PLAN points at {}, which is not a folder",
+                root.display()
+            )));
+        }
+        return Ok((root.to_path_buf(), "environment".into()));
     }
 
     let base = crate::resources::paths()
@@ -177,6 +199,36 @@ pub fn fnv_hex(data: &[u8]) -> String {
 
 // ── create (§4.1 ownership) ─────────────────────────────────────────────────
 
+/// The bookkeeping a file manager drops into a folder just for being looked
+/// at. It is not content: a folder holding only this is still the empty
+/// destination the storage door promised, and a plan that picks one up on the
+/// way in is not a plan that already exists.
+pub fn os_junk(name: &std::ffi::OsStr) -> bool {
+    matches!(
+        name.to_str(),
+        Some(".DS_Store" | ".localized" | "Thumbs.db" | "desktop.ini" | "Icon\r")
+    )
+}
+
+/// Whether a folder holds nothing at all — the one existing shape a new plan
+/// may take over. `plan.new` refuses a destination that already holds
+/// something (a plan, or anything else), and a folder that holds nothing is a
+/// destination rather than a duplicate: the storage door can point a blank
+/// plan at the empty folder a student chose (§3.2). A file manager's own
+/// droppings do not count as content (`os_junk`): Finder writes `.DS_Store`
+/// into a folder the moment the dialog shows it.
+pub fn empty_directory(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    match std::fs::read_dir(path) {
+        Ok(entries) => entries
+            .filter_map(Result::ok)
+            .all(|entry| os_junk(&entry.file_name())),
+        Err(_) => false,
+    }
+}
+
 /// Where a new plan goes: an explicit target directory, or a name under the
 /// plans directory. One function, because the terminal and the registry must
 /// refuse the same names with the same rule (§4.9's one mechanism; a name is a
@@ -219,6 +271,27 @@ pub fn free_plan_destination(plans_dir: &Path, name: &str) -> PathBuf {
     plans_dir.join(format!("{base}-{}", crate::transaction::make_txid()))
 }
 
+/// Would `preset` be materialized at `target`? The two checks every creation
+/// makes first — the preset exists, the destination is free — answered without
+/// writing, so `--dry-run` and the app's *Make a new plan here* probe ask the
+/// engine instead of re-deriving the rule. A folder holding only a file
+/// manager's droppings is free (`empty_directory`).
+pub fn plan_target_check(
+    target: &Path,
+    preset: &str,
+    resources_dir: &Path,
+) -> Result<PathBuf, ConfigStoreError> {
+    let preset_dir = bundled_dir(resources_dir, &format!("presets/{preset}"))
+        .ok_or_else(|| ConfigStoreError::Io(format!("preset not found: {preset}")))?;
+    if target.exists() && !empty_directory(target) {
+        return Err(ConfigStoreError::Io(format!(
+            "plan already exists: {}",
+            target.display()
+        )));
+    }
+    Ok(preset_dir)
+}
+
 /// Materialize a new plan from a bundled preset: a complete writable copy,
 /// staged and validated before it appears at `target`. Never a live merge —
 /// preset upgrades are explicit migrations, so nothing deleted can resurrect.
@@ -227,8 +300,7 @@ pub fn create_plan(
     preset: &str,
     resources_dir: &Path,
 ) -> Result<PathBuf, ConfigStoreError> {
-    let preset_dir = bundled_dir(resources_dir, &format!("presets/{preset}"))
-        .ok_or_else(|| ConfigStoreError::Io(format!("preset not found: {preset}")))?;
+    let preset_dir = plan_target_check(target, preset, resources_dir)?;
     create_plan_with(target, resources_dir, |staging| {
         crate::transaction::copy_tree(&preset_dir, staging)
             .map_err(|error| format!("cannot stage the preset: {error}"))
@@ -248,7 +320,7 @@ pub fn create_plan_with<F>(
 where
     F: FnOnce(&Path) -> Result<(), String>,
 {
-    if target.exists() {
+    if target.exists() && !empty_directory(target) {
         return Err(ConfigStoreError::Io(format!(
             "plan already exists: {}",
             target.display()
@@ -275,6 +347,21 @@ where
     if let Err(error) = load_with(&staging, "explicit", resources_dir) {
         cleanup();
         return Err(error);
+    }
+    // An empty destination is replaced, never shadowed: `rename` onto an
+    // existing directory works on Unix and fails on Windows, so the empty
+    // folder is removed first either way (one mechanism, every platform). Its
+    // file-manager droppings go first — `empty_directory` refused to count
+    // them, so `remove_dir` must not trip over them either.
+    if target.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(target) {
+            for entry in entries.filter_map(Result::ok) {
+                if os_junk(&entry.file_name()) {
+                    let _ = std::fs::remove_file(entry.path());
+                }
+            }
+        }
+        let _ = std::fs::remove_dir(target);
     }
     if let Err(error) = std::fs::rename(&staging, target) {
         cleanup();
@@ -339,6 +426,20 @@ fn load_impl(
     // position: the writer's view of the same plan (§4.6 step 2 verifies
     // against these bytes, §4.7 reports line-level diagnostics).
     let mut source_files: BTreeMap<String, Vec<u8>> = BTreeMap::new();
+
+    // A folder with no `content/` at all is not a broken plan — it is not a
+    // plan. `list_plans` asks the same question of a directory it offers, and
+    // the storage doors read this one sentence as "a destination": reporting
+    // `types.json` missing plus "at least one type" for a folder a student
+    // merely picked is a page of findings about a thing that does not exist.
+    // A plan that HAS `content/` but lost a document stays a plan with a fault.
+    if !root.join("content").is_dir() {
+        return Err(ConfigStoreError::Validation(vec![Diagnostic::error(
+            "plan.absent",
+            ".",
+            "this folder is not a plan — it holds no content folder",
+        )]));
+    }
 
     check_layout(root, &mut diagnostics);
 
@@ -431,22 +532,32 @@ fn load_impl(
                 continue;
             };
             // §4.1: CRLF and a missing final newline are tolerated; a blank
-            // interior line is not.
-            let normalized = text.replace("\r\n", "\n");
-            let lines: Vec<&str> = normalized.split('\n').collect();
-            for (index, raw) in lines.iter().enumerate() {
+            // interior line is not. A Unix file pays no copy: only a file that
+            // actually carries CR gets the normalized owned string.
+            let normalized: Cow<'_, str> = if text.contains('\r') {
+                Cow::Owned(text.replace("\r\n", "\n"))
+            } else {
+                Cow::Borrowed(text.as_str())
+            };
+            let mut lines = normalized.split('\n').peekable();
+            let mut index = 0usize;
+            while let Some(raw) = lines.next() {
+                let last = lines.peek().is_none();
                 let line = raw.trim();
                 if line.is_empty() {
-                    if index == 0 || index == lines.len() - 1 {
+                    if index == 0 || last {
+                        index += 1;
                         continue;
                     }
                     diagnostics.push(
                         Diagnostic::error("jsonl.blank-line", rel.clone(), "blank interior line")
                             .at_line(index as u64 + 1),
                     );
+                    index += 1;
                     continue;
                 }
                 record_lines.push((rel.clone(), index as u64 + 1, line.to_string()));
+                index += 1;
             }
         }
     }
@@ -583,6 +694,7 @@ fn load_impl(
         .filter(|diagnostic| !diagnostic.is_error())
         .collect();
 
+    let lookup = crate::resolved_config::PlanLookup::build(&positioned);
     Ok(ResolvedConfig {
         plan_root: root.to_path_buf(),
         layer: layer.to_string(),
@@ -592,6 +704,7 @@ fn load_impl(
         shell,
         appearance,
         positioned_records: positioned,
+        lookup,
         formulas,
         source_files,
         tokens,
@@ -890,16 +1003,100 @@ mod tests {
     }
 
     #[test]
-    fn an_empty_plan_directory_reports_a_missing_document() {
+    fn a_folder_with_no_plan_is_one_sentence_not_a_page_of_findings() {
         let dir =
             std::env::temp_dir().join(format!("sam-empty-{}", crate::transaction::make_txid()));
         std::fs::create_dir_all(&dir).expect("temp dir");
         let Err(ConfigStoreError::Validation(diagnostics)) =
             load_with(&dir, "explicit", &resources())
         else {
-            panic!("an empty directory is a validation failure");
+            panic!("a folder with no content/ is not a plan");
+        };
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+        assert_eq!(diagnostics[0].code, "plan.absent");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_plan_that_lost_types_json_is_still_a_plan_with_a_fault() {
+        // The absence rule is about a folder with no plan at all: a `content/`
+        // directory makes it a plan, and a missing document is a finding about
+        // that plan — not "this is not a plan".
+        let dir =
+            std::env::temp_dir().join(format!("sam-broken-{}", crate::transaction::make_txid()));
+        std::fs::create_dir_all(dir.join("content")).expect("content dir");
+        let Err(ConfigStoreError::Validation(diagnostics)) =
+            load_with(&dir, "explicit", &resources())
+        else {
+            panic!("a plan without types.json does not load");
         };
         assert!(diagnostics.iter().any(|d| d.code == "file.missing"));
+        assert!(!diagnostics.iter().any(|d| d.code == "plan.absent"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_file_managers_droppings_do_not_make_a_folder_occupied() {
+        let dir =
+            std::env::temp_dir().join(format!("sam-junk-{}", crate::transaction::make_txid()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        std::fs::write(dir.join(".DS_Store"), b"finder").expect("ds store");
+        assert!(empty_directory(&dir), "Finder junk is not content");
+        std::fs::write(dir.join("notes.txt"), b"real").expect("a real entry");
+        assert!(!empty_directory(&dir), "a real entry makes it occupied");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_folder_finder_visited_is_still_an_empty_destination() {
+        // The storage door's promise, end to end: a "blank" folder the user
+        // just looked at in Finder carries `.DS_Store`, and `plan.new` takes
+        // it over rather than refusing it as occupied.
+        let dir =
+            std::env::temp_dir().join(format!("sam-junk-plan-{}", crate::transaction::make_txid()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        std::fs::write(dir.join(".DS_Store"), b"finder").expect("ds store");
+        let created = create_plan(&dir, "blank", &resources()).expect("the folder takes the plan");
+        assert_eq!(created, dir);
+        assert!(dir.join("content/types.json").is_file());
+        assert!(
+            !dir.join(".DS_Store").exists(),
+            "the old folder is replaced"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_plan_flag_beats_the_environment_and_the_environment_beats_the_default() {
+        let flag = std::env::temp_dir().join(format!("sam-plan-flag-{}", crate::transaction::make_txid()));
+        let environment =
+            std::env::temp_dir().join(format!("sam-plan-env-{}", crate::transaction::make_txid()));
+        std::fs::create_dir_all(&flag).expect("temp dir");
+        std::fs::create_dir_all(&environment).expect("temp dir");
+
+        let (root, origin) = plan_root_with(Some(&flag), Some(&environment)).expect("the flag wins");
+        assert_eq!(root, flag);
+        assert_eq!(origin, "explicit");
+
+        let (root, origin) = plan_root_with(None, Some(&environment)).expect("the env answers");
+        assert_eq!(root, environment);
+        assert_eq!(origin, "environment");
+
+        // Neither given: the data dir's scan decides (here: this machine's
+        // plans, whatever they are — the branch exists, which is what matters).
+        let fallback = plan_root_with(None, None);
+        assert!(!matches!(&fallback, Ok((_, origin)) if origin == "environment"));
+
+        let _ = std::fs::remove_dir_all(&flag);
+        let _ = std::fs::remove_dir_all(&environment);
+    }
+
+    #[test]
+    fn a_stale_sam_plan_path_is_refused_by_name() {
+        let missing = std::env::temp_dir().join("sam-plan-that-does-not-exist-xyz");
+        let Err(ConfigStoreError::Io(message)) = plan_root_with(None, Some(&missing)) else {
+            panic!("a missing SAM_PLAN folder is an I/O failure");
+        };
+        assert!(message.contains("SAM_PLAN"), "{message}");
     }
 }

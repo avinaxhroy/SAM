@@ -14,10 +14,19 @@
   both are radio groups, and each row wears the note of the value it is on — the
   choice is explained in words, never by colour alone.
 
+  THE PER-COMPONENT CHOICE is three letters, not three sentences. A surface's
+  three designs are named in the lab's own prose ("The Day’s Weight", "The
+  Filter Strip"), and printing all three names inside the segment made a
+  three-way choice 300px wide and two lines tall on every row. The chosen
+  design's name rides beside the row's own title instead, and each letter
+  carries its name and note as its accessible name and its pointer title.
+
   Nothing on this place writes the plan: these are the app's own preferences,
   stored beside the theme. A write lands immediately — there is no Save.
 -->
 <script lang="ts">
+  import Row from './Row.svelte';
+  import Segmented from './Segmented.svelte';
   import { CHOOSABLE, type SurfaceDef, type VariantId } from '../variants/catalog';
   import { styles, type UiSize } from '../variants/styles.svelte';
 
@@ -27,22 +36,29 @@
     { id: 'spacious', name: 'Spacious', note: 'larger rows and type — a big display, read from further away' },
   ];
 
-  const GROUPS: Array<{ id: string; title: string; lead: string }> = [
-    { id: 'day', title: 'The day', lead: 'Today, and the dated objects it shares with Mocks and Progress' },
-    { id: 'study', title: 'The study', lead: 'Plan, Courses, Practice, Mocks, Reviews, Progress, Library and the record tables' },
-    { id: 'machine', title: 'The machine', lead: 'System, the record panel, the palette, the session clock and this screen' },
+  /* A band is its title and its count. It used to carry a lead sentence naming
+     the components inside it — every one of which the rows below name again, in
+     the same order, one line each. */
+  const GROUPS: Array<{ id: string; title: string }> = [
+    { id: 'day', title: 'The day' },
+    { id: 'study', title: 'The study' },
+    { id: 'machine', title: 'The machine' },
   ];
 
   const LETTERS: VariantId[] = ['a', 'b', 'c'];
+
+  /** The glyph a band's rows wear: one per register, so a row's icon says which
+   *  part of the app the component lives in before its name is read. */
+  const GROUP_ICON: Record<string, string> = { day: 'calendar', study: 'book', machine: 'gear' };
 
   const surfacesIn = (group: string): SurfaceDef[] => CHOOSABLE.filter((surface) => surface.group === group);
 
   const sizeNote = $derived(SIZES.find((size) => size.id === styles.size)?.note ?? '');
 
-  /** The note of the design a surface is currently wearing — the row's own receipt. */
-  function chosenNote(surface: SurfaceDef): string {
+  /** The design a surface is currently wearing — the row's own receipt. */
+  function chosenName(surface: SurfaceDef): string {
     const chosen = styles.variantOf(surface.key);
-    return surface.variants.find((variant) => variant.id === chosen)?.note ?? '';
+    return surface.variants.find((variant) => variant.id === chosen)?.name ?? chosen.toUpperCase();
   }
 
   /** Whether every component that offers this letter is already wearing it. */
@@ -52,68 +68,56 @@
         !surface.variants.some((variant) => variant.id === id) || styles.variantOf(surface.key) === id,
     );
   }
+
+  /** The letter the whole app is on, or `null` when the surfaces are mixed. */
+  const uniform = $derived(LETTERS.find((letter) => everyIs(letter)) ?? null);
 </script>
 
 <div class="st-rows">
-  <div class="st-row" data-plate="styles:size">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>Interface size</span>
-      </span>
-      <span class="st-row__help">
-        One choice moves every row, pad, gap and type step together. Each component still reflows on
-        its own window — <b>{sizeNote}</b>
-      </span>
-    </div>
-    <div class="st-row__ctl">
-      <span class="st-seg" role="radiogroup" aria-label="Interface size">
-        {#each SIZES as size (size.id)}
-          <button
-            class="st-seg__pill"
-            type="button"
-            role="radio"
-            aria-checked={styles.size === size.id}
-            title={size.note}
-            onclick={() => styles.setSize(size.id)}
-          >
-            {size.name}
-          </button>
-        {/each}
-      </span>
-    </div>
-  </div>
+  <Row icon="layout" name="Interface size" plate="styles:size">
+    {#snippet help()}
+      Moves every row, pad, gap and type step. <b>{sizeNote}</b>
+    {/snippet}
+    {#snippet ctl()}
+      <Segmented
+        label="Interface size"
+        value={styles.size}
+        options={SIZES.map((size) => ({ id: size.id, label: size.name, note: size.note }))}
+        onpick={(id) => styles.setSize(id as UiSize)}
+      />
+    {/snippet}
+  </Row>
 
-  <div class="st-row" data-plate="styles:every">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>Every component</span>
-      </span>
-      <span class="st-row__help">
-        Give every component that offers it the same design, or hand the whole app back to the lab's
-        own defaults. Four components ship a single design and are left alone either way.
-      </span>
-    </div>
-    <div class="st-row__ctl">
-      <span class="st-seg" role="radiogroup" aria-label="Every component">
-        {#each LETTERS as letter (letter)}
-          <button
-            class="st-seg__pill"
-            type="button"
-            role="radio"
-            aria-checked={everyIs(letter)}
-            aria-label={`Give every component its ${letter.toUpperCase()} design`}
-            title={`Give every component its ${letter.toUpperCase()} design`}
-            onclick={() => styles.setEveryVariant(letter)}
-          >
-            {letter.toUpperCase()}
-          </button>
-        {/each}
-      </span>
-      <button class="cd-pill cd-pill--ghost cd-pill--sm" type="button" onclick={() => styles.resetVariants()}>
+  <Row icon="squareStack" name="Every component" plate="styles:every">
+    {#snippet trail()}
+      <span class="st-state">{uniform ? `all ${uniform.toUpperCase()}` : 'mixed'}</span>
+    {/snippet}
+    {#snippet help()}
+      One design for every component, or the lab's defaults. Four ship a single design.
+    {/snippet}
+    {#snippet ctl()}
+      <Segmented
+        label="Every component"
+        value={uniform ?? ''}
+        mono
+        options={LETTERS.map((letter) => ({
+          id: letter,
+          label: letter.toUpperCase(),
+          aria: `Give every component its ${letter.toUpperCase()} design`,
+          note: `Give every component its ${letter.toUpperCase()} design`,
+        }))}
+        onpick={(id) => styles.setEveryVariant(id as VariantId)}
+      />
+      <button
+        class="st-chipbtn"
+        type="button"
+        title="Return every component to the design its lab ships by default"
+        onclick={() => styles.resetVariants()}
+      >
         The lab's defaults
       </button>
-    </div>
-  </div>
+    {/snippet}
+  </Row>
 </div>
 
 {#each GROUPS as group (group.id)}
@@ -124,41 +128,30 @@
       {surfacesIn(group.id).length === 1 ? 'component' : 'components'}
     </span>
   </h3>
-  <p class="st-band__lead">{group.lead}</p>
-
   <div class="st-rows">
     {#each surfacesIn(group.id) as surface (surface.key)}
-      <div class="st-row" data-plate={`styles:${surface.key}`}>
-        <div class="st-row__label">
-          <span class="st-row__name">
-            <span>{surface.title}</span>
-          </span>
-          <span class="st-row__help">
-            {surface.what} — <b>{chosenNote(surface)}</b>
-          </span>
-        </div>
-        <div class="st-row__ctl">
-          <span class="st-seg" role="radiogroup" aria-label={`${surface.title} — which design`}>
-            {#each surface.variants as variant (variant.id)}
-              <!-- The pressed design is the one this component draws with; the
-                   row's help line is that design's own idea in one line, so the
-                   choice is explained without a preview nobody can see from
-                   here. Title carries the note too, for the pointer. -->
-              <button
-                class="st-seg__pill st-pick"
-                type="button"
-                role="radio"
-                aria-checked={styles.variantOf(surface.key) === variant.id}
-                title={variant.note}
-                onclick={() => styles.setVariant(surface.key, variant.id)}
-              >
-                <b>{variant.id.toUpperCase()}</b>
-                <span>{variant.name}</span>
-              </button>
-            {/each}
-          </span>
-        </div>
-      </div>
+      <Row icon={GROUP_ICON[group.id] ?? 'panel'} name={surface.title} plate={`styles:${surface.key}`}>
+        {#snippet trail()}
+          <span class="st-state">{chosenName(surface)}</span>
+        {/snippet}
+        {#snippet help()}
+          {surface.what}
+        {/snippet}
+        {#snippet ctl()}
+          <Segmented
+            label={`${surface.title} — which design`}
+            value={styles.variantOf(surface.key)}
+            mono
+            options={surface.variants.map((variant) => ({
+              id: variant.id,
+              label: variant.id.toUpperCase(),
+              aria: `${surface.title} — ${variant.name}`,
+              note: `${variant.name} — ${variant.note}`,
+            }))}
+            onpick={(id) => styles.setVariant(surface.key, id as VariantId)}
+          />
+        {/snippet}
+      </Row>
     {/each}
   </div>
 {/each}

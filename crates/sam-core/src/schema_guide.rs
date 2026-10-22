@@ -18,6 +18,56 @@ use crate::model::Record;
 use crate::resolved_config::ResolvedConfig;
 use crate::transaction::DEFAULT_RETENTION;
 
+/// The block vocabulary a screen is composed from (§3.6, Phase 5): the same
+/// `BLOCK_KINDS` the loader accepts and the renderer draws, the keys each kind
+/// reads, the folds a stat/chart may apply, and one minimal committed example
+/// per composed kind. One schema call teaches the shape — the discovery gap
+/// that made agents guess `view.block.*` flags and keys.
+fn blocks_json() -> serde_json::Value {
+    let composed: [(&str, &[&str]); 6] = [
+        ("stat", &["view", "expr", "reduce", "label", "title"]),
+        ("chart", &["view", "x", "y", "reduce", "days", "label", "title"]),
+        ("callout", &["text", "title"]),
+        ("columns", &["blocks", "title"]),
+        ("conditional", &["when", "blocks", "else", "title"]),
+        ("repeat", &["view", "limit", "blocks"]),
+    ];
+    let examples: serde_json::Value = serde_json::json!({
+        "stat": { "kind": "stat", "view": "today.topics", "expr": "est", "reduce": "sum", "label": "Minutes today" },
+        "chart": { "kind": "chart", "view": "progress.sessions", "x": "date", "y": "min", "reduce": "sum", "days": 7, "label": "Minutes per day, this week" },
+        "callout": { "kind": "callout", "text": "Anything the student should read" },
+        "columns": { "kind": "columns", "blocks": [{ "kind": "stat", "view": "today.topics", "expr": "est", "reduce": "sum" }] },
+        "conditional": { "kind": "conditional", "when": "score >= 80", "blocks": [{ "kind": "callout", "text": "Nice work" }], "else": [{ "kind": "callout", "text": "Keep going" }] },
+        "repeat": { "kind": "repeat", "view": "today.topics", "limit": 5 },
+    });
+    let mut kinds = serde_json::Map::new();
+    for kind in crate::model::RECORD_BLOCK_KINDS {
+        kinds.insert(
+            kind.into(),
+            serde_json::json!({
+                "keys": ["view", "title"],
+                "note": "a record block draws the records of `view` (default: the screen's own query) in this layout",
+            }),
+        );
+    }
+    for (kind, keys) in composed {
+        let mut entry = serde_json::Map::new();
+        entry.insert("keys".into(), serde_json::json!(keys));
+        if let Some(example) = examples.get(kind) {
+            entry.insert("example".into(), example.clone());
+        }
+        kinds.insert(kind.into(), serde_json::Value::Object(entry));
+    }
+    serde_json::json!({
+        "kinds": serde_json::Value::Object(kinds),
+        "reduces": ["count", "sum", "avg", "min", "max"],
+        "writeWith": "view.block.add · view.block.set · view.block.move · view.block.remove · view.setComponents",
+        "readWith": "sam view <name> --json · sam source --file content/views.json",
+        "maxDepth": crate::model::MAX_BLOCK_DEPTH,
+        "note": "these keys are what the renderer reads; `sam <id> --help` prints each write command's exact flags",
+    })
+}
+
 pub fn schema_json(config: &ResolvedConfig) -> serde_json::Value {
     let mut types = serde_json::Map::new();
     for (name, def) in &config.types {
@@ -139,6 +189,7 @@ pub fn schema_json(config: &ResolvedConfig) -> serde_json::Value {
         "schemaVersion": crate::config_store::SCHEMA_VERSION,
         "types": serde_json::Value::Object(types),
         "views": serde_json::Value::Object(views),
+        "blocks": blocks_json(),
         "pipelines": serde_json::Value::Object(pipelines),
         "recordContract": {
             "shape": "{\"schemaVersion\":1,\"id\":\"…\",\"type\":\"…\",\"fields\":{…},\"links\":{…}}",
@@ -464,6 +515,7 @@ mod tests {
             shell: None,
             appearance: None,
             positioned_records: Vec::new(),
+            lookup: Default::default(),
             formulas: BTreeMap::new(),
             source_files: BTreeMap::new(),
             tokens: crate::resources::TokenRegister {
@@ -496,5 +548,28 @@ mod tests {
             JSONValue::String("Example name".into())
         );
         assert_eq!(examples[1].links["a"], vec!["example.a".to_string()]);
+    }
+
+    #[test]
+    fn the_blocks_section_covers_exactly_the_closed_kind_vocabulary() {
+        let blocks = blocks_json();
+        let kinds = blocks["kinds"].as_object().expect("kinds is an object");
+        for kind in crate::model::BLOCK_KINDS {
+            assert!(kinds.contains_key(kind), "\"{kind}\" missing from the blocks section");
+        }
+        assert_eq!(
+            kinds.len(),
+            crate::model::BLOCK_KINDS.len(),
+            "the section names a kind the loader does not accept"
+        );
+        // The chart example is the one the reported task needed; keep it exact.
+        let chart = &kinds["chart"];
+        assert!(chart["keys"].as_array().unwrap().iter().any(|key| key == "days"));
+        assert_eq!(chart["example"]["days"], 7);
+        assert!(blocks["reduces"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|fold| fold == "sum"));
     }
 }

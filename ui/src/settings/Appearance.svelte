@@ -16,9 +16,12 @@
 <script lang="ts">
   import Button from '../records/Button.svelte';
   import IdPair from '../shell/IdPair.svelte';
+  import Row from './Row.svelte';
+  import Segmented from './Segmented.svelte';
+  import Switch from './Switch.svelte';
   import { dispatch } from '../ipc';
   import { app } from '../session.svelte';
-  import { OVERRIDE_SUGGESTIONS, storedMode, type DesignFinding, type DesignReport } from '../appearance';
+  import { OVERRIDE_SUGGESTIONS, type DesignFinding, type DesignReport } from '../appearance';
 
   let {
     onChange = null,
@@ -40,7 +43,11 @@
 
   const appearance = $derived(app.appearance);
   const overrides = $derived(Object.entries(appearance?.overrides ?? {}));
-  const mode = $derived(storedMode());
+  // The *stored* preference, from the session's own state — not a fresh
+  // `storedMode()` call: `localStorage` is not reactive, so a `$derived` that
+  // read it answered once and the switch kept saying "Light" over a dark window
+  // until the app was restarted.
+  const mode = $derived(app.mode);
   const scale = $derived(appearance?.textScale ?? 1);
   const scaleChoices = [
     { value: 1, label: '100%' },
@@ -226,20 +233,13 @@
 
 <div class="st-rows">
   <!-- The one row in this place whose control needs room: four colour ways,
-       each a name and the mode it pins. `--wide` because four tiles cannot
+       each a name and the mode it pins. `wide` because four tiles cannot
        stand beside a label without squeezing it to a column of two words. -->
-  <div class="st-row st-row--wide" data-plate="theme.set">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>Theme</span>
-        <IdPair value="theme.set" title="Copy the command" />
-      </span>
-      <span class="st-row__help">
-        A theme pins its own light or dark mode and sets every colour and size the plan draws with —
-        this plan is wearing <b>{themeName}</b>.
-      </span>
-    </div>
-    <div class="st-row__ctl">
+  <Row icon="palette" name="Theme" key="theme.set" keyTitle="Copy the command" plate="theme.set" wide>
+    {#snippet help()}
+      Pins the mode and every colour. Now: <b>{themeName}</b>.
+    {/snippet}
+    {#snippet ctl()}
       <div class="st-tiles" role="radiogroup" aria-label="Theme">
         {#each app.themes as theme (theme.id)}
           <button
@@ -263,34 +263,34 @@
           </button>
         {/each}
       </div>
-    </div>
-  </div>
+    {/snippet}
+  </Row>
 
-  <div class="st-row" data-plate="appearance.mode">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>Light or dark on this machine</span>
-        <IdPair value="appearance.mode" title="Copy the command" />
-      </span>
-      <span class="st-row__help">
-        Follow the machine's own light or dark mode — the plan is showing <b>{shownMode}</b>. A theme
-        that pins its mode ignores this.
-      </span>
-    </div>
-    <div class="st-row__ctl">
+  <Row
+    icon="moon"
+    name="Light or dark on this machine"
+    key="appearance.mode"
+    keyTitle="Copy the command"
+    plate="appearance.mode"
+  >
+    {#snippet help()}
+      Follows the machine. Now: <b>{shownMode}</b>. A theme that pins its mode ignores this.
+    {/snippet}
+    {#snippet ctl()}
       <!-- A `switch`, not a two-option segment, and the reason is
            `controls.md` §2: yes/no gets a **switch**. The track is the well and
            the knob is the card, so the state reads from the knob's side without
-           colour. -->
-      <button
-        class="cd-switch"
-        type="button"
-        role="switch"
-        aria-checked={mode === 'dark'}
-        aria-label="Follow the machine's light or dark mode"
-        data-command="appearance.mode"
-        data-placement="settings"
-        onclick={() => {
+           colour; the word beside it states the same fact for anyone who cannot
+           see the knob. -->
+      <Switch
+        checked={mode === 'dark'}
+        label="The machine's own light or dark mode"
+        on="Dark"
+        off="Light"
+        busy={busy}
+        command="appearance.mode"
+        placement="settings"
+        onchange={() => {
           const was = shownMode;
           const next = mode === 'dark' ? 'light' : 'dark';
           app.setMode(next);
@@ -299,59 +299,56 @@
             return true;
           });
         }}
-      ></button>
-    </div>
-  </div>
+      />
+    {/snippet}
+  </Row>
 
-  <div class="st-row" data-plate="appearance.setTextScale">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>Text size</span>
-        <IdPair value="appearance.setTextScale" title="Copy the command" />
-      </span>
-      <span class="st-row__help">
-        The window's own type ramp scales; the layout does not move.
-      </span>
-    </div>
-    <div class="st-row__ctl">
+  <Row
+    icon="type"
+    name="Text size"
+    key="appearance.setTextScale"
+    keyTitle="Copy the command"
+    plate="appearance.setTextScale"
+  >
+    {#snippet help()}
+      Scales the type ramp, not the layout.
+    {/snippet}
+    {#snippet ctl()}
       <!-- A segmented control, not buttons that disable themselves: the chosen
            option stays focusable (and re-clicking it writes nothing), so a
            keyboard user keeps their place after the write. -->
-      <span class="cd-seg" role="radiogroup" aria-label="Text size">
-        {#each scaleChoices as choice (choice.value)}
-          <button
-            class="cd-seg__pill"
-            type="button"
-            role="radio"
-            aria-checked={Math.abs(scale - choice.value) < 0.001}
-            aria-busy={busy}
-            data-command="appearance.setTextScale"
-            data-placement="settings"
-            onclick={() => {
-              if (!busy) void pickScale(choice.value);
-            }}
-          >
-            {choice.label}
-          </button>
-        {/each}
-      </span>
-    </div>
-  </div>
+      <Segmented
+        label="Text size"
+        value={String(scaleChoices.find((choice) => Math.abs(scale - choice.value) < 0.001)?.value ?? 1)}
+        options={scaleChoices.map((choice) => ({
+          id: String(choice.value),
+          label: choice.label,
+          note: `Set text size to ${choice.label}`,
+        }))}
+        busy={busy}
+        command="appearance.setTextScale"
+        placement="settings"
+        onpick={(id) => {
+          if (!busy) void pickScale(Number(id));
+        }}
+      />
+    {/snippet}
+  </Row>
 
   <!-- The advanced row, and the only one whose control carries text of its own:
        a token path and a value, which is exactly what the write takes. -->
-  <div class="st-row st-row--wide" data-plate="appearance.setOverride">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>Token overrides</span>
-        <IdPair value="appearance.setOverride" title="Copy the command" />
-      </span>
-      <span class="st-row__help">
-        Advanced: the theme's own values, replaced by hand — <b>{overridesText}</b>. An override holds
-        until the token it names is reset.
-      </span>
-    </div>
-    <div class="st-row__ctl">
+  <Row
+    icon="code"
+    name="Token overrides"
+    key="appearance.setOverride"
+    keyTitle="Copy the command"
+    plate="appearance.setOverride"
+    wide
+  >
+    {#snippet help()}
+      The theme's values, replaced by hand — <b>{overridesText}</b>.
+    {/snippet}
+    {#snippet ctl()}
       <div class="st-overrides">
         {#each overrides as [key, value] (key)}
           <div class="st-override">
@@ -417,21 +414,14 @@
           />
         </div>
       </div>
-    </div>
-  </div>
+    {/snippet}
+  </Row>
 
-  <div class="st-row st-row--wide" data-plate="design.check">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>The design doctor</span>
-        <IdPair value="design.check" title="Copy the command" />
-      </span>
-      <span class="st-row__help">
-        The engine's own lints over the resolved colours — the same read the terminal runs.
-        <b>{doctorText}</b>
-      </span>
-    </div>
-    <div class="st-row__ctl">
+  <Row icon="check" name="The design doctor" key="design.check" keyTitle="Copy the command" plate="design.check" wide>
+    {#snippet help()}
+      Lints over the resolved colours. <b>{doctorText}</b>
+    {/snippet}
+    {#snippet ctl()}
       <div class="st-doctor">
         <Button
           id="design.check"
@@ -458,11 +448,10 @@
           </div>
         {:else if report}
           <p class="st-finding__say">
-            Nothing to report — every rule that can be read off the plan is clean;
-            {report.unobservable.length} of the {report.rules.length} are not observable from plan data.
+            Clean. {report.unobservable.length}/{report.rules.length} not observable.
           </p>
         {/if}
       </div>
-    </div>
-  </div>
+    {/snippet}
+  </Row>
 </div>

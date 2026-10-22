@@ -16,6 +16,42 @@
 [data-w="butter"] { --wash: var(--w-butter); --onwash: var(--fg-butter); }
 [data-w="sky"]    { --wash: var(--w-sky);    --onwash: var(--fg-sky); }
 
+/* ── 1b · THE GLYPH PLATE — one glyph on its room's wash ───────────────── */
+/* The app's smallest named object, and the same object everywhere it appears:
+   a sheet's head (the sheet's subject, stated as a picture before it is stated
+   as words), a machine-owned row's mark, an empty state's art. It takes its
+   colour from the identity mapping above (`data-w`) and never declares one, so
+   a plate is a *room*, not a swatch — and the glyph on it keeps the family's
+   own 1.5px stroke at `currentColor`, on the room's own ink.
+
+   Not `.cd-tile`: that name is already the record tile — the 152px pastel card
+   the collection layer draws (§11) — and two objects with one name is how a
+   card's `min-height` came to stretch an icon into a capsule.
+
+   Size is the one variant: `--sm` for a mark that rides inside a row, the
+   default for a sheet's head. */
+.cd-glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  /* A square, always. In a grid row it must not stretch to the row's height —
+     an icon plate that grew with its neighbour's sentence would be a capsule,
+     which is a different object entirely. */
+  align-self: center;
+  width: var(--disc);
+  height: var(--disc);
+  border-radius: var(--r-tile);
+  background: var(--wash-grad, var(--well));
+  color: var(--onwash, var(--ink-2));
+}
+.cd-glyph--sm { width: calc(var(--disc) * 0.78); height: calc(var(--disc) * 0.78); border-radius: var(--r-mini); }
+/* A destructive act's own room: the readable red on the wash that pairs with
+   it. Never the filled pill — a filled red disc carries `--ink-inv` words at
+   about 1.2:1, which is the pair the sheet layer already refused. */
+.cd-glyph--danger { background: var(--chip-overdue); color: var(--on-overdue); }
+/* No room named: the well and the app's own secondary ink. */
+.cd-glyph--quiet { background: var(--well); color: var(--ink-2); }
+
 /* ── 2 · WINDOW ───────────────────────────────────────────────────────── */
 .cd-window {
   height: calc(100dvh - var(--gutter) * 2);
@@ -106,6 +142,18 @@
 .cd-pill--sm { height: var(--hit); padding: 0 var(--space-md); font-size: var(--text-2xs); }
 .cd-pill--lg { height: var(--pill-h-lg); padding: 0 var(--space-xl); font-size: var(--text-base); }
 .cd-pill[disabled], .cd-pill[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+/* A disabled commit stops being the screen's ink object. Dimming the filled pill
+   leaves `--ink-inv` words on a greying slab — measured at about 1.9:1, under
+   every floor there is — so the fill goes instead and the pill becomes the quiet
+   one it would have been: the well, the secondary ink, no shadow, no lift.
+   Readable as a control that exists and cannot be pressed yet, rather than as a
+   black button behind fog. */
+.cd-pill[disabled], .cd-pill[aria-disabled="true"] {
+  background: var(--well-2);
+  color: var(--ink-3);
+  box-shadow: none;
+  transform: none;
+}
 
 .cd-iconbtn {
   width: var(--hit); height: var(--hit);
@@ -441,6 +489,13 @@
 .cd-card__title { font-size: var(--text-md); font-weight: var(--weight-display); letter-spacing: var(--track-title); }
 .cd-card__sub { font-size: var(--text-xs); color: var(--ink-3); }
 .cd-card__head .cd-card__spacer { flex: 1; }
+/* The ways out of a card that states a fault — a screen that could not be
+   drawn, a plan that does not load. Quiet keys in a row under the sentence,
+   so the fault is never a dead end. */
+.cd-fault__acts {
+  display: flex; align-items: center; gap: var(--space-sm);
+  margin-top: var(--space-lg); flex-wrap: wrap;
+}
 
 /* ── 9 · FOCUS — the one loud block ───────────────────────────────────── */
 .cd-focus {

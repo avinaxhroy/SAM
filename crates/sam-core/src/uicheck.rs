@@ -26,6 +26,7 @@ pub fn dump(config: &ResolvedConfig) -> Vec<String> {
     lines.push("  search pill → dispatch app.palette".into());
     lines.push("  gear → dispatch app.openSettings".into());
     lines.push("  source → dispatch app.toggleSourcePane".into());
+    lines.push("  sparkle → dispatch app.assistant".into());
 
     lines.push("rail".into());
     match config
@@ -450,6 +451,7 @@ mod tests {
             "app.palette",
             "app.openSettings",
             "app.toggleSourcePane",
+            "app.assistant",
             "rail.select",
             "list.new",
             "type.new",

@@ -17,8 +17,12 @@
    * (`COMPOSER.md` §4.7), and a picker built from any other list would offer
    * names this build renders as an empty box — a picker that lies.
    *
-   * `ICON_NAMES` is derived from `GLYPHS`, not written beside it, so adding a
-   * glyph adds it to the picker and there is no second list to forget.
+   * `SCREEN_ICONS` is derived from `GLYPHS`, not written beside it, so adding a
+   * glyph adds it to the picker and there is no second list to forget — with one
+   * subtraction: the **chrome** names below are the frame's own furniture
+   * (search, close, the chevrons, the mode discs), and a screen whose rail
+   * glyph was a chevron would be a picture of the control beside it. They stay
+   * drawable everywhere else; the picker simply does not offer them.
    */
   export const GLYPHS: Record<string, string[]> = {
     bolt: ['M8.8 2 4 9h3.2L6.8 14 12 7H8.7z'],
@@ -59,6 +63,18 @@
       'M8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z',
     ],
     plus: ['M8 3.4v9.2', 'M3.4 8h9.2'],
+    /* The assistant's door (`shell/Titlebar.svelte`): a four-point sparkle,
+       drawn as one closed outline so it sits inside the stroke family — the
+       concave sides are the whole shape, and a second detached star would be
+       the "sun" glyph this vocabulary already refused. */
+    sparkle: ['M8 2.4Q8.9 7.1 13.6 8Q8.9 8.9 8 13.6Q7.1 8.9 2.4 8Q7.1 7.1 8 2.4Z'],
+    /* The assistant deck's own chrome (`shell/Assistant.svelte`): the chevron
+       its two pickers wear, the send arrow and its stop square, and a terminal
+       for the CLI pill. Same family: 16px box, stroke only, `currentColor`. */
+    chevronDown: ['M4.6 6.4 8 9.8l3.4-3.4'],
+    arrowUp: ['M8 13V3.6', 'M4.2 7.4 8 3.5l3.8 3.9'],
+    stopSquare: ['M5.2 5.2h5.6v5.6H5.2z'],
+    terminal: ['M3.4 5.2 5.8 7.6 3.4 10', 'M8.2 10.8h4.4'],
     close: ['M4.2 4.2l7.6 7.6', 'M11.8 4.2l-7.6 7.6'],
     check: ['M3.4 8.4l3 3 6.2-7'],
     refresh: ['M13 8a5 5 0 1 1-1.5-3.6', 'M13.6 2.6v3h-3'],
@@ -69,6 +85,13 @@
     // a pipeline's stages, recovery, and the column tree's own two moves.
     cube: ['M8 2.4 12.8 5v6L8 13.6 3.2 11V5z', 'M8 2.4v5.2', 'M3.2 5 8 7.6 12.8 5'],
     layout: ['M2.8 3.4h10.4v9.2H2.8z', 'M6.6 3.4v9.2', 'M6.6 7.6h6.6'],
+    /* The composer's sidebar toggle (COMPOSER §4.8): a screen with its panel on
+       the **right** — `layout`'s mirror, and the mirroring is the point. The
+       thing this mark names is the pane that stands on the right, so a glyph
+       with the panel on the left would be a picture of some other app. One line
+       of content, like its twin: at this size two short strokes read as dashes
+       and the mark stops being a picture of anything. */
+    panel: ['M2.8 3.4h10.4v9.2H2.8z', 'M9.4 3.4v9.2', 'M2.8 7.6h6.6'],
     stairs: ['M2.6 13h10.8', 'M3.4 13v-2.4h2.8V8h2.8V5.4h3.4'],
     undo: ['M13 8a5 5 0 1 1-1.5-3.6', 'M13.6 2.6v3h-3', 'M2.6 5.6 5.6 8 2.6 10.4'],
     minus: ['M3.4 8h9.2'],
@@ -90,10 +113,65 @@
       'M8 1.9v1.3M8 12.8v1.3M1.9 8h1.3M12.8 8h1.3M3.6 3.6l.9.9M11.5 11.5l.9.9M12.4 3.6l-.9.9M4.5 11.5l-.9.9',
     ],
     moon: ['M12.9 9.8A5.5 5.5 0 0 1 6.2 3.1 5.5 5.5 0 1 0 12.9 9.8z'],
+    /* The screen's own acts (`composer/inspector/ScreenState.svelte`), the
+       folder picker's subject (`shell/PlanFolder.svelte`) and the pointer the
+       sidebar's empty state offers. Same family: one 16-unit box, stroke only,
+       `currentColor`, closed shapes drawn from their own outline. */
+    // A capital I-beam: the mark every app puts on "rename". The serifs are
+    // what make it a letter rather than the `minus` already in the set.
+    type: ['M4.6 3.4h6.8', 'M4.6 12.6h6.8', 'M8 3.4v9.2'],
+    // A painter's palette — the outlined kidney, its thumb hole, and five dots
+    // for the wells. The dots are the whole point: a bare outline at 16px reads
+    // as a blob, and this is the one glyph in the family that carries them.
+    palette: [
+      'M8 2.6a5.4 5.4 0 0 0 0 10.8c.9 0 1.4-.6 1.4-1.3 0-.9-.8-1.2-.8-1.9 0-.6.5-1.1 1.2-1.1h1.1c1.4 0 2.5-1 2.5-2.4C13.4 4.5 11 2.6 8 2.6z',
+      'M5.5 6.1h.01',
+      'M8 4.8h.01',
+      'M10.5 6.1h.01',
+      'M5.2 9.1h.01',
+    ],
+    // The arrow cursor, drawn as its own closed outline rather than the filled
+    // system pointer — the family is stroke-only.
+    pointer: ['M4 2.6 11.6 8.5 8.1 9.2 6.6 12.6z'],
+    // The machine this window is on, for the folder picker's "where am I" card.
+    laptop: ['M4.6 4.2h6.8v4.6H4.6z', 'M2.8 11.2h10.4l-.6-1.2H3.4z'],
   };
 
-  /** Every name this build can draw, in the family's own order. */
-  export const ICON_NAMES: string[] = Object.keys(GLYPHS);
+  /** The frame's own furniture: drawable, never offered as a screen's glyph. */
+  const CHROME = new Set([
+    'search',
+    'close',
+    'check',
+    'plus',
+    'minus',
+    'chevronDown',
+    'chevronleft',
+    'chevronright',
+    'arrowup',
+    'arrowdown',
+    'stopSquare',
+    'terminal',
+    'refresh',
+    'undo',
+    'sun',
+    'moon',
+    'sparkle',
+    'gear',
+    'panel',
+    'layout',
+    'dot',
+    // The chrome this pass added: the sheet heads' own subjects and the glyphs
+    // the rail and the sidebar heads ride on. A screen whose glyph was a
+    // folder, a laptop or a pointer would be a picture of the app around it.
+    'folder',
+    'laptop',
+    'pointer',
+    'type',
+    'palette',
+  ]);
+
+  /** Every name the icon picker may offer, in the family's own order. */
+  export const SCREEN_ICONS: string[] = Object.keys(GLYPHS).filter((name) => !CHROME.has(name));
 </script>
 
 <script lang="ts">

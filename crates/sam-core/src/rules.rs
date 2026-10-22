@@ -7,6 +7,7 @@
 //! ([`crate::decode`]) fills them in, the validator checks them, and
 //! [`crate::pipeline`] / [`crate::scheduler`] read them at the moment they act.
 
+use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::resolved_config::ResolvedConfig;
@@ -177,6 +178,9 @@ pub fn metrics_json(
     context: &crate::evaluator::EvalContext,
 ) -> serde_json::Value {
     let mut out: Vec<serde_json::Value> = Vec::new();
+    // Metrics commonly fold the same view (the progress preset declares
+    // several); one query per view per read, not one per metric.
+    let mut cache: BTreeMap<String, Result<crate::views::QueryOutcome, String>> = BTreeMap::new();
     for (id, metric) in config.rules.metrics.as_ref().into_iter().flatten() {
         let mut row = serde_json::Map::new();
         row.insert("id".into(), serde_json::json!(id));
@@ -185,7 +189,11 @@ pub fn metrics_json(
         row.insert("reduce".into(), serde_json::json!(metric.reduce_kind()));
         row.insert("unit".into(), serde_json::json!(metric.unit));
         row.insert("expr".into(), serde_json::json!(metric.expr));
-        match crate::views::query_records(config, &metric.view, context, None) {
+        let outcome = cache.entry(metric.view.clone()).or_insert_with(|| {
+            crate::views::query_records(config, &metric.view, context, None)
+                .map_err(|error| error.to_string())
+        });
+        match outcome {
             Ok(outcome) => {
                 let (value, of, error) = match &metric.expr {
                     None => (

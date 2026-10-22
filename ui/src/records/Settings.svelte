@@ -5,7 +5,7 @@
   and its two textual panes; the other three places are their own components
   (`settings/Appearance.svelte`, `settings/ComponentStyles.svelte`,
   `settings/Sharing.svelte`) and `variants/settings/A.svelte` is the chrome
-  (rail, find field, change strip).
+  (room, index, find field, change strip).
 
     - The day      daily budget, plan timezone, the schedule's own two rows
     - How you work the plan's keys, and the loader's collision when it has one
@@ -13,15 +13,18 @@
     - Component styles  the lab's design per component, and the interface size
     - This plan    export, import, which kinds stay behind, and the plan's own files
 
-  Every row is one setting: the app's name, its key, one sentence where a
-  sentence teaches, and the single control the setting's type declares. Controls
-  dispatch `settings.set` per field (or the command that owns them), so every
-  write is one transaction and the change strip can take it back. `Done` exits
-  and returns focus to the active destination (D7).
+  Every row is one setting and is drawn by the screen's row species
+  (`settings/Row.svelte`): a glyph on a tile, the app's name, its key, one
+  sentence where a sentence teaches, and the single control the setting's type
+  declares. Controls dispatch `settings.set` per field (or the command that owns
+  them), so every write is one transaction and the change strip can take it
+  back. `Done` exits and returns focus to the active destination (D7).
 -->
 <script lang="ts">
   import Icon from '../shell/Icon.svelte';
   import IdPair from '../shell/IdPair.svelte';
+  import Row from '../settings/Row.svelte';
+  import Segmented from '../settings/Segmented.svelte';
   import Appearance from '../settings/Appearance.svelte';
   import ComponentStyles from '../settings/ComponentStyles.svelte';
   import Sharing from '../settings/Sharing.svelte';
@@ -63,6 +66,11 @@
   $effect(() => {
     // One read, through the session, so System opens with it already in hand.
     if (app.plan && !app.machine) void app.loadMachine();
+  });
+
+  $effect(() => {
+    // The theme catalogue is this screen's read, not the boot's.
+    if (app.plan && app.themes.length === 0) void app.loadThemes();
   });
 
   /**
@@ -113,15 +121,15 @@
   const SCHEDULERS: Record<string, { label: string; say: string }> = {
     fixed: {
       label: 'Fixed gaps',
-      say: 'the same three gaps every time, whatever happened last time.',
+      say: 'The same three gaps every time.',
     },
     sm2: {
       label: 'Growing gaps',
-      say: 'the gap grows while you get it right, and drops back when you do not.',
+      say: 'The gap grows while you get it right.',
     },
     fsrs: {
       label: 'Weighted gaps',
-      say: 'the gap is set by how well you did, weighted over everything you have answered.',
+      say: 'The gap is set by how well you did.',
     },
   };
 
@@ -158,6 +166,17 @@
   });
 
   const zoneText = $derived(String(app.study.timezone ?? ''));
+
+  /** The machine's own zone: the one answer a click can fill the field with.
+   *  The platform call is guarded — a webview without a resolved zone leaves
+   *  the chip out rather than offering an empty string. */
+  const machineZone = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone ?? '';
+    } catch {
+      return '';
+    }
+  })();
 
   /* ══ THE PLAN'S OWN WORDS FOR THE TWO MACHINE-OWNED ROWS ═══════════════ */
   const schedulerLabel = $derived(
@@ -211,18 +230,6 @@
     }
   }
 
-  /** A command's own sentence, drawn only when it speaks the page's own
-   *  vocabulary. An engine help string that names a document or a schema key
-   *  belongs in the identity pair, never in the page's prose — the census
-   *  gate's own rule, applied here because this is the one place a sentence the
-   *  plan authored reaches the screen. */
-  const SCHEMA_WORDS =
-    /[\w.-]+\.json|#\/|\b[a-z]+[A-Z][a-zA-Z0-9]*\b|(?<![\w/.])[a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)+\.?(?![\w/.])/;
-  function helpOf(command: string): string | null {
-    const help = app.commandDef(command)?.help ?? '';
-    return help.length > 0 && !SCHEMA_WORDS.test(help) ? help : null;
-  }
-
   async function setTarget(minutes: number, restoring = false): Promise<boolean> {
     // One write per setting at a time. A press that lands while this setting's
     // own write is in flight is *ignored*, not queued: the control stays
@@ -255,7 +262,9 @@
     const saved = await write('timezone', trimmed);
     if (!saved) return false;
     if (!restoring) {
-      record('The clock this plan counts days in', was, trimmed, () => setZone(was, true));
+      record('The clock this plan counts days in', was.length > 0 ? was : 'no clock set', trimmed, () =>
+        setZone(was, true),
+      );
     }
     app.notice(`Days are now counted in ${trimmed}`);
     return true;
@@ -264,17 +273,11 @@
   /**
    * The exit (D7): close the screen, then hand the keyboard back to the rail's
    * current destination. Inside the canvas the rail is live; the Preferences
-   * window has no rail, so the focus step is skipped and one control exits both
-   * window modes.
+   * window has no rail, so one control exits both window modes — there it
+   * closes the window it is.
    */
   function done(): void {
-    app.settingsOpen = false;
-    requestAnimationFrame(() => {
-      const current =
-        document.querySelector<HTMLElement>('.cd-nav [data-view][aria-current="page"]') ??
-        document.querySelector<HTMLElement>('.cd-nav [data-view]');
-      current?.focus();
-    });
+    app.closeSettings();
   }
 
   /** One click from this window to the plan's own documents — the file door. */
@@ -303,8 +306,15 @@
    *  the same fact the export will act on. Owned by `Sharing.svelte`. */
   let planPersonal = $state(false);
 
+  /** A place's live reading, as the three facts it is. An unset zone is a fact
+   *  worth saying out loud; joining an empty string produced a doubled
+   *  separator and a hole in the index line. */
   const daySummary = $derived(
-    `${durationText(targetMin)} a day · ${zoneText} · ${(SCHEDULERS[schedulerName]?.label ?? schedulerLabel).toLowerCase()}`,
+    [
+      `${durationText(targetMin)} a day`,
+      zoneText.length > 0 ? zoneText : 'no clock set',
+      (SCHEDULERS[schedulerName]?.label ?? schedulerLabel).toLowerCase(),
+    ].join(' · '),
   );
   const workSummary = $derived.by(() => {
     const keys = app.keybindings.map((binding) => glyph(binding.key, os));
@@ -328,35 +338,35 @@
       name: 'The day',
       icon: 'clock',
       summary: daySummary,
-      lead: 'The plan’s own numbers: how much a day holds, the clock its dates are counted in, and how a review comes back.',
+      lead: 'Daily targets, timezone, review scheduling.',
     },
     {
       id: 'work',
       name: 'How you work',
       icon: 'checklist',
       summary: workSummary,
-      lead: 'Every shortcut this plan binds. Each one is also in the console and in the menus, so a key that does not suit your keyboard costs you nothing but the shortcut.',
+      lead: 'Every shortcut this plan binds.',
     },
     {
       id: 'look',
       name: 'Appearance',
       icon: 'character',
       summary: lookSummary,
-      lead: 'Every colour and size on this screen comes from the theme you pick.',
+      lead: 'Every colour and size comes from the theme.',
     },
     {
       id: 'styles',
       name: 'Component styles',
       icon: 'squareStack',
       summary: stylesSummary,
-      lead: 'Three designs per component — the one you keep is the one it draws with.',
+      lead: 'The design each component draws with.',
     },
     {
       id: 'plan',
       name: 'This plan',
       icon: 'flag',
       summary: planSummary,
-      lead: 'What travels with an export, and what stays behind.',
+      lead: 'What travels with an export.',
     },
   ]);
 
@@ -395,9 +405,9 @@
   ]);
 
   const tally = $derived([
-    `${places.length} places`,
-    `${findIndex.length} settings`,
-    `${app.keybindings.length} ${app.keybindings.length === 1 ? 'key' : 'keys'}`,
+    { icon: 'squareStack', text: `${places.length} places` },
+    { icon: 'checklist', text: `${findIndex.length} settings` },
+    { icon: 'terminal', text: `${app.keybindings.length} ${app.keybindings.length === 1 ? 'key' : 'keys'}` },
   ]);
 </script>
 
@@ -416,45 +426,36 @@
          as it moves (§3's L2), and writes once, on release. The stepper beside
          it is the exact number for anyone who has one, and the presets are the
          four answers almost everyone gives. -->
-    <div
-      class="st-row st-row--wide"
-      data-plate="dailyTargetMin"
-      data-settings-key="dailyTargetMin"
+    <Row
+      icon="clock"
+      name="A day holds"
+      key="dailyTargetMin"
+      plate="dailyTargetMin"
+      settingsKey="dailyTargetMin"
+      wide
     >
-      <div class="st-row__label">
-        <span class="st-row__name">
-          <label for="st-daily-target">A day holds</label>
-          <IdPair value="dailyTargetMin" title="Copy the key" />
-        </span>
-        <span class="st-row__help">
-          <b>{durationText(shownMin)}</b> — about {sessions}
-          {sessions === 1 ? 'session' : 'sessions'} of forty minutes. The plan never books your time,
-          and nothing is red when you miss a day.
-        </span>
-      </div>
-      <div class="st-row__ctl">
+      {#snippet help()}
+        About {sessions} × 40-minute {sessions === 1 ? 'session' : 'sessions'} — a quarter-hour
+        step. Nothing is written until the track is let go.
+      {/snippet}
+      {#snippet ctl()}
         <div class="st-budget">
-          <input
-            class="st-budget__track"
-            type="range"
-            min="15"
-            max="720"
-            step="15"
-            value={shownMin}
-            aria-label="A day holds"
-            aria-valuetext={durationText(shownMin)}
-            aria-busy={busyKey === 'dailyTargetMin'}
-            data-command="settings.set"
-            data-placement="settings"
-            oninput={(event) => {
-              preview = Number((event.currentTarget as HTMLInputElement).value);
-            }}
-            onchange={(event) => {
-              const minutes = Number((event.currentTarget as HTMLInputElement).value);
-              preview = null;
-              void setTarget(minutes);
-            }}
-          />
+          <div class="st-budget__head">
+            <span class="st-budget__read" aria-hidden="true">{durationText(shownMin)}</span>
+            <Segmented
+              label="Budgets a day"
+              value={String(targetMin)}
+              options={BUDGET_PRESETS.map((preset) => ({
+                id: String(preset),
+                label: durationText(preset),
+                note: `Set a day to ${durationText(preset)}`,
+              }))}
+              busy={busyKey === 'dailyTargetMin'}
+              command="settings.set"
+              placement="settings"
+              onpick={(id) => void setTarget(Number(id))}
+            />
+          </div>
           <span class="st-steps">
             <button
               class="st-steps__btn"
@@ -495,113 +496,143 @@
               <Icon name="plus" size={12} />
             </button>
           </span>
-          <span class="st-seg" role="group" aria-label="Budgets a day">
-            {#each BUDGET_PRESETS as preset (preset)}
-              <button
-                class="st-seg__pill"
-                type="button"
-                aria-pressed={targetMin === preset}
-                aria-busy={busyKey === 'dailyTargetMin'}
-                data-command="settings.set"
-                data-placement="settings"
-                onclick={() => void setTarget(preset)}
-              >
-                {durationText(preset)}
-              </button>
-            {/each}
-          </span>
+          <div class="st-budget__scale">
+            <input
+              class="st-budget__track"
+              type="range"
+              min="15"
+              max="720"
+              step="15"
+              value={shownMin}
+              aria-label="A day holds"
+              aria-valuetext={durationText(shownMin)}
+              aria-busy={busyKey === 'dailyTargetMin'}
+              data-command="settings.set"
+              data-placement="settings"
+              oninput={(event) => {
+                preview = Number((event.currentTarget as HTMLInputElement).value);
+              }}
+              onchange={(event) => {
+                const minutes = Number((event.currentTarget as HTMLInputElement).value);
+                preview = null;
+                void setTarget(minutes);
+              }}
+            />
+            <span class="st-budget__ends" aria-hidden="true">
+              <span>15 min</span>
+              <span>12 h</span>
+            </span>
+          </div>
         </div>
-      </div>
-    </div>
+      {/snippet}
+    </Row>
 
-    <!-- A text setting whose vocabulary is the platform's: an inline field with
-         the platform's own zone list as suggestions, never a dropdown of 400
-         engine terms and never a hand-kept copy. -->
-    <div class="st-row" data-plate="timezone" data-settings-key="timezone">
-      <div class="st-row__label">
-        <span class="st-row__name">
-          <label for="st-timezone">The clock this plan counts days in</label>
-          <IdPair value="timezone" title="Copy the key" />
-        </span>
-        <span class="st-row__help">
-          Deadlines, <b>today</b> and every review date are counted in this zone, so a deadline at
-          midnight means midnight here. Your computer’s zone is not assumed.
-        </span>
-      </div>
-      <div class="st-row__ctl">
-        <input
-          id="st-timezone"
-          class="cd-wellfield"
-          type="text"
-          list="st-zones"
-          value={zoneText}
-          spellcheck="false"
-          placeholder="the zone the plan counts days in"
-          aria-label="The clock this plan counts days in"
-          aria-busy={busyKey === 'timezone'}
-          data-command="settings.set"
-          data-placement="settings"
-          onchange={(event) => void setZone((event.currentTarget as HTMLInputElement).value)}
-        />
-        <datalist id="st-zones">
-          {#each ZONES as zone (zone)}<option value={zone}></option>{/each}
-        </datalist>
-      </div>
-    </div>
+    <!-- A text setting whose vocabulary is the platform's: a field with the
+         platform's own zone list as suggestions, never a dropdown of 400 engine
+         terms and never a hand-kept copy. The machine's own zone is a chip in
+         the same well — the answer most people want, one press away. -->
+    <Row
+      icon="globe"
+      name="The clock this plan counts days in"
+      key="timezone"
+      plate="timezone"
+      settingsKey="timezone"
+      wide
+    >
+      {#snippet help()}
+        Deadlines and <b>today</b> use this zone.
+        {#if zoneText.length === 0}
+          Nothing is set yet, so the plan follows the machine.
+        {/if}
+      {/snippet}
+      {#snippet ctl()}
+        <div class="st-fieldrow">
+          <span class="st-fieldrow__ico" aria-hidden="true"><Icon name="globe" size={16} /></span>
+          <label class="cd-sr" for="st-timezone">The clock this plan counts days in</label>
+          <input
+            id="st-timezone"
+            class="st-fieldrow__field"
+            type="text"
+            list="st-zones"
+            value={zoneText}
+            spellcheck="false"
+            placeholder="Choose or type a zone"
+            aria-busy={busyKey === 'timezone'}
+            data-command="settings.set"
+            data-placement="settings"
+            onchange={(event) => void setZone((event.currentTarget as HTMLInputElement).value)}
+          />
+          <datalist id="st-zones">
+            {#each ZONES as zone (zone)}<option value={zone}></option>{/each}
+          </datalist>
+          {#if machineZone.length > 0 && machineZone !== zoneText}
+            <button
+              class="st-chipbtn"
+              type="button"
+              title={`Use the machine's zone, ${machineZone}`}
+              data-command="settings.set"
+              data-placement="settings"
+              onclick={() => void setZone(machineZone)}
+            >
+              <Icon name="laptop" size={11} />
+              {machineZone}
+            </button>
+          {/if}
+        </div>
+      {/snippet}
+    </Row>
   </div>
 
   <div class="st-rows">
-    <div class="st-row" data-plate="scheduler" data-settings-key="scheduler">
-      <div class="st-row__label">
-        <span class="st-row__name">
-          <span>How a review comes back</span>
-          <IdPair value="scheduler" title="Copy the key" />
-        </span>
-        <span class="st-row__help">
-          {SCHEDULERS[schedulerName]?.say ?? 'the plan names a schedule this build does not know.'}
-          Reviews already scheduled keep their dates — the schedule decides each review’s <b>next</b>
-          one.
-        </span>
-      </div>
-      <div class="st-row__ctl">
+    <Row
+      icon="calendar"
+      name="How a review comes back"
+      key="scheduler"
+      plate="scheduler"
+      settingsKey="scheduler"
+    >
+      {#snippet help()}
+        {SCHEDULERS[schedulerName]?.say ?? 'a schedule this build does not know.'}
+        Scheduled reviews keep their dates.
+      {/snippet}
+      {#snippet ctl()}
         <span class="st-owned">
           <span class="st-owned__value">{schedulerLabel}</span>
           <span class="st-owned__where">
             <Icon name="cube" size={12} />
-            <span>The cube on the rail, then <b>Scheduling</b></span>
+            <span>Written in <b>Scheduling</b></span>
           </span>
         </span>
-      </div>
-    </div>
+      {/snippet}
+    </Row>
 
     <!-- The gaps, which are only used by fixed gaps. The numbers come from the
          machine's own read, because the settings read reports this row as the
          string "(structure)". -->
-    <div class="st-row" data-plate="fixedIntervals" data-settings-key="fixedIntervals">
-      <div class="st-row__label">
-        <span class="st-row__name">
-          <span>The gaps, when the schedule is fixed</span>
-          <IdPair value="fixedIntervals" title="Copy the key" />
-        </span>
-        <span class="st-row__help">
-          {#if gaps.length === 0}
-            These three numbers are only read by fixed gaps, and this plan is not using them.
-          {:else}
-            A review you get right comes back after the first gap, then the second, then the third —
-            and then stops for good. Longer gaps mean fewer reviews a week and more forgetting.
-          {/if}
-        </span>
-      </div>
-      <div class="st-row__ctl">
+    <Row
+      icon="refresh"
+      name="The gaps, when the schedule is fixed"
+      key="fixedIntervals"
+      plate="fixedIntervals"
+      settingsKey="fixedIntervals"
+    >
+      {#snippet help()}
+        {#if gaps.length === 0}
+          Read only by fixed gaps, which this plan is not using.
+        {:else}
+          Reviews return after each gap, then stop after the third.
+        {/if}
+      {/snippet}
+      {#snippet ctl()}
         <span class="st-owned">
           <span class="st-owned__value">{ifGaps}</span>
           <span class="st-owned__where">
             <Icon name="cube" size={12} />
-            <span>Each gap has its own stepper in <b>Scheduling</b></span>
+            <span>Steppers in <b>Scheduling</b></span>
           </span>
         </span>
-      </div>
-    </div>
+      {/snippet}
+    </Row>
   </div>
 
   {#if refusal?.key === 'dailyTargetMin' || refusal?.key === 'timezone'}
@@ -609,6 +640,7 @@
   {/if}
 
   <div class="st-store">
+    <Icon name="folder" size={13} />
     <span class="st-store__say">Saved into</span>
     <IdPair value="content/rules.json" title="Copy the path" />
     <button class="st-store__open" type="button" onclick={() => openFile('content/rules.json')}>
@@ -627,56 +659,51 @@
 {#snippet workPanel()}
   <div class="st-rows">
     {#each app.keybindings as binding (binding.key + binding.command)}
-      <div
-        class="st-row"
-        data-plate={`key:${binding.command}`}
-        data-check={collisionBindings.includes(binding.key) ? 'error' : undefined}
+      <Row
+        icon="terminal"
+        name={app.commandDef(binding.command)?.title ?? nameOf(binding.command)}
+        key={binding.command}
+        keyTitle="Copy the command"
+        plate={`key:${binding.command}`}
+        check={collisionBindings.includes(binding.key) ? 'error' : null}
       >
-        <div class="st-row__label">
-          <span class="st-row__name">
-            <span>{app.commandDef(binding.command)?.title ?? nameOf(binding.command)}</span>
-            <IdPair value={binding.command} title="Copy the command" />
-          </span>
-          <span class="st-row__help">
-            {helpOf(binding.command) ??
-              `The key this plan binds to ${app.commandDef(binding.command)?.title ?? nameOf(binding.command)} — every command is also in the console and in the menus.`}
-          </span>
-        </div>
-        <div class="st-row__ctl">
+        {#snippet ctl()}
           <kbd class="st-keycap">{glyph(binding.key, os)}</kbd>
-        </div>
-      </div>
+        {/snippet}
+      </Row>
     {/each}
   </div>
 
   {#each collisions as collision, at (`${collision.code}:${collision.path}:${at}`)}
     <div class="st-rows">
-      <div class="st-row st-row--wide" data-plate={`loader:${collision.path}`} data-loader>
-        <div class="st-row__label">
-          <span class="st-row__name">
-            <span class="st-mark" data-sev="error">error · the loader</span>
-            <span>Two commands want the same key</span>
-            {#if reportedKey(collision.message)}
-              <kbd class="st-keycap">{glyph(reportedKey(collision.message) ?? '', os)}</kbd>
-            {/if}
-          </span>
-          <span class="st-row__help cd-error">
-            The loader found two commands on one key. The plan keeps the second binding and says so;
-            nothing is dropped.
-          </span>
-        </div>
-        <div class="st-row__ctl">
+      <Row
+        icon="gear"
+        name="Two commands want the same key"
+        plate={`loader:${collision.path}`}
+        check="error"
+      >
+        {#snippet trail()}
+          <span class="st-mark" data-sev="error">error · the loader</span>
+          {#if reportedKey(collision.message)}
+            <kbd class="st-keycap">{glyph(reportedKey(collision.message) ?? '', os)}</kbd>
+          {/if}
+        {/snippet}
+        {#snippet help()}
+          <span class="cd-error">Two commands on one key. The second binding wins.</span>
+        {/snippet}
+        {#snippet ctl()}
           <IdPair label="The loader says" value={collision.message} copy={collision.path} />
-        </div>
-      </div>
+        {/snippet}
+      </Row>
     </div>
   {/each}
 
   {#if app.keybindings.length === 0}
-    <p class="st-hits__none">This plan binds no keys — every command is still in the console and in the menus.</p>
+    <p class="st-hits__none">No keys bound.</p>
   {/if}
 
   <div class="st-store">
+    <Icon name="folder" size={13} />
     <span class="st-store__say">Saved into</span>
     <IdPair value="content/shell.json" title="Copy the path" />
     <button class="st-store__open" type="button" onclick={() => openFile('content/shell.json')}>
@@ -719,14 +746,8 @@
   {:else}
     <div class="st-rows">
       {#each documents as file (file)}
-        <div class="st-row" data-plate={`file:${file}`}>
-          <div class="st-row__label">
-            <span class="st-row__name">
-              <span class="st-file__name">{leafOf(file)}</span>
-              <IdPair value={file} title="Copy the path" />
-            </span>
-          </div>
-          <div class="st-row__ctl">
+        <Row icon="code" name={leafOf(file)} key={file} keyTitle="Copy the path" plate={`file:${file}`}>
+          {#snippet ctl()}
             <button
               class="st-store__open"
               type="button"
@@ -735,13 +756,14 @@
             >
               Open in the editor
             </button>
-          </div>
-        </div>
+          {/snippet}
+        </Row>
       {/each}
     </div>
   {/if}
 
   <div class="st-store">
+    <Icon name="folder" size={13} />
     <span class="st-store__say">Reading the plan in</span>
     <IdPair value={app.plan ?? ''} title="Copy the folder" />
   </div>
@@ -750,7 +772,7 @@
 <Variant
   surface="settings"
   title="Settings"
-  say="Saved into the plan itself, never into an account."
+  say="Saved into the plan."
   {tally}
   {places}
   panels={{ day: dayPanel, work: workPanel, look: lookPanel, styles: stylesPanel, plan: planPanel }}

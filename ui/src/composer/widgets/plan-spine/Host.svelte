@@ -1,6 +1,7 @@
 <!-- Plan spine widget host (COMPOSER §3.1). -->
 <script lang="ts">
   import Variant from '../../../variants/Variant.svelte';
+  import Icon from '../../../shell/Icon.svelte';
   import { rangeText, type PlanTopic, type PlanWeek } from '../../../variants/plan-spine/props';
   import { app } from '../../../session.svelte';
   import { nameOf, recordLabel, type RecordDoc } from '../../../types';
@@ -44,6 +45,10 @@
   const workKind = $derived(model ? workKindOf(model) : null);
   /** The plan's week kind — the ruler every week record extends. */
   const weekKind = $derived(Object.keys(app.types).includes('week') ? 'week' : null);
+
+  /** The two kinds the empty card can name, in the plan's own words. */
+  const workWord = $derived(workKind ? nameOf(workKind).toLowerCase() : null);
+  const weekWord = $derived(weekKind ? nameOf(weekKind).toLowerCase() : null);
 
   /** One work record as a design draws it: state, words, minutes, course. */
   function topicOf(item: RecordDoc, plan: PlanModel): PlanTopic {
@@ -162,18 +167,65 @@
   }
 </script>
 
-<!-- The design: its own head, its own body, its own interaction. -->
-<Variant
-  surface="plan-spine"
-  {title}
-  {weeks}
-  {unplaced}
-  {summary}
-  {selectedId}
-  newWeekCommand={weekKind ? `${weekKind}.new` : null}
-  newTopicCommand={workKind ? `${workKind}.new` : null}
-  onSelect={(id) => (chosen = id)}
-  onTopic={openTopic}
-  onNewWeek={newWeek}
-  onNewTopic={newTopic}
-/>
+<!-- The model arrives asynchronously: until it does there is no term to draw,
+     and a design handed `weeks: []` is a design asked to dereference a week
+     that does not exist. Both states are the shell's to state — the same rule
+     `panels/Plan.svelte` follows — so the design only ever sees a real term. -->
+{#if model === null}
+  <div class="cd-card" aria-busy="true">
+    <p class="cd-sr" role="status">Reading the plan…</p>
+    <div class="cd-skel__rows">
+      {#each [0, 1, 2, 3] as row (row)}
+        <div class="cd-skel__row" class:tw-skel-band={row % 2 === 0}>
+          <span class="cd-skel"></span>
+          <span class="cd-skel" style={`--w: ${row % 2 === 0 ? 34 : 58}%`}></span>
+          <span class="cd-skel"></span>
+        </div>
+      {/each}
+    </div>
+  </div>
+{:else if weeks.length === 0}
+  <section class="cd-card">
+    <div class="cd-empty cd-empty--tight">
+      <span class="cd-empty__art"><Icon name="calendar" size={24} /></span>
+      <div class="cd-empty__t">This plan has no weeks yet</div>
+      <div class="cd-empty__s">
+        {#if weekWord && workWord}
+          A {weekWord} is the ruler the term is measured against, and a {workWord} is what its work hangs from. Add the first {weekWord} and this screen starts to read.
+        {:else if weekWord}
+          A {weekWord} is the ruler the term is measured against. Add the first and this screen starts to read.
+        {:else}
+          This screen draws the term from the plan's weeks — the plan declares none.
+        {/if}
+      </div>
+      {#if weekWord}
+        <button
+          class="cd-pill cd-pill--ghost cd-pill--sm"
+          type="button"
+          data-command={weekKind ? `${weekKind}.new` : undefined}
+          data-placement="today.screen"
+          onclick={newWeek}
+        >
+          <Icon name="plus" size={13} />
+          Add the first {weekWord}
+        </button>
+      {/if}
+    </div>
+  </section>
+{:else}
+  <!-- The design: its own head, its own body, its own interaction. -->
+  <Variant
+    surface="plan-spine"
+    {title}
+    {weeks}
+    {unplaced}
+    {summary}
+    {selectedId}
+    newWeekCommand={weekKind ? `${weekKind}.new` : null}
+    newTopicCommand={workKind ? `${workKind}.new` : null}
+    onSelect={(id) => (chosen = id)}
+    onTopic={openTopic}
+    onNewWeek={newWeek}
+    onNewTopic={newTopic}
+  />
+{/if}

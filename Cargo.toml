@@ -17,7 +17,7 @@ resolver = "3"
 members = ["crates/sam-core", "crates/sam-cli", "src-tauri"]
 
 [workspace.package]
-version = "0.1.0-beta"
+version = "0.2.0-beta"
 edition = "2024"
 rust-version = "1.96"
 license = "AGPL-3.0-or-later"
@@ -37,3 +37,14 @@ rusqlite = { version = "0.40.2", features = ["bundled"] }
 # Phase 6 (§9, D11): the required FSRS option. `open-spaced-repetition/fsrs-rs`,
 # the implementation behind Anki. Pinned: 6.6.2.
 fsrs = "6.6.2"
+
+# Cargo's release default, `-C strip=debuginfo`, on rustc < 1.98 strips Mach-O
+# with an llvm-objcopy that puts the string pool directly after the 4-byte
+# indirect-symbol table — an odd entry count leaves `LC_SYMTAB.stroff` 4-byte
+# aligned, macOS 27's dyld refuses the image (`mis-aligned LINKEDIT string
+# pool`), and a proc-macro dylib that fails to load reads as E0463 "can't find
+# crate for `<derive>`". Half the stripped dylibs land misaligned, so the build
+# failed on a different crate each run. Fixed upstream in 1.98.0
+# (rust-lang/rust#158410); drop this section when the toolchain floor moves.
+[profile.release]
+strip = "none"

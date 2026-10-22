@@ -306,6 +306,8 @@
                       type="button"
                       data-command="record.panel"
                       data-placement="recordTable.rowContext"
+                      data-record-id={topic.id}
+                      data-record-type={topic.type}
                       data-done={topic.state === 'done' ? '1' : undefined}
                       onclick={() => onTopic(topic)}
                     >

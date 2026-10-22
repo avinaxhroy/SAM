@@ -12,12 +12,39 @@
   on the host.
 -->
 <script lang="ts">
-  import { componentFor } from './registry';
+  import type { Component } from 'svelte';
+  import { loadComponent } from './registry';
   import { styles } from './styles.svelte';
 
   let { surface, ...rest }: { surface: string } & Record<string, unknown> = $props();
 
-  const chosen = $derived(componentFor(surface, styles.variantOf(surface)));
+  // The design is a chunk: the first mount of a surface loads it, and a
+  // variant switch loads the other design without putting every design in the
+  // boot bundle. The effect re-runs when the store moves at all; a load that
+  // resolves for a design no longer wanted is dropped by comparing ids.
+  let chosen = $state<Component<Record<string, unknown>> | null>(null);
+  /** The design `chosen` was loaded for — and the one every pending load is
+   *  checked against. */
+  let loaded: string | null = null;
+  let wantedId: string | null = null;
+  $effect(() => {
+    const wanted = surface;
+    const variant = styles.variantOf(surface);
+    const id = `${wanted}:${variant}`;
+    // Another surface's choice was made: this host's design did not change, so
+    // it keeps drawing. Emptied and reloaded on every write, a host remounted
+    // its whole subtree — the settings screen lost the place it was on every
+    // time a variant was pressed.
+    if (id === loaded) return;
+    wantedId = id;
+    chosen = null;
+    void loadComponent(wanted, variant).then((component) => {
+      // A load that lands after the choice moved on is not this host's answer.
+      if (wantedId !== id) return;
+      chosen = component;
+      loaded = id;
+    });
+  });
 </script>
 
 {#if chosen}

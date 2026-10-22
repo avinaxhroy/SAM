@@ -28,7 +28,7 @@
   background: color-mix(in oklab, var(--ink) 16%, transparent);
 }
 
-/* The card: 460 wide (UI_SPEC §2.2's one declared sheet size), `--r-card`,
+/* The card: 460 wide (UI_SPEC §2.2's declared sheet size), `--r-card`,
    `--sh-pop` — the surface a card is, at the largest scale. The head and the
    foot are fixed heights; the body scrolls, so a long list can never push the
    one ink object out of reach. */
@@ -44,6 +44,19 @@
   border-radius: var(--r-card);
   box-shadow: var(--sh-pop), var(--catch);
 }
+
+/* **The gallery width** (UI_SPEC §2.2, second declared size). A sheet that
+   *browses* — a catalog of drawings, a grid of glyphs — is a two-column object,
+   and 460px cannot hold one. Measured: two columns of cards inside the 460px
+   sheet left each card's own sentence **98px**, and a two-line clamp in 98px
+   holds about sixteen characters, so every card in the catalog clipped its own
+   note (`Everything the day holds, and what is done` needs three lines and got
+   two). 700px gives the same sentence ~218px and two comfortable lines.
+
+   The split is *browsing* versus *asking*: a confirm, a rename, a field and a
+   destructive act stay at 460, because a question wants an answer and not a
+   room. Only the sheets that are a gallery take this, and there are two. */
+.cd-sheet--wide { width: 700px; }
 
 /* ── THE ARRIVAL ──────────────────────────────────────────────────────── */
 /* The sheet arrives: the room dims (the scrim fades) and the card rises into
@@ -83,17 +96,45 @@
    `system/DeleteSheet.svelte`, and the System editor's own copy in
    `variants/system/A.svelte` — and a class added to one of them would fix one
    head. Measured on the kind sheet after: the ✕ at 894→926 in a card whose
-   right inset is 926, on every title it can carry. */
-.cd-sheet__head { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; padding: var(--space-md) var(--space-xl) 0; }
-.cd-sheet__head > div { flex: 1 1 auto; min-width: 0; }
-.cd-sheet__head > .cd-iconbtn { flex: none; }
+   right inset is 926, on every title it can carry.
+
+   It is a **three-column grid** (tile · words · ✕) rather than the flex row it
+   used to be, and that is what lets a head carry the subject's own tile without
+   the two hundred other sheets changing: auto-placement puts the words in
+   column 1 and the ✕ in column 2 when no tile is passed, so the ✕ is at the
+   card's edge either way, and a tile only ever shifts the words right. The ✕ is
+   aligned to the *top* of the head while the title block centres on the tile,
+   because a long title wraps and a control that slid down with it would move
+   every time a screen was named something longer. */
+.cd-sheet__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: var(--space-md) var(--space-xl) 0;
+}
+.cd-sheet__head > div { min-width: 0; align-self: center; }
+.cd-sheet__head > .cd-iconbtn { align-self: start; }
+.cd-sheet__tile { margin-top: calc(var(--space-3xs) * -1); }
 .cd-sheet__title {
   font-size: var(--text-lg);
-  font-weight: var(--weight-label);
+  font-weight: var(--weight-display);
   letter-spacing: var(--track-title);
   color: var(--ink);
+  text-wrap: balance;
 }
 .cd-sheet__sub { margin-top: var(--space-3xs); font-size: var(--text-xs); color: var(--ink-3); }
+
+/* A head with a tile stands taller and breathes more: the sheet it leads is a
+   *place* (a gallery, a picker, a screen's own acts) rather than a question,
+   and the tile is what says so before a word is read. */
+.cd-sheet__head:has(.cd-sheet__tile) {
+  padding-top: var(--space-lg);
+  gap: var(--space-md);
+}
+.cd-sheet__head:has(.cd-sheet__tile) .cd-sheet__title { font-size: var(--text-lg); }
+.cd-sheet__head:has(.cd-sheet__tile) .cd-sheet__sub { margin-top: var(--space-2xs); max-width: 52ch; line-height: 1.5; }
 
 /* Scrollable sheet body with contained scroll chaining and inset padding for collection rows. */
 .cd-sheet__body {

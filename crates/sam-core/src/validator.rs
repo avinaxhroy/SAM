@@ -1302,7 +1302,6 @@ pub fn validate_records(
         let record = &positioned_record.record;
         let file = positioned_record.file.as_str();
         let line = positioned_record.line;
-        let base = format!("{file}#{}", escape_pointer_segment(&record.id));
 
         if record.id.is_empty() {
             diagnostics.push(
@@ -1344,12 +1343,21 @@ pub fn validate_records(
 
         // Fields: declared, non-relation, value matches FieldDef.type.
         for (key, value) in &record.fields {
-            let field_path = format!("{base}/fields/{}", escape_pointer_segment(key));
+            // The path is built when a finding needs it: a valid record's
+            // fields are the overwhelming majority, and formatting a pointer
+            // for each one was load-time garbage with no reader.
+            let field_path = || {
+                format!(
+                    "{file}#{}/fields/{}",
+                    escape_pointer_segment(&record.id),
+                    escape_pointer_segment(key)
+                )
+            };
             let Some(field) = def.field(key) else {
                 diagnostics.push(
                     Diagnostic::error(
                         "record.unknown-field",
-                        field_path,
+                        field_path(),
                         format!(
                             "record \"{}\": field \"{key}\" is not declared on {}",
                             record.id, record.type_
@@ -1363,7 +1371,7 @@ pub fn validate_records(
                 diagnostics.push(
                     Diagnostic::error(
                         "record.relation-in-fields",
-                        field_path,
+                        field_path(),
                         format!("relation \"{key}\" must live in links, not fields"),
                     )
                     .at_line(line),
@@ -1374,7 +1382,7 @@ pub fn validate_records(
                 diagnostics.push(
                     Diagnostic::error(
                         "record.formula-persisted",
-                        field_path,
+                        field_path(),
                         format!("formula \"{key}\" is derived — never persist it in fields"),
                     )
                     .at_line(line),
@@ -1385,7 +1393,7 @@ pub fn validate_records(
                 diagnostics.push(
                     Diagnostic::error(
                         "record.progress-persisted",
-                        field_path,
+                        field_path(),
                         format!("progress \"{key}\" is derived — never persist it in fields"),
                     )
                     .at_line(line),
@@ -1396,7 +1404,7 @@ pub fn validate_records(
                 diagnostics.push(
                     Diagnostic::error(
                         "record.invalid-value",
-                        field_path,
+                        field_path(),
                         format!("record \"{}\", field \"{key}\": {problem}", record.id),
                     )
                     .at_line(line),
@@ -1406,14 +1414,26 @@ pub fn validate_records(
 
         // Links: declared relation or parent; targets exist and are of the
         // declared target type; cardinality respected.
-        let allowed = def.allowed_link_keys();
+        // A link key is declared when it names a relation field or the single
+        // parent edge; the per-record `BTreeSet` this used to build was one
+        // allocation per record for a lookup over a handful of fields.
+        let allowed = |key: &str| {
+            def.field(key).is_some_and(FieldDef::is_relation)
+                || def.parent.as_deref() == Some(key)
+        };
         for (key, targets) in &record.links {
-            let link_path = format!("{base}/links/{}", escape_pointer_segment(key));
-            if !allowed.contains(key) {
+            let link_path = || {
+                format!(
+                    "{file}#{}/links/{}",
+                    escape_pointer_segment(&record.id),
+                    escape_pointer_segment(key)
+                )
+            };
+            if !allowed(key) {
                 diagnostics.push(
                     Diagnostic::error(
                         "record.unknown-link",
-                        link_path,
+                        link_path(),
                         format!(
                             "record \"{}\": link \"{key}\" is not a declared relation of {}",
                             record.id, record.type_
@@ -1436,7 +1456,7 @@ pub fn validate_records(
                 diagnostics.push(
                     Diagnostic::error(
                         "record.cardinality",
-                        link_path.clone(),
+                        link_path(),
                         format!(
                             "link \"{key}\" holds {} targets but declares cardinality one",
                             targets.len()
@@ -1450,7 +1470,7 @@ pub fn validate_records(
                     diagnostics.push(
                         Diagnostic::error(
                             "record.dangling-link",
-                            link_path.clone(),
+                            link_path(),
                             format!("link \"{key}\" → \"{target}\" does not exist"),
                         )
                         .at_line(line),
@@ -1463,7 +1483,7 @@ pub fn validate_records(
                         diagnostics.push(
                             Diagnostic::error(
                                 "record.link-type-mismatch",
-                                link_path.clone(),
+                                link_path(),
                                 format!(
                                     "link \"{key}\" → \"{target}\" is of type {}; expected {expected_type}",
                                     found.record.type_

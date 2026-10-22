@@ -13,6 +13,7 @@
   // The sheet chrome is its own stylesheet (`styles/sheets.css`); the palette
   // uses the same scrim, so both import it rather than relying on load order.
   import '../styles/sheets.css';
+  import Icon from './Icon.svelte';
   // Focus placement, Tab cycling, Escape and focus return: the app's one modal
   // keyboard contract, shared with the re-readable room.
   import { modal } from './focusTrap';
@@ -20,6 +21,9 @@
   let {
     title,
     subtitle = '',
+    icon = '',
+    wash = '',
+    wide = false,
     onclose,
     children,
     head,
@@ -28,6 +32,25 @@
     title: string;
     subtitle?: string;
     onclose: () => void;
+    /**
+     * The glyph the head states the sheet's subject with, from the family
+     * `shell/Icon.svelte` draws (`IconPicker`'s own list). Empty draws no tile
+     * at all, which is what every sheet that is a *question* rather than a
+     * *place* wants: a confirm has no subject to picture.
+     */
+    icon?: string;
+    /**
+     * Whether this sheet *browses* — a catalog of drawings, a grid of glyphs —
+     * and therefore takes the gallery width (700px) instead of the 460px a
+     * question takes. Two sheets in the app do; see `styles/sheets.css`.
+     */
+    wide?: boolean;
+    /**
+     * Which of the app's rooms the tile is lit with — `mint`, `lilac`,
+     * `butter` or `sky` (`design/components.css` §1). Empty takes the well,
+     * which is the neutral tile.
+     */
+    wash?: string;
     children?: Snippet;
     /**
      * The door's own identity row, rendered under the title and above the
@@ -81,6 +104,7 @@
 
 <div
   class="cd-sheet"
+  class:cd-sheet--wide={wide}
   role="dialog"
   aria-modal="true"
   aria-labelledby={named ? titleId : undefined}
@@ -90,6 +114,13 @@
   use:modal={{ onclose }}
 >
   <header class="cd-sheet__head">
+    {#if icon}
+      <!-- The subject as a picture, before it is a sentence. `aria-hidden`,
+           because the title beside it already names the same thing. -->
+      <span class="cd-glyph cd-sheet__tile" data-w={wash || undefined} aria-hidden="true">
+        <Icon name={icon} size={22} />
+      </span>
+    {/if}
     <div>
       <h2 class="cd-sheet__title" id={titleId}>{title}</h2>
       {#if head}

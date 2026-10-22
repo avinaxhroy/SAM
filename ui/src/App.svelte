@@ -37,15 +37,20 @@
   import TodayPicker from './records/TodayPicker.svelte';
   import Catchup from './panels/Catchup.svelte';
   import Screen from './composer/Screen.svelte';
+  import Inspector from './composer/Inspector.svelte';
   import Inserter from './composer/Inserter.svelte';
   import ScreenSheet from './composer/ScreenSheet.svelte';
   import PlanFolder from './shell/PlanFolder.svelte';
+  import Assistant from './shell/Assistant.svelte';
+  import Island from './shell/Island.svelte';
+  import Veil from './shell/Veil.svelte';
   import { commandForKey, fieldOwnsUndo, type MenuRow } from './commands/registry';
   import { RECORD_KINDS } from './blocks/registry';
-  import { onLaunch, onMenuChoice, onOpenProfile, onPlanChanged, takePendingOpen, transport, watchPlan } from './ipc';
+  import { agentCancel, onAgentEvent, onLaunch, onMenuChoice, onOpenProfile, onOpenSource, onPlanChanged, onPreferenceChange, takePendingOpen, transport, unwatchPlan, watchPlan } from './ipc';
   import { dispatchMenuChoice } from './commands/menuBus';
   import { recordLabel, nameOf, type BlockNode, type FieldRead } from './types';
   import { app } from './session.svelte';
+  import { assistant } from './assistant.svelte';
 
   let {
     os = 'mac',
@@ -62,6 +67,59 @@
   const reviewView = $derived(
     Object.entries(app.views?.views ?? {}).find(([, def]) => def.panel === 'reviews')?.[0] ?? null,
   );
+
+  /** The plan-on-disk fault's head: the engine's first finding, addressed. */
+  const faultLine = $derived.by(() => {
+    const fault = app.planFault;
+    if (!fault) return '';
+    const finding = fault.findings[0];
+    if (!finding) return fault.message;
+    return finding.line === null
+      ? `${finding.path} — ${finding.message} [${finding.code}]`
+      : `${finding.path}:${finding.line} — ${finding.message} [${finding.code}]`;
+  });
+
+  /** Where a canvas that could not be drawn can retreat to: the first other rail entry. */
+  const retreatView = $derived(
+    app.navigation.find((entry) => entry.view !== app.outcome?.view)?.view ?? null,
+  );
+
+  /**
+   * The canvas boundary's own way back. `svelte:boundary` keeps its `failed`
+   * snippet until `reset()` is called: a state change alone does not redraw the
+   * children, so a screen that failed once stayed failed for the rest of the
+   * session — the card's own "Go to another screen" moved the rail and left the
+   * card standing. The reset the boundary hands back is kept here, fired when
+   * the destination changes, when a revision lands under it, and by each card
+   * action once its work has landed.
+   */
+  let boundaryReset: (() => void) | null = null;
+  /** The destination the boundary failed for; null = nothing failed. */
+  let failedView: string | null = null;
+  /** The revision it failed on: a published one is the plan changing under it. */
+  let failedRevision: string | null = null;
+
+  function canvasFailed(_error: unknown, reset: () => void): void {
+    boundaryReset = reset;
+    failedView = app.outcome?.view ?? null;
+    failedRevision = app.revision;
+  }
+
+  function releaseBoundary(): void {
+    const reset = boundaryReset;
+    boundaryReset = null;
+    failedView = null;
+    failedRevision = null;
+    reset?.();
+  }
+
+  $effect(() => {
+    const view = app.outcome?.view ?? null;
+    const revision = app.revision;
+    if (boundaryReset === null || failedView === null) return;
+    if (view === failedView && revision === failedRevision) return;
+    releaseBoundary();
+  });
 
   /** Display names for the eight layout kinds (§3.6). */
   const LAYOUT_WORDS: Record<string, string> = {
@@ -126,14 +184,20 @@
     return targets[field.to ?? ''] ?? [];
   }
 
-  async function loadTargets(kind: string): Promise<void> {
-    if (kind.length === 0 || requested.has(kind)) return;
-    requested.add(kind);
-    const records = await app.recordsOf(kind);
-    targets = {
-      ...targets,
-      [kind]: records.map((record) => ({ id: record.id, label: recordLabel(record) })),
-    };
+  async function loadTargets(kinds: Set<string>): Promise<void> {
+    const missing = [...kinds].filter((kind) => kind.length > 0 && !requested.has(kind));
+    if (missing.length === 0) return;
+    for (const kind of missing) requested.add(kind);
+    // One plan-wide read for every relation column on the screen; filtering
+    // the snapshot per kind is local and the `recordsOf('*')` cache means a
+    // panel that already read the model pays nothing.
+    const all = (await app.recordsOf('*')) ?? [];
+    const next = { ...targets };
+    for (const kind of missing) {
+      const records = all.filter((record) => record.type === kind);
+      next[kind] = records.map((record) => ({ id: record.id, label: recordLabel(record) }));
+    }
+    targets = next;
   }
 
   $effect(() => {
@@ -149,7 +213,7 @@
         if (field.type === 'relation' && field.to) wanted.add(field.to);
       }
     }
-    for (const kind of wanted) void loadTargets(kind);
+    void loadTargets(wanted);
   });
 
   function onkeydown(event: KeyboardEvent): void {
@@ -215,12 +279,32 @@
   }
 
   $effect(() => {
+    // Which window this page is (§4.10). The Preferences window renders the
+    // settings screen and nothing else — no canvas to return to and no source
+    // pane — so the session routes its Done and its file doors through the
+    // shell instead of setting state this window cannot draw.
+    app.preferences = preferences;
     // One subscription, two transports (D9): the shell emits an event, the dev
     // harness streams the same publication.
     const offChange = onPlanChanged((event) => app.handlePlanChanged(event));
+    // A file door pressed in the Preferences window: that window has no pane,
+    // so it asks this one — the window that draws it — to open the file (D3).
+    const offSource = preferences ? () => {} : onOpenSource((file) => app.openFile(file));
+    // An app preference chosen in the other window — a component's design, the
+    // interface size, the mode. Every window's stores are its own webview's, so
+    // whichever window made the choice, the others are handed it (§4.10).
+    const offPreference = onPreferenceChange((change) => app.applyPreference(change));
     // The menu bar and the context menus are the registry, projected; the id
     // they report lands in one bus, which runs it through `app.run`.
     const offMenu = onMenuChoice((id) => dispatchMenuChoice(id));
+    // The running turn's stream (§4.7): the shell owns the agent process, the
+    // deck draws it, and `Exit` is what settles the receipt.
+    const offAgent = onAgentEvent((event) => assistant.handleEvent(event));
+    // This page owns no turn yet. Whatever the shell still has running is a
+    // turn whose page is gone (a reload or a crashed webview), and its events
+    // have nowhere to land — stop it here rather than let it write the plan
+    // unobserved.
+    void agentCancel().catch(() => false);
     // A second launch focuses this window and routes its argument here (§4.10):
     // a plan directory to open, or a `.samprofile` to import.
     const offLaunch = onLaunch((argv) => {
@@ -250,13 +334,21 @@
       const hooks = globalThis as {
         __SAM_RENDER_DUMP__?: () => unknown;
         __SAM_APP__?: typeof app;
+        __SAM_ASSISTANT__?: typeof assistant;
       };
       hooks.__SAM_RENDER_DUMP__ = renderDump;
       hooks.__SAM_APP__ = app;
+      // The assistant's working state has no control in a browser — its door
+      // is an agent process on the user's machine — so the gate that measures
+      // the veil reaches it through this hook, beside the same dev-only guard.
+      hooks.__SAM_ASSISTANT__ = assistant;
     }
     return () => {
       offChange();
+      offSource();
+      offPreference();
       offMenu();
+      offAgent();
       offLaunch();
       offProfile();
     };
@@ -272,8 +364,16 @@
   $effect(() => {
     // The shell watches the plan tree through the engine's own watcher (D9) and
     // publishes one event per accepted revision; the browser harness streams the
-    // same publication from its own watcher.
-    if (app.plan) void watchPlan(app.plan);
+    // same publication from its own watcher. A switch does not unwatch first:
+    // `watch_plan` replaces the shell's one watcher, and a queued `unwatch_plan`
+    // landing *after* the new watch would leave the plan on screen unwatched —
+    // the dashboard then waits for a rail press to show what changed.
+    const plan = app.plan;
+    if (!plan) return;
+    void watchPlan(plan);
+    return () => {
+      if (app.plan === null) void unwatchPlan();
+    };
   });
 
   // Resets viewport scroll on view navigation (`design.md` §12). Keyed to destination, not revision.
@@ -936,16 +1036,84 @@
 
       <div class="cd-scroller cd-scroll" bind:this={scroller}>
         <main class="cd-canvas">
-          <!-- Error boundary isolating view rendering errors from the shell. -->
-          <svelte:boundary>
+          <!-- Error boundary isolating view rendering errors from the shell.
+               A screen that could not be drawn is a state with a way out, not
+               a sentence: the shell offers the screen's own reset (take the
+               student's components off it) and a retreat to another
+               destination, so a bug in one widget never strands the window. -->
+          <svelte:boundary onerror={canvasFailed}>
             {#snippet failed(error)}
               <section class="cd-card">
                 <h2 class="cd-card__title">This screen could not be drawn</h2>
                 <p class="cd-card__sub">{String(error)}</p>
-                <p class="cd-card__sub">The data is untouched. Pick another destination, or open SAM --configcheck.</p>
+                <p class="cd-card__sub">Nothing was written — the plan’s files are as they are on disk.</p>
+                <div class="cd-fault__acts">
+                  {#if app.screenIsCustom && (app.outcome?.panel != null || app.outcome?.type != null)}
+                    <button
+                      class="cd-pill cd-pill--quiet"
+                      type="button"
+                      title="Take your components off this screen and draw it as SAM designed it"
+                      onclick={async () => {
+                        await app.resetScreen();
+                        releaseBoundary();
+                      }}
+                    >
+                      Take my components off this screen
+                    </button>
+                  {/if}
+                  {#if app.screenEditing}
+                    <button
+                      class="cd-pill cd-pill--quiet"
+                      type="button"
+                      onclick={() => {
+                        app.endScreenEdit();
+                        releaseBoundary();
+                      }}
+                    >
+                      Leave edit mode
+                    </button>
+                  {/if}
+                  {#if retreatView}
+                    <button
+                      class="cd-pill cd-pill--quiet"
+                      type="button"
+                      onclick={async () => {
+                        await app.selectView(retreatView);
+                        releaseBoundary();
+                      }}
+                    >
+                      Go to another screen
+                    </button>
+                  {/if}
+                </div>
               </section>
             {/snippet}
-          {#if app.systemOpen}
+          {#if app.planFault && app.plan}
+            <!-- The plan on disk does not load (D9's invalid frame): the first
+                 finding in the engine's own words, and the ways out — the file
+                 it stands on, and the re-read. Nothing here writes. -->
+            <section class="cd-card cd-fault">
+              <h2 class="cd-card__title">The plan on disk does not load</h2>
+              <p class="cd-card__sub">{faultLine}</p>
+              {#if app.planFault.findings.length > 1}
+                <p class="cd-card__sub">
+                  {app.planFault.findings.length - 1} more finding{app.planFault.findings.length === 2 ? '' : 's'}
+                  stand behind it — fix the first, and the rest usually follow.
+                </p>
+              {/if}
+              <p class="cd-card__sub">Nothing was written; the plan’s files are as they are on disk.</p>
+              <div class="cd-fault__acts">
+                {#if app.faultFinding}
+                  <button class="cd-pill cd-pill--quiet" type="button" onclick={() => app.openFaultFile()}>
+                    Open the file in the source pane
+                  </button>
+                {/if}
+                <button class="cd-pill cd-pill--quiet" type="button" onclick={() => app.retryPlan()}>
+                  Try again
+                </button>
+              </div>
+            </section>
+          {:else if app.systemOpen}
             <System />
           {:else if app.settingsOpen}
             <Settings {os} />
@@ -1060,11 +1228,18 @@
         </main>
       </div>
 
+      <!-- One right column, one pane in it (UI_SPEC §2.2). *Edit as JSON* puts
+           the file in the panel that is already open — the source editor takes
+           the record panel's place rather than opening a second side panel
+           beside it. While composing, the column is the editor's sidebar
+           (COMPOSER §4.8): the sidebar can be put away by its own ✕ and comes
+           back on a press on a component, so it is drawn only while it is open
+           and the canvas takes the room it was using. -->
       {#if app.sourcePane}
         <SourcePane />
-      {/if}
-
-      {#if app.detail}
+      {:else if app.screenEditing && app.inspectorOpen}
+        <Inspector />
+      {:else if !app.screenEditing && app.detail}
         <RecordDetail />
       {/if}
     </div>
@@ -1072,6 +1247,26 @@
 
   {#if app.paletteOpen}
     <Palette />
+  {/if}
+
+  <!-- The assistant's working state (UI_SPEC "The working veil"): the room
+       dimmed and lit by a field that flows while an agent edits the plan. It
+       renders on the run, not on the deck being open — closing the deck leaves
+       the veil up and the titlebar's sparkle pulsing, so the ambient state
+       never lies about whether the agent is still working. -->
+  {#if assistant.running}
+    <Veil />
+  {/if}
+
+  <!-- The assistant island (§4.7): the run's state as the window's own chrome,
+       at the head of the room — an ink pill the owner asked to stand out
+       (black in the light theme, white in the dark one) with the process behind
+       its press. It is mounted whether or not the deck is open, because closing
+       the deck has never stopped a turn. -->
+  <Island />
+
+  {#if assistant.open}
+    <Assistant />
   {/if}
 
   {#if app.sheet?.kind === 'paste'}

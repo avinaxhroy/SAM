@@ -263,8 +263,8 @@ pub fn run(binary: &Path) -> Vec<CheckResult> {
 ///
 /// The clear on the student's own screen is **refused**, deliberately: that
 /// view declares no type, so removing its composition would leave a view that
-/// draws nothing and the validator says so (`view.empty`). `--clear` is *Use
-/// SAM's design again*, which only a screen with a designed fallback can
+/// draws nothing and the validator says so (`view.empty`). `--clear` is
+/// *Reset to SAM's design*, which only a screen with a designed fallback can
 /// answer — so the check proves the refusal left the file untouched, then
 /// clears a screen that does have one.
 fn composer_check(harness: &Harness, resources_dir: &Path) -> CheckResult {

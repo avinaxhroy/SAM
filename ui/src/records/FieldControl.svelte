@@ -11,6 +11,7 @@
 <script lang="ts">
   import { DURATIONS, type FieldRead, type RecordDoc } from '../types';
   import { app } from '../session.svelte';
+  import { openExternal } from '../ipc';
   import { safeUrl } from '../safeUrl';
 
   let {
@@ -101,6 +102,10 @@
     return String(value);
   }
 
+  /** The rendered value, computed once per cell rather than once per branch
+   *  and again inside its accessible name. */
+  const shown = $derived(display());
+
   /**
    * A cell's accessible name. A cell whose whole content is a glyph (or
    * nothing) says nothing to a screen reader, and a table cell is a control
@@ -108,15 +113,15 @@
    */
   function cellName(): string {
     const label = field.label ?? field.key;
-    const shown = display();
     return shown && shown !== '—' && shown !== '·'
       ? `${label}: ${shown} — activate to edit`
       : `${label}: empty — activate to edit`;
   }
 
   /** The label a relation shows: `title` → `label` → `name` → the id (§C.1). */
+  const targetLabels = $derived(new Map(targets.map((target) => [target.id, target.label])));
   function labelFor(id: string): string {
-    return targets.find((target) => target.id === id)?.label ?? id;
+    return targetLabels.get(id) ?? id;
   }
 
   /** Which editor the cell opens: an inline field, or a popover at the cell. */
@@ -183,12 +188,11 @@
   }
 
   /** §3.4: the scheme check lives in one place (`safeUrl.ts`) — this file's
-   *  link offering and `window.open` use the same rule every anchor does. */
-
+   *  link offering and the shell's own opener use the same rule every anchor
+   *  does. The act is `openExternal`'s: a packaged webview has no `window.open`
+   *  of its own to land in. */
   function openLink(): void {
-    const text = String(value ?? '');
-    if (!safeUrl(text)) return;
-    window.open(text, '_blank', 'noopener');
+    void openExternal(String(value ?? ''));
   }
 
   /** The duration editor: chips set it outright, the field types an exact value. */
@@ -215,7 +219,7 @@
 </script>
 
 {#if isDerived}
-  <span class="cd-cell cd-cell--derived" {identity}>{display() || '—'}</span>
+  <span class="cd-cell cd-cell--derived" {identity}>{shown || '—'}</span>
 {:else if isRelation}
   <div class="cd-picker">
     <button
@@ -334,7 +338,7 @@
       disabled={!editable}
       onclick={open ? () => (open = false) : openDate}
     >
-      {display() || '—'}
+      {shown || '—'}
     </button>
     {#if open}
       <div class="cd-menu cd-menu--picker cd-datepick" role="group" aria-label={field.label ?? field.key}>
@@ -373,7 +377,7 @@
         open = !open;
       }}
     >
-      {display() || '—'}
+      {shown || '—'}
     </button>
     {#if open}
       <div class="cd-menu cd-menu--picker cd-durpick" role="group" aria-label={field.label ?? field.key}>
@@ -454,7 +458,7 @@
       disabled={!editable}
       onclick={begin}
     >
-      {display()}
+      {shown}
     </button>
     {#if typeof value === 'string' && safeUrl(value)}
       <button class="cd-iconbtn cd-url__open" type="button" onclick={openLink} aria-label="Open link" title="open">↗</button>
@@ -486,11 +490,11 @@
       data-column={field.key}
       data-record-id={record.id}
     >
-      {display()}
+      {shown}
     </button>
   {/if}
 {:else}
-  <span class="cd-cell" {identity}>{display()}</span>
+  <span class="cd-cell" {identity}>{shown}</span>
 {/if}
 
 <style>

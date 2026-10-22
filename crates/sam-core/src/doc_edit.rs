@@ -460,9 +460,42 @@ pub(crate) fn finalize_with(
     changes: Vec<FileChange>,
     preview: Value,
 ) -> Result<PlannedEdit, EditError> {
-    let hashes = config_store::source_file_hashes(&config.plan_root);
+    // The loaded snapshot already holds every source byte; hashing those is the
+    // same fingerprint `source_file_hashes` would read back from disk, without
+    // a second full-plan read on every write.
+    let hashes = (!config.source_files.is_empty()).then(|| {
+        config
+            .source_files
+            .iter()
+            .map(|(rel, bytes)| (rel.clone(), config_store::fnv_hex(bytes)))
+            .collect()
+    });
+    finalize_at_with(&config.plan_root, resources_dir, changes, preview, hashes)
+}
+
+/// The same envelope for a caller that has the plan root but no loaded plan:
+/// the repair door (`source.apply` on a plan that does not load) plans against
+/// the raw bytes, and the overlay validator below is what proves the whole
+/// plan loads before anything lands (§4.6 step 2).
+pub(crate) fn finalize_at(
+    root: &Path,
+    resources_dir: &Path,
+    changes: Vec<FileChange>,
+    preview: Value,
+) -> Result<PlannedEdit, EditError> {
+    finalize_at_with(root, resources_dir, changes, preview, None)
+}
+
+fn finalize_at_with(
+    root: &Path,
+    resources_dir: &Path,
+    changes: Vec<FileChange>,
+    preview: Value,
+    hashes: Option<BTreeMap<String, String>>,
+) -> Result<PlannedEdit, EditError> {
+    let hashes = hashes.unwrap_or_else(|| config_store::source_file_hashes(root));
     let candidate = transaction::revision_after(&hashes, &changes);
-    transaction::validate_by_overlay(&config.plan_root, &changes, resources_dir)?;
+    transaction::validate_by_overlay(root, &changes, resources_dir)?;
     let files = file_list(&changes);
     let mut preview = match preview {
         Value::Object(object) => object,
@@ -2852,11 +2885,16 @@ pub mod settings_ops {
     /// The display text of every row's current value, keyed by the row's key:
     /// what the settings screen shows beside the key it is editing. A row whose
     /// pointer is absent shows as "default" rather than an invented zero.
+    ///
+    /// The document is the **loaded** rules file (`ResolvedConfig::rules`, the
+    /// typed file the validator published), never `config.source_files`: a read
+    /// command loads without retaining source bytes (the read cache's whole
+    /// point, §4.6), so a projection that reached for them answered "default"
+    /// for every row — the settings screen showed the fallbacks it invents for
+    /// an unset plan, and kept showing them after a write, which reads as "the
+    /// change did not apply".
     pub fn values(config: &ResolvedConfig) -> BTreeMap<String, String> {
-        let document = doc(config, "content/rules.json")
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| doc_json::with_schema(None));
+        let document = serde_json::to_value(&config.rules).unwrap_or(serde_json::Value::Null);
         let mut out = BTreeMap::new();
         for def in FIELDS {
             let segments: Vec<String> = def.path.iter().map(|part| (*part).to_string()).collect();
@@ -3998,8 +4036,14 @@ pub mod source_ops {
     /// `source.apply` — the text door's commit: replace one document (or one
     /// records file) with caller text, canonicalized and validated whole-plan.
     /// This is what the ⌘⇧J pane and a hand edit share.
+    ///
+    /// It plans against the plan root and its raw source bytes — not a loaded
+    /// snapshot — because the pane is also the **repair** door: a save that
+    /// fixes a plan that does not load is exactly the write this must allow,
+    /// and `finalize_at`'s overlay validation is what proves the fix worked.
     pub fn apply(
-        config: &ResolvedConfig,
+        root: &Path,
+        source_files: &BTreeMap<String, Vec<u8>>,
         resources_dir: &Path,
         file: &str,
         text: &str,
@@ -4029,7 +4073,7 @@ pub mod source_ops {
         } else {
             doc_json::pretty(&doc_json::parse(text, file)?).into_bytes()
         };
-        let before = config.source_files.get(file).cloned();
+        let before = source_files.get(file).cloned();
         if before.as_deref() == Some(after.as_slice()) {
             return Ok(PlannedEdit {
                 changes: Vec::new(),
@@ -4045,7 +4089,7 @@ pub mod source_ops {
                 preview: None,
             });
         }
-        finalize_with(config, resources_dir, changes, json!({ "file": file }))
+        finalize_at(root, resources_dir, changes, json!({ "file": file }))
             .map(|edit| edit.named(format!("source.apply {file}")))
     }
 }
@@ -5196,6 +5240,7 @@ mod tests {
             shell: None,
             appearance: None,
             positioned_records: vec![],
+            lookup: Default::default(),
             formulas: BTreeMap::new(),
             source_files: BTreeMap::new(),
             tokens: crate::resources::TokenRegister {

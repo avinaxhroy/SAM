@@ -10,7 +10,8 @@
 -->
 <script lang="ts">
   import Button from '../records/Button.svelte';
-  import IdPair from '../shell/IdPair.svelte';
+  import Row from './Row.svelte';
+  import Switch from './Switch.svelte';
   import { nameOf } from '../types';
   import { app } from '../session.svelte';
 
@@ -82,32 +83,23 @@
 </script>
 
 <div class="st-rows">
-  <div class="st-row" data-plate="profile.export">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>Export this plan</span>
-        <IdPair value="profile.export" title="Copy the command" />
-      </span>
-      <span class="st-row__help">
-        One <b>*.samprofile</b> document — its kinds, its views and its records travel together —
-        <b>{travelText}</b>.
-      </span>
-    </div>
-    <div class="st-row__ctl">
+  <Row icon="trayFull" name="Export this plan" key="profile.export" plate="profile.export">
+    {#snippet help()}
+      One <b>*.samprofile</b> — kinds, views, records. <b>{travelText}</b>.
+    {/snippet}
+    {#snippet ctl()}
       <!-- The declared control for a `bool` is a switch. Its label is the
            sentence the export takes as its flag, and the state is spelled out
            in the help line above, so nothing rides on the knob's side. -->
       <span class="st-choice">
-        <button
-          class="cd-switch"
-          type="button"
-          role="switch"
-          aria-checked={personal}
-          aria-label="Include personal records in this export"
-          onclick={() => {
+        <Switch
+          checked={personal}
+          label="Include personal records in this export"
+          word={false}
+          onchange={() => {
             personal = !personal;
           }}
-        ></button>
+        />
         <span class="st-choice__say">Include personal records</span>
       </span>
       <Button
@@ -119,21 +111,14 @@
         busy={busy}
         onClick={exportProfile}
       />
-    </div>
-  </div>
+    {/snippet}
+  </Row>
 
-  <div class="st-row" data-plate="profile.import">
-    <div class="st-row__label">
-      <span class="st-row__name">
-        <span>Bring a plan in</span>
-        <IdPair value="profile.import" title="Copy the command" />
-      </span>
-      <span class="st-row__help">
-        A new plan is staged and validated before anything is written. Importing shows what arrives —
-        nothing is overwritten without it.
-      </span>
-    </div>
-    <div class="st-row__ctl">
+  <Row icon="folder" name="Bring a plan in" key="profile.import" plate="profile.import">
+    {#snippet help()}
+      Staged and validated first; the diff is shown.
+    {/snippet}
+    {#snippet ctl()}
       <Button
         id="profile.import"
         label="Import a plan…"
@@ -143,8 +128,8 @@
         busy={busy}
         onClick={importProfile}
       />
-    </div>
-  </div>
+    {/snippet}
+  </Row>
 </div>
 
 <h3 class="st-band">
@@ -153,34 +138,31 @@
     {personalCount === 0 ? 'nothing yet' : `${personalCount} of ${types.length}`}
   </span>
 </h3>
-<p class="st-band__lead">
-  A kind that is personal is yours alone: it stays out of an export, and it is still yours in this
-  plan on this machine.
-</p>
+<p class="st-band__lead">Personal kinds stay out of an export.</p>
 
 <div class="st-rows">
   {#each types as [name, def] (name)}
-    <div class="st-row" data-plate={`type:${name}`}>
-      <div class="st-row__label">
-        <span class="st-row__name">
-          <span>{nameOf(name)}</span>
-          <span class="st-state">{def.private ? 'personal' : 'shared'}</span>
-          <IdPair value={name} title="Copy the kind" />
-        </span>
-      </div>
-      <div class="st-row__ctl">
-        <button
-          class="cd-switch"
-          type="button"
-          role="switch"
-          aria-checked={def.private === true}
-          aria-label={`Keep ${nameOf(name)} personal`}
-          aria-busy={busy}
-          data-command="type.setPrivate"
-          data-placement="settings"
-          onclick={() => void setPrivate(name, def.private !== true)}
-        ></button>
-      </div>
-    </div>
+    <Row
+      icon={def.icon ?? 'dot'}
+      name={nameOf(name)}
+      key={name}
+      keyTitle="Copy the kind"
+      plate={`type:${name}`}
+    >
+      {#snippet trail()}
+        <span class="st-state">{def.private ? 'personal' : 'shared'}</span>
+      {/snippet}
+      {#snippet ctl()}
+        <Switch
+          checked={def.private === true}
+          label={`Keep ${nameOf(name)} personal`}
+          word={false}
+          busy={busy}
+          command="type.setPrivate"
+          placement="settings"
+          onchange={() => void setPrivate(name, def.private !== true)}
+        />
+      {/snippet}
+    </Row>
   {/each}
 </div>

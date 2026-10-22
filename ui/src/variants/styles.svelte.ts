@@ -19,6 +19,7 @@
  * a screen fail to draw: the fallback is the surface's declared default.
  */
 import { SURFACES, SURFACE_BY_KEY, type VariantId } from './catalog';
+import { sendPreference } from '../ipc';
 
 export type UiSize = 'compact' | 'regular' | 'spacious';
 
@@ -29,23 +30,27 @@ function isSize(value: unknown): value is UiSize {
   return value === 'compact' || value === 'regular' || value === 'spacious';
 }
 
-/** Read and sanitize the stored choices: only surfaces and variants that exist. */
-function readChoices(): Record<string, VariantId> {
+/** Keep only the surfaces and variants the catalog still declares. */
+function sanitizeChoices(raw: unknown): Record<string, VariantId> {
   const kept: Record<string, VariantId> = {};
-  try {
-    const raw = localStorage.getItem(CHOICES_KEY);
-    if (!raw) return kept;
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return kept;
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      const surface = SURFACE_BY_KEY[key];
-      if (!surface) continue;
-      if (surface.variants.some((variant) => variant.id === value)) kept[key] = value as VariantId;
-    }
-  } catch {
-    /* a blocked or malformed store paints the defaults, never nothing */
+  if (typeof raw !== 'object' || raw === null) return kept;
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const surface = SURFACE_BY_KEY[key];
+    if (!surface) continue;
+    if (surface.variants.some((variant) => variant.id === value)) kept[key] = value as VariantId;
   }
   return kept;
+}
+
+/** Read and sanitize the stored choices: only surfaces and variants that exist. */
+function readChoices(): Record<string, VariantId> {
+  try {
+    const raw = localStorage.getItem(CHOICES_KEY);
+    return raw ? sanitizeChoices(JSON.parse(raw)) : {};
+  } catch {
+    /* a blocked or malformed store paints the defaults, never nothing */
+    return {};
+  }
 }
 
 function readSize(): UiSize {
@@ -81,12 +86,15 @@ class ComponentStyles {
   setVariant(surface: string, variant: VariantId): void {
     const def = SURFACE_BY_KEY[surface];
     if (!def || !def.variants.some((entry) => entry.id === variant)) return;
-    this.choices = { ...this.choices, [surface]: variant };
+    // One key, written in place: a new map would invalidate every reader of the
+    // store, including the hosts drawing designs this press did not touch.
+    this.choices[surface] = variant;
     try {
       localStorage.setItem(CHOICES_KEY, JSON.stringify(this.choices));
     } catch {
       /* the choice stands for this session even when storage refuses */
     }
+    this.publish();
   }
 
   /** One choice for every surface that offers it — the "match every component" row. */
@@ -101,6 +109,7 @@ class ComponentStyles {
     } catch {
       /* as above */
     }
+    this.publish();
   }
 
   setSize(size: UiSize): void {
@@ -111,6 +120,7 @@ class ComponentStyles {
       /* as above */
     }
     this.apply();
+    this.publish();
   }
 
   /** Every surface back to the lab's own default for it. */
@@ -121,6 +131,42 @@ class ComponentStyles {
     } catch {
       /* as above */
     }
+    this.publish();
+  }
+
+  /**
+   * Apply a snapshot made in the other window (the Preferences window is a
+   * second webview with its own copy of this store). No publish: adopting a
+   * choice the student already made must not send it back.
+   */
+  adopt(snapshot: string): void {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(snapshot);
+    } catch {
+      return;
+    }
+    if (typeof parsed !== 'object' || parsed === null) return;
+    const { choices, size } = parsed as { choices?: unknown; size?: unknown };
+    this.choices = sanitizeChoices(choices);
+    if (isSize(size) && size !== this.size) {
+      this.size = size;
+      this.apply();
+    }
+    try {
+      localStorage.setItem(CHOICES_KEY, JSON.stringify(this.choices));
+      localStorage.setItem(SIZE_KEY, this.size);
+    } catch {
+      /* the memory still holds it for this session */
+    }
+  }
+
+  /** Hand the whole store to the window that draws the components. */
+  private publish(): void {
+    sendPreference({
+      key: 'component-styles',
+      value: JSON.stringify({ choices: this.choices, size: this.size }),
+    });
   }
 
   /**

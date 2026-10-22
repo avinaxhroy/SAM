@@ -133,9 +133,23 @@
     }
   }
 
-  // Load target content; skips if an open draft matches (Appendix C.4).
+  // Load target content; an open draft for the same target is kept — the pane
+  // shows the draft rather than re-reading over it (Appendix C.4).
   async function load(next: SourceTarget): Promise<void> {
-    if (app.draft && same(app.draft.target, next)) return;
+    const draft = app.draft;
+    if (draft && same(draft.target, next)) {
+      // The pane was closed and opened again while the edit was unsaved: the
+      // draft is the content, and its file is where it would be committed —
+      // restoring only the text would leave an empty editor with no address.
+      target = next;
+      file = draft.file ?? (next.kind === 'file' ? next.file : '');
+      findings = [];
+      text = draft.text;
+      status = 'idle';
+      receipt = null;
+      loading = false;
+      return;
+    }
     if (!committing) {
       status = 'idle';
       receipt = null;
@@ -184,7 +198,9 @@
       receipt = null;
     }
     const point = app.draft?.target ?? target;
-    if (point) app.draft = { target: point, text: next, external: app.draft?.external === true };
+    if (point) {
+      app.draft = { target: point, text: next, file, external: app.draft?.external === true };
+    }
     window.clearTimeout(checking);
     checking = window.setTimeout(() => void lint(), 400);
   }
@@ -451,7 +467,7 @@
     if (draft) {
       // Only update draft if not already marked external to prevent cascading effect re-runs.
       if (draft.external !== true) {
-        app.draft = { target: draft.target, text: draft.text, external: true };
+        app.draft = { ...draft, external: true };
         app.externalPending = true;
       }
       return;

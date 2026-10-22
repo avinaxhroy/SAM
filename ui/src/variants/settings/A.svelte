@@ -1,15 +1,19 @@
 <!--
   Settings · A · THE STENCIL.
 
-  A settings page with a rail and one pane, not a page of setting objects.
+  A settings page with a room of its own: an **index** down the left side and
+  one **pane** of rows beside it, not a page of setting objects floating on the
+  canvas.
 
-    · a **rail** (left) — one entry per place, each carrying that place's live
+    · a **room** — one bordered surface, so the screen has an edge. The index is
+      a tinted plate ruled off the pane; the pane is the ruled page inside it.
+    · an **index** (left) — one entry per place, each carrying that place's live
       value in the app's own words, so "what is set?" is answered without a
-      click;
-    · a **pane** (right) — the open place as a sheet of rows: the app's name for
-      the setting, its key beside it, one sentence where a sentence teaches, and
-      the single control its type declares at the row's right edge. Nothing
-      repeats the value outside the control that owns it;
+      click; the open place's glyph is the screen's one ink object;
+    · a **pane** (right) — the open place as a sheet of rows: a glyph on a tile,
+      the app's name for the setting, its key beside it, one sentence where a
+      sentence teaches, and the single control its type declares at the row's
+      trailing edge. Nothing repeats the value outside the control that owns it;
     · a **find field** in the head — it filters the page's own table and, while
       a query is live, the pane's body *is* the matches; choosing one opens the
       place it lives in and washes the row it names;
@@ -68,8 +72,10 @@
 
   const here = $derived(places.find((place) => place.id === open) ?? places[0]);
 
-  /** The name a hit's row is filed under, for the row's own trailing label. */
-  const placeName = (id: string): string => places.find((place) => place.id === id)?.name ?? id;
+  /** The name and glyph a hit's row is filed under. */
+  const placeOf = (id: string) => places.find((place) => place.id === id);
+  const placeName = (id: string): string => placeOf(id)?.name ?? id;
+  const placeIcon = (id: string): string => placeOf(id)?.icon ?? 'dot';
 
   /** Split a setting's name on the query so the matched run can carry the
    *  weight — the mark is the app's own words, never a rewrite of them. */
@@ -100,7 +106,17 @@
       const row = document.querySelector<HTMLElement>(`[data-plate="${hit.key}"]`);
       if (!row) return;
       row.scrollIntoView({ block: 'nearest' });
-      row.querySelector<HTMLElement>('input, button, [tabindex]')?.focus();
+      // The row's *control* is the target, not the first focusable thing in it
+      // — that is the key chip beside the setting's name, and landing on the
+      // copy affordance when the student asked for the setting is a jump to the
+      // wrong place.
+      const control =
+        row.querySelector<HTMLElement>('.st-row__ctl .st-budget__track') ??
+        row.querySelector<HTMLElement>('.st-row__ctl input') ??
+        row.querySelector<HTMLElement>('.st-row__ctl [role="switch"]') ??
+        row.querySelector<HTMLElement>('.st-row__ctl button') ??
+        row.querySelector<HTMLElement>('input, button, [tabindex]');
+      control?.focus();
     });
   }
 
@@ -127,11 +143,14 @@
     <div>
       <h1 class="st-head__title">{title}</h1>
       <p class="st-head__say">{say}</p>
-      <span class="st-head__tally">
-        {#each tally as part, at (part)}
-          {at > 0 ? ' · ' : ''}{part}
+      <div class="st-head__tally">
+        {#each tally as fact (fact.text)}
+          <span class="st-tally">
+            <Icon name={fact.icon} size={13} />
+            {fact.text}
+          </span>
         {/each}
-      </span>
+      </div>
     </div>
     <div class="st-head__tools">
       <div class="st-find">
@@ -164,29 +183,37 @@
           <span class="st-find__count">{find.length} settings</span>
         {/if}
       </div>
-      <button class="cd-pill cd-pill--ghost" type="button" onclick={onDone}>Done</button>
+      <button class="cd-pill cd-pill--ghost cd-pill--sm" type="button" onclick={onDone}>Done</button>
     </div>
   </header>
 
-  <div class="st-body">
-    <nav class="st-rail" aria-label="Where a setting lives">
-      {#each places as place (place.id)}
-        <button
-          class="st-rail__item"
-          type="button"
-          aria-current={open === place.id && query.length === 0}
-          aria-label={`${place.name} — ${place.summary}`}
-          onclick={() => {
-            chosen = place.id;
-            query = '';
-          }}
-        >
-          <span class="st-rail__ico"><Icon name={place.icon} size={15} /></span>
-          <span class="st-rail__name">{place.name}</span>
-          <span class="st-rail__sum">{place.summary}</span>
-        </button>
-      {/each}
-    </nav>
+  <div class="st-room">
+    <aside class="st-side" aria-label="Where a setting lives">
+      <div class="st-side__inner">
+        <header class="st-side__head">
+          <span class="st-side__label">Places</span>
+          <span class="st-side__count">{places.length}</span>
+        </header>
+        <nav class="st-rail" aria-label="Places in settings">
+          {#each places as place (place.id)}
+            <button
+              class="st-rail__item"
+              type="button"
+              aria-current={open === place.id && query.length === 0}
+              aria-label={`${place.name} — ${place.summary}`}
+              onclick={() => {
+                chosen = place.id;
+                query = '';
+              }}
+            >
+              <span class="st-rail__ico"><Icon name={place.icon} size={15} /></span>
+              <span class="st-rail__name">{place.name}</span>
+              <span class="st-rail__sum">{place.summary}</span>
+            </button>
+          {/each}
+        </nav>
+      </div>
+    </aside>
 
     <div class="st-pane">
       {#if query.trim().length > 0}
@@ -195,16 +222,18 @@
             <div class="st-hits__top">
               <p class="st-hits__say">
                 {#if hits.length === 0}
-                  Nothing on this page matches <b>“{query.trim()}”</b> — every setting's own name
-                  and key are searched.
+                  Nothing matches <b>“{query.trim()}”</b>.
                 {:else}
                   {hits.length === 1 ? 'One setting matches' : `${hits.length} settings match`}
-                  <b>“{query.trim()}”</b> — choosing one opens the place it lives in.
+                  <b>“{query.trim()}”</b>.
                 {/if}
               </p>
             </div>
             {#each hits as hit (hit.group + '·' + hit.key)}
               <button class="st-hits__row" type="button" onclick={() => jump(hit)}>
+                <span class="st-hits__ico" aria-hidden="true">
+                  <Icon name={placeIcon(hit.group)} size={15} />
+                </span>
                 <span class="st-hits__name">
                   {#each parts(hit.name) as part (part.text + part.hit)}
                     {#if part.hit}<mark>{part.text}</mark>{:else}{part.text}{/if}
@@ -215,8 +244,7 @@
             {/each}
             {#if hits.length === 0}
               <p class="st-hits__none">
-                The five places hold the plan's day, its keys, its look, its component designs and
-                what travels with an export.
+                Five places: the day · how you work · appearance · component styles · this plan.
               </p>
             {/if}
           </div>
@@ -226,10 +254,10 @@
           <header class="st-pane__head">
             <h2 class="st-pane__title">{here.name}</h2>
             <p class="st-pane__sum">{here.summary}</p>
+            {#if here.lead}
+              <p class="st-pane__lead">{here.lead}</p>
+            {/if}
           </header>
-          {#if here.lead}
-            <p class="st-pane__lead">{here.lead}</p>
-          {/if}
         {/if}
       {/if}
 
@@ -255,7 +283,7 @@
           {/if}
         </div>
         {#if changes.length === 0}
-          <p class="st-strip__empty">Nothing written yet — this plan is as it was.</p>
+          <p class="st-strip__empty">Nothing written yet.</p>
         {:else}
           <ol class="st-strip__lines">
             {#each changes as line (line.id)}

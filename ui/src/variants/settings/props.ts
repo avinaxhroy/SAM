@@ -56,6 +56,12 @@ export type ChangeLine = {
   run: () => Promise<boolean>;
 };
 
+/** One measured fact in the screen head: a glyph and its count in words. */
+export type SettingsTally = {
+  icon: string;
+  text: string;
+};
+
 /** What a design receives. `A · The Stencil` is the only one that draws it. */
 export type SettingsSurfaceProps = {
   /** The screen's own title (`Settings`). */
@@ -63,7 +69,7 @@ export type SettingsSurfaceProps = {
   /** The head's one sentence — what this page decides, in the app's words. */
   say: string;
   /** The head's measured tallies, e.g. `['5 places', '9 keys']`. */
-  tally: string[];
+  tally: SettingsTally[];
   places: SettingsPlace[];
   /** The open place's rows, one snippet per place. All five are handed over;
    *  the design mounts the open one and keeps the rest hidden, because the

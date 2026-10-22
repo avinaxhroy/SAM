@@ -4,14 +4,15 @@
   import Variant from '../variants/Variant.svelte';
   import type { CourseCard, CourseTopic } from '../variants/courses/props';
   import { app } from '../session.svelte';
+  import { openExternal } from '../ipc';
   import { nameOf, recordLabel, type RecordDoc } from '../types';
   import {
     chapterOf,
     ladderOf,
+    launchLinkOf,
     minutesOf,
     readPlanModel,
     stageWord,
-    workUnder,
     type PlanModel,
   } from './model';
 
@@ -33,7 +34,7 @@
     const revision = app.revision;
     if (loadedFor === revision) return;
     loadedFor = revision;
-    void app.run('reviews.due', {}, { tracked: false }).then((result) => {
+    void app.reviewsDue().then((result) => {
       const data = result?.data as { today?: string; timezoneMinutes?: number } | undefined;
       clock =
         data && typeof data.today === 'string'
@@ -86,9 +87,8 @@
   }
 
   /** One work record as the designs draw it: state, rung, minutes, words. */
-  function topicsOf(subjectId: string): CourseTopic[] {
+  function topicsOf(subjectId: string, work: RecordDoc[]): CourseTopic[] {
     if (!model) return [];
-    const work = workUnder(model, subjectId);
     const ladder = ladderOf(model, work[0]?.type ?? '');
     return work.map((item) => {
       const fact = model?.progress.get(item.id);
@@ -104,8 +104,29 @@
         rungs: ladder.length,
         minutes: minutesOf(item),
         stage: stageWord(fact, ladder),
+        link: launchLinkOf(model, item),
       };
     });
+  }
+
+  /** Every record that links to a record, keyed by target id — one pass for
+   *  every course, not one full scan per card per field. */
+  function workByTarget(): Map<string, RecordDoc[]> {
+    const byTarget = new Map<string, RecordDoc[]>();
+    if (!model) return byTarget;
+    for (const item of model.items) {
+      const seen = new Set<string>();
+      for (const ids of Object.values(item.links ?? {})) {
+        for (const id of ids) {
+          if (seen.has(id)) continue;
+          seen.add(id);
+          const bucket = byTarget.get(id);
+          if (bucket) bucket.push(item);
+          else byTarget.set(id, [item]);
+        }
+      }
+    }
+    return byTarget;
   }
 
   /** The first topic that is not done — the row every design marks as next. */
@@ -115,18 +136,25 @@
 
   const courses = $derived.by<CourseCard[]>(() => {
     if (!model) return [];
+    const under = workByTarget();
     return (model.identities ?? []).map((record) => {
-      const topics = topicsOf(record.id);
-      const minutes = workUnder(model, record.id).reduce((sum, item) => sum + (minutesOf(item) ?? 0), 0);
+      const work = under.get(record.id) ?? [];
+      const topics = topicsOf(record.id, work);
+      let minutes = 0;
+      let started = 0;
+      for (const topic of topics) {
+        minutes += topic.minutes ?? 0;
+        if (topic.state !== 'none') started += 1;
+      }
       return {
         id: record.id,
         code: codeOf(record),
         name: recordLabel(record),
         wash: app.washes[record.id],
-        started: topics.filter((topic) => topic.state !== 'none').length,
+        started,
         total: topics.length,
         minutes,
-        days: nextDays(workUnder(model, record.id)),
+        days: nextDays(work),
         nextId: nextTopicOf(topics),
         topics,
       };
@@ -246,6 +274,15 @@
     onOpen={(id) => (opened = id)}
     onClose={() => (opened = null)}
     onTopic={openTopic}
+    onWatch={(id) => {
+      for (const course of courses) {
+        const topic = course.topics.find((entry) => entry.id === id);
+        if (topic?.link) {
+          void openExternal(topic.link);
+          return;
+        }
+      }
+    }}
     onNewCourse={() => {
       if (subjectKind) void app.openSheet({ kind: 'record.new', type: subjectKind });
     }}

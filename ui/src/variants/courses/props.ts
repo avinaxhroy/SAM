@@ -15,6 +15,12 @@ export type CourseTopic = {
   minutes: number | null;
   /** The stage in the plan's own words — the row's accessible sentence. */
   stage: string;
+  /**
+   * The topic's study material, when the plan names one (`Watch`). Null when it
+   * names none, and then the row draws no button — optional, never a
+   * placeholder.
+   */
+  link: string | null;
 };
 
 export type CourseCard = {
@@ -48,6 +54,8 @@ export type CoursesProps = {
   onClose: () => void;
   /** The record-door read: the app's `record.panel` for one topic. */
   onTopic: (id: string) => void;
+  /** Open the topic's material in the browser — only rows that carry a link. */
+  onWatch: (id: string) => void;
   onNewCourse: () => void;
   onNewTopic: () => void;
 };

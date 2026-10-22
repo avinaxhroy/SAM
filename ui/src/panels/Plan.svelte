@@ -108,19 +108,41 @@
    * second evaluator — progress is `reviews.due`'s answer, read straight
    * through.
    */
-  const weeks = $derived.by<PlanWeek[]>(() => {
-    if (!model) return [];
-    const ordered = [...model.weeks].sort(
-      (left, right) =>
-        (weekIndex(model.weeks, left.id) ?? 9999) - (weekIndex(model.weeks, right.id) ?? 9999),
-    );
+  const grouping = $derived.by<{ weeks: PlanWeek[]; unplaced: PlanTopic[] }>(() => {
+    if (!model) return { weeks: [], unplaced: [] };
     const plan = model;
-    return ordered.map((week, position) => {
+    // One pass over the work, then one pass over the weeks: filtering every
+    // item once per week was O(weeks × items) on every recompute (52 × 10k at
+    // a year plan), and each item was shaped into a PlanTopic twice.
+    const byWeek = new Map<string, RecordDoc[]>();
+    const unplacedItems: RecordDoc[] = [];
+    for (const item of plan.items) {
+      const links = item.links.week ?? [];
+      if (links.length === 0) {
+        unplacedItems.push(item);
+        continue;
+      }
+      for (const weekId of links) {
+        const bucket = byWeek.get(weekId);
+        if (bucket) bucket.push(item);
+        else byWeek.set(weekId, [item]);
+      }
+    }
+
+    const positions = new Map<string, number>();
+    plan.weeks.forEach((week, position) => positions.set(week.id, position));
+    const ordered = [...plan.weeks].sort(
+      (left, right) => (positions.get(left.id) ?? 9999) - (positions.get(right.id) ?? 9999),
+    );
+    const weeks = ordered.map((week, position) => {
       const index = weekIndex(plan.weeks, week.id) ?? position + 1;
-      const topics = plan.items
-        .filter((item) => (item.links.week ?? []).includes(week.id))
-        .map((item) => topicOf(item, plan));
-      const minutes = topics.reduce((sum, topic) => sum + (topic.minutes ?? 0), 0);
+      const topics = (byWeek.get(week.id) ?? []).map((item) => topicOf(item, plan));
+      let minutes = 0;
+      let done = 0;
+      for (const topic of topics) {
+        minutes += topic.minutes ?? 0;
+        if (topic.state === 'done') done += 1;
+      }
       const start = typeof week.fields.start === 'string' ? week.fields.start : null;
       const end = typeof week.fields.end === 'string' ? week.fields.end : null;
       const phase = week.fields.phase;
@@ -132,20 +154,17 @@
         phase: typeof phase === 'string' && phase.length > 0 ? phase : null,
         topics,
         minutes,
-        done: topics.filter((topic) => topic.state === 'done').length,
+        done,
         now: nowIndex === index,
       };
     });
+    return { weeks, unplaced: unplacedItems.map((item) => topicOf(item, plan)) };
   });
 
+  const weeks = $derived(grouping.weeks);
+
   /** Work that names no week: stated as a fact, never silently dropped. */
-  const unplaced = $derived.by<PlanTopic[]>(() =>
-    model
-      ? model.items
-          .filter((item) => (item.links.week ?? []).length === 0)
-          .map((item) => topicOf(item, model))
-      : [],
-  );
+  const unplaced = $derived(grouping.unplaced);
 
   const summary = $derived({
     weeks: weeks.length,

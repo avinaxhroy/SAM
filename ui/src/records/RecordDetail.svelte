@@ -118,14 +118,18 @@
       keys.push({ key: parent, label: nameOf(parent), to: parent });
     }
     const out: LinkFact[] = [];
+    // One plan-wide read for every relation on the panel, then an id map: the
+    // per-key `recordsOf` loop was one engine load per relation and a linear
+    // scan per target.
+    const all = (await app.recordsOf('*')) ?? [];
+    const byId = new Map(all.map((candidate) => [candidate.id, candidate]));
     for (const entry of keys) {
       const ids = found.links?.[entry.key] ?? [];
       if (ids.length === 0) continue;
-      const targets = await app.recordsOf(entry.to);
       out.push({
         ...entry,
         targets: ids.map((id) => {
-          const match = targets.find((candidate) => candidate.id === id);
+          const match = byId.get(id);
           const code = match?.fields?.code;
           return {
             id,
@@ -229,7 +233,7 @@
         return;
       }
       const links = await linksOf(found, declared);
-      const data = (await app.run('reviews.due', {}, { tracked: false }))?.data as QueueRead | undefined;
+      const data = (await app.reviewsDue())?.data as QueueRead | undefined;
       const entry =
         [...(data?.due ?? []), ...(data?.waiting ?? []), ...(data?.upcoming ?? [])].find(
           (candidate) => candidate.id === target.id,

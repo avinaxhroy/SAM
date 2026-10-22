@@ -38,7 +38,7 @@
     const revision = app.revision;
     if (loadedFor === revision) return;
     loadedFor = revision;
-    void app.run('reviews.due', {}, { tracked: false }).then((result) => {
+    void app.reviewsDue().then((result) => {
       const data = result?.data as { today?: string; timezoneMinutes?: number } | undefined;
       clock =
         data && typeof data.today === 'string'

@@ -99,7 +99,18 @@ impl PlanLock {
                     std::thread::sleep(Duration::from_millis(10));
                 }
                 Err(TryLockError::Error(error)) => {
-                    return Err(PlanLockError::Io(format!("flock failed ({error})")));
+                    // A custom plan folder may sit on a volume with no file
+                    // locking (SMB mounts, some ExFAT cards). Say what is
+                    // wrong and what to do about it — the lock is a safety
+                    // property and is never silently skipped.
+                    let message = if error.kind() == std::io::ErrorKind::Unsupported {
+                        format!(
+                            "this volume cannot lock files ({error}) — keep the plan on a local folder"
+                        )
+                    } else {
+                        format!("flock failed ({error})")
+                    };
+                    return Err(PlanLockError::Io(message));
                 }
             }
         }

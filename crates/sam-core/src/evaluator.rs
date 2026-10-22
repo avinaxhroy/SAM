@@ -179,6 +179,12 @@ pub fn resolve_timezone(timezone: Option<&str>) -> i32 {
 }
 
 /// A bounded evaluator: one context, one step budget.
+///
+/// Plan-wide facts (the record by id, the weeks a date can fall in, the current
+/// term) live on [`ResolvedConfig::lookup`](crate::resolved_config::PlanLookup),
+/// built once per load: a view filter over N records calls `currentTerm()` N
+/// times and walks relations N times, and a linear scan there would make the
+/// whole query O(N²).
 pub struct Evaluation<'a> {
     pub context: EvalContext<'a>,
     steps: usize,
@@ -768,35 +774,7 @@ impl<'a> Evaluation<'a> {
     /// a write needs — a session logged on this day is attributed to this week
     /// (F2), and the id is the plan's own key for it, never a guess from a label.
     pub(crate) fn covering_week(&self, day: i64) -> Option<(String, i64)> {
-        let mut best: Option<(i64, String)> = None;
-        for week in self
-            .context
-            .config
-            .records_iter()
-            .filter(|record| record.type_ == "week")
-        {
-            let (Some(start), Some(end), Some(index)) = (
-                week.fields.get("start").and_then(JSONValue::as_str),
-                week.fields.get("end").and_then(JSONValue::as_str),
-                week.fields.get("index").and_then(JSONValue::as_i64),
-            ) else {
-                continue;
-            };
-            let (Some(start), Some(end)) = (parse_date(start), parse_date(end)) else {
-                continue;
-            };
-            let start = days_from_civil(start.0, start.1, start.2);
-            let end = days_from_civil(end.0, end.1, end.2);
-            if day >= start && day <= end {
-                let better = best.as_ref().is_none_or(|(best_index, best_id)| {
-                    index < *best_index || (index == *best_index && week.id < *best_id)
-                });
-                if better {
-                    best = Some((index, week.id.clone()));
-                }
-            }
-        }
-        best.map(|(index, id)| (id, index))
+        self.context.config.covering_week(day)
     }
 
     /// Id of the term with the greatest start ≤ today; ties by the greater id.
@@ -804,25 +782,7 @@ impl<'a> Evaluation<'a> {
     /// same term `currentTerm()` names, so the two cannot disagree.
     pub(crate) fn current_term_id(&self) -> Option<String> {
         let today = civil_date(self.context.now_unix, self.context.tz_offset_minutes);
-        let mut best: Option<(String, String)> = None;
-        for term in self
-            .context
-            .config
-            .records_iter()
-            .filter(|record| record.type_ == "term")
-        {
-            let Some(start) = term.fields.get("start").and_then(JSONValue::as_str) else {
-                continue;
-            };
-            if start > today.as_str() {
-                continue;
-            }
-            let candidate = (start.to_string(), term.id.clone());
-            if best.as_ref().is_none_or(|current| &candidate > current) {
-                best = Some(candidate);
-            }
-        }
-        best.map(|(_, id)| id)
+        self.context.config.current_term_id(&today)
     }
 
     fn is_complete(&self, record: &Record) -> bool {
@@ -1139,6 +1099,7 @@ mod tests {
             shell: None,
             appearance: None,
             positioned_records: Vec::new(),
+            lookup: Default::default(),
             formulas: std::collections::BTreeMap::new(),
             source_files: Default::default(),
             tokens: crate::resources::TokenRegister {

@@ -85,6 +85,48 @@
   flex: 1;
 }
 
+/* The mode's own buttons are keys rather than pills (the owner's call,
+   2026-10-12): a rounded rectangle at the register's key rung, so *Add
+   component* — and *Done* beside it, because one row does not carry two button
+   languages — reads as the object you press. The plus inside the add door
+   states what pressing it does before the label is read. */
+.cmp-keybtn {
+  border-radius: var(--r-mini);
+}
+
+/* The sidebar's toggle (§4.8). A toggle has to *say* which state it is in, and
+   the app's own pressed-icon style is `--ink` — which on the canvas would be a
+   second dark object on a screen that already has one. So the state is carried
+   by **material**, the way every other toggle in the app carries it: pressed
+   (the pane is drawn) is the key every other bar control wears, with the mark
+   itself in the ink; unpressed is the bare mark and nothing else — no outline,
+   because a hairline key beside two filled ones reads as a third button rather
+   than as a state, which is exactly what the first pass got wrong. The recess
+   is `--well-2`'s own inset step (`rp-wheel`'s pressed idiom), so the key reads
+   as *engaged* rather than as another pill. Scoped under `.cmp-bar` so the
+   system's own pressed style cannot decide it instead. */
+.cmp-bar .cmp-panekey {
+  background: transparent;
+  color: var(--ink-2);
+  box-shadow: none;
+}
+
+.cmp-bar .cmp-panekey:hover {
+  background: var(--well);
+  color: var(--ink);
+}
+
+.cmp-bar .cmp-panekey[aria-pressed='true'] {
+  background: var(--well-2);
+  color: var(--ink);
+  box-shadow: inset 0 1px 2px var(--rule-strong);
+}
+
+.cmp-bar .cmp-panekey[aria-pressed='true']:hover {
+  background: var(--well-2);
+  box-shadow: inset 0 1px 2px var(--rule-strong), var(--sh-1);
+}
+
 /* ── the stack (§4.1, §4.4, §4.6 · two columns since 2026-09-30) ──────────
    The stack is the canvas's own two columns, and a widget stands at one of two
    widths: `span 1` is half of it, `span 2` — and the absent member — is all of
@@ -147,6 +189,18 @@
   box-shadow: var(--sh-1);
 }
 
+/* The component a press landed on (§4.8). The frame's rule turns solid and
+   takes a readable ink: a press has to be felt before the sidebar is read, and
+   the dashed edge alone is the mode's resting state on every frame at once. */
+.cmp-frame.is-selected {
+  border-style: solid;
+  border-color: var(--ink-3);
+  box-shadow: var(--sh-1), inset 0 0 0 1px var(--rule);
+}
+.cmp-frame.is-selected:hover {
+  box-shadow: var(--sh-2), inset 0 0 0 1px var(--rule);
+}
+
 .cmp-frame.is-lifted {
   box-shadow: var(--sh-2);
   cursor: grabbing;
@@ -166,9 +220,11 @@
   color: var(--ink);
 }
 
-.cmp-bar__done {
-  font-weight: 600;
-}
+/* Done is the mode's exit and wears the app's ghost (`components.css` §4), so
+   the bar has one affirmative control — *Add component* — rather than two of
+   equal weight. Nothing else is added: the ghost's own hairline is the whole
+   statement, and a second surface on it would make the exit louder than the
+   act. */
 
 /* Drag handle: prevents touch scroll and text selection during drag gestures. */
 .cmp-handle {
@@ -183,6 +239,15 @@
   min-width: var(--hit);
   min-height: var(--hit);
   padding: 0;
+  /* The handle is apparatus, not a control with a face: `--ink-3` reads it as
+     the frame's grip and keeps it from competing with the component's name
+     beside it. It answers the pointer by darkening, which is all a grip owes. */
+  color: var(--ink-3);
+  transition: color var(--dur-1) var(--ease);
+}
+
+.cmp-handle:hover {
+  color: var(--ink);
 }
 
 .cmp-frame.is-lifted .cmp-handle {
@@ -195,16 +260,65 @@
   max-width: 28ch;
   padding: 0 var(--space-xs);
   font-size: var(--text-xs);
+  font-weight: var(--weight-label);
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* The separator before the design chip. It is a mark, so it takes the register's
+   non-text tone (`--ink-4`), and the letter beside it is the readable part. Its
+   own inset is what spaces the three objects evenly — the name, the dot, the
+   chip — which is why the chip below carries no margin of its own. */
 .cmp-frame__design {
-  color: var(--ink-3);
-  font-weight: var(--weight-display);
-  letter-spacing: var(--track-caps);
+  padding: 0 var(--space-2xs);
+  color: var(--ink-4);
+}
+
+/* The design the component is wearing, as the app writes every short code: a
+   keycap, mono, on the well — the same object a keyboard shortcut and a field
+   key use (`.cd-kbd`, `.rp-keycap`). It replaces a letter floating in the name
+   so "which design is this?" is answered by an object rather than by reading a
+   sentence the eye has to parse. */
+.cmp-frame__key {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--chip-h);
+  height: var(--chip-h);
+  padding: 0 var(--space-2xs);
+  border-radius: var(--r-key);
+  background: var(--well);
+  color: var(--ink-2);
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-label);
+  letter-spacing: var(--track-code);
+  vertical-align: middle;
+}
+
+/* The width control (§4.3): the frame's one sizing act, and its label is the
+   width the press will give the component (`Half width` while it stands full,
+   `Full width` while it stands half) — the same forward-stating rule the rail's
+   theme disc follows. It wears the quiet pill's well fill (the owner's call,
+   2026-10-12): the bar's controls are objects you press, and a hairline alone
+   read as text beside the name. The rules are scoped under `.cmp-frame` so the
+   frame's own material cannot be re-decided by whichever stylesheet loaded
+   last. */
+.cmp-frame .cmp-width {
+  flex: none;
+  background: var(--well-2);
+  color: var(--ink);
+}
+
+.cmp-frame .cmp-width:hover {
+  background: var(--well-2);
+  box-shadow: var(--sh-1);
+  transform: none;
+}
+
+.cmp-frame .cmp-width:active {
+  transform: none;
 }
 
 /* The arrows: the card-material chips, and the app's only design switch — they
@@ -232,7 +346,10 @@
   /* A chevron alone in the gutter is a mark, not a control; the arrow is the
      one object in the composer that floats *outside* the frame, so it wears the
      card's own material — a hairline rim and one shadow rung — and reads as
-     pressable without spending the screen's one dark object. */
+     pressable without spending the screen's one dark object. At rest it is
+     `--ink-3`: the arrows are the frame's second voice, and the component's own
+     name is the first. */
+  color: var(--ink-3);
   background: var(--card);
   box-shadow: var(--sh-1), inset 0 0 0 1px var(--rule);
 }
@@ -266,23 +383,46 @@
   cursor: default;
 }
 
-/* Removal is on the surface (§4.3): the same quiet icon button at the bar's
-   right edge, so the act the student came to the frame for is visible without
-   opening anything. Its name is spoken (`Remove <component>`) — the glyph is
-   never the only thing that says what it does. */
+/* Removal is on the surface (§4.3): an icon button at the bar's right edge, so
+   the act the student came to the frame for is visible without opening
+   anything. Its name is spoken (`Remove <component>`) — the glyph is never the
+   only thing that says what it does — and it wears the register's danger pair
+   outright (the owner's call, 2026-10-12): the overdue wash as its ground with
+   `--on-overdue` on it, the measured ≤ 8.18:1 couple, so a red key cannot be a
+   blank one (the mistake the pane's own destructive *pill* made). Under the
+   pointer the two swap: the ink goes to the ground and the wash to the glyph,
+   which is the same pair read the other way round — the frame's warning gets
+   louder, never different. */
 .cmp-remove {
   flex: none;
   font-size: var(--text-sm);
   line-height: 1;
+  background: var(--chip-overdue);
+  color: var(--on-overdue);
+}
+
+.cmp-frame .cmp-remove:hover {
+  background: var(--on-overdue);
+  color: var(--chip-overdue);
+  box-shadow: var(--sh-1);
 }
 
 /* ── the component's own content ─────────────────────────────────────────── */
-/* Visible as the preview, unreachable as a control: `inert` where the build has
-   it, and the same effect by hand where it does not (the fallback also drops
-   the tab stop — see `Frame.svelte`). */
+/* Visible as the preview, unreachable as a control — except its record rows,
+   which the next rule re-arms (§4.3; see `Frame.svelte`: the pointer is taken
+   here, the tab stops by hand). */
 .cmp-frame__body {
   pointer-events: none;
   min-width: 0;
+}
+
+/* The one control edit mode answers (COMPOSER §4.3): a record row keeps its
+   pointer — and the tab stop `Frame.svelte` deliberately leaves it — because it
+   is the row the sidebar edits (§4.8). Everything else in the preview stays
+   unreachable, so a layout gesture can never fire Start, Log, Reveal or Grade. */
+.cmp-frame__body [data-record-id] {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 /* ── the drop line (§4.4) ───────────────────────────────────────────────── */
@@ -300,37 +440,38 @@
 }
 
 /* ── the icon picker (COMPOSER §4.7) ────────────────────────────────────── */
-/* A small grid of glyph and name, in a sheet, for a screen's rail icon. It is
-   the app's own set (`shell/Icon.svelte` exports it), so a name offered here is
-   a glyph that draws; the name is spoken in words, the key is what is written.
-   The selected one is ink, like the segment beside it — a chosen object, not a
-   slab the composer invented. */
+/* A grid of glyphs, in a sheet, for a screen's rail icon. It is the app's own
+   set (`shell/Icon.svelte` exports it), so a name offered here is a glyph that
+   draws. A tile is a well square and the chosen one is ink-filled — the fill
+   this app already gives every chosen object (the segment's pill, the rail's
+   current disc). The *name* is carried as the control's accessible name and
+   tooltip rather than as a caption under every tile: eighteen captions is a
+   wall of words hiding the eighteen shapes the grid exists for. */
 .cmp-iconpick {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--space-3xs);
-  max-height: 216px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--disc), 1fr));
+  gap: var(--space-2xs);
+  max-height: 232px;
   overflow: auto;
-  padding: var(--space-2xs);
+  padding: var(--space-xs);
   border: 1px solid var(--rule);
-  border-radius: var(--r-item);
+  border-radius: var(--r-tile);
 }
 
 .cmp-iconpick__one {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
   min-height: var(--hit);
-  padding: 0 var(--space-xs);
-  border-radius: var(--r-pill);
+  min-width: 0;
+  border-radius: var(--r-mini);
+  background: var(--well);
   color: var(--ink-2);
-  font-size: var(--text-xs);
-  text-align: left;
   transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
 }
 
 .cmp-iconpick__one:hover {
-  background: var(--well);
+  background: var(--well-2);
   color: var(--ink);
 }
 
@@ -339,10 +480,89 @@
   color: var(--ink-inv);
 }
 
-.cmp-iconpick__name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* The app's own fallback, offered as a tile: a dash where the others carry a
+   glyph, and a hairline instead of a fill, so it reads as the *absence* of a
+   choice rather than as one more picture to compare. */
+.cmp-iconpick__one--none {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  color: var(--ink-3);
+}
+.cmp-iconpick__one--none:hover { background: var(--well); }
+.cmp-iconpick__one--none[aria-checked="true"] {
+  background: var(--ink);
+  color: var(--ink-inv);
+  box-shadow: none;
+}
+
+/* The grid's own find field: the same well-with-a-glyph the catalog's search
+   wears, so the two browsing sheets ask the same question the same way. */
+.cmp-iconpick__find {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--pill-h);
+  margin-bottom: var(--space-xs);
+  padding: 0 var(--space-sm);
+  border-radius: var(--r-pill);
+  background: var(--well);
+  color: var(--ink-3);
+  transition: background var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.cmp-iconpick__find:focus-within {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px var(--ink-4);
+}
+.cmp-iconpick__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-xs);
+}
+.cmp-iconpick__field:focus { outline: none; }
+.cmp-iconpick__field::-webkit-search-cancel-button { appearance: none; }
+
+/* A search that found nothing is a stated fact, inside the grid's own frame. */
+.cmp-iconpick__none {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-lg) var(--space-xs);
+  text-align: center;
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+/* ── a screen's own preview (COMPOSER §4.7) ─────────────────────────────── */
+/* What the rail will draw: the glyph as the rail draws it, the name as the rail
+   spells it. It is a picture of the rail, so it wears the rail's own
+   proportions — a disc for the glyph, a line's worth of words beside it. The
+   ground is the well: this is a *joypad* preview, not another control. */
+.cmp-screenpreview {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--r-tile);
+  background: var(--well);
+}
+.cmp-screenpreview__text { min-width: 0; }
+.cmp-screenpreview__name {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-label);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.cmp-screenpreview__say {
+    display: block;
+    margin-top: 1px;
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+  color: var(--ink-3);
 }
 
 /* ── a surface this build does not carry (§3.2) ─────────────────────────── */

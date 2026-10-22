@@ -94,7 +94,7 @@ pub struct CommandDef {
 
 /// Placements the UI really renders (the Phase 4 parity gate asserts
 /// membership). Declared here because a def cannot omit one.
-pub const KNOWN_PLACEMENTS: [&str; 21] = [
+pub const KNOWN_PLACEMENTS: [&str; 22] = [
     "sidebar",         // shell navigation entries
     "sidebar.add",     // + Add list designer
     "sidebar.context", // sidebar item context menu
@@ -118,6 +118,7 @@ pub const KNOWN_PLACEMENTS: [&str; 21] = [
     "progress.panel", // the Progress panel: derived metrics
     "today.screen",   // the Today screen: the day's facts, its controls, the timer
     "composer.frame", // the composer's frame: the drag handle, name chip and its menu (COMPOSER §3.1)
+    "composer.inspector", // the composer's sidebar: the screen's acts and a picked record's fields (COMPOSER §4.8)
 ];
 
 fn plan_param() -> ParamDef {
@@ -289,7 +290,7 @@ static COMMANDS: LazyLock<Vec<CommandDef>> = LazyLock::new(|| {
             ],
             aliases: vec![],
             plan_required: true,
-            help: "every record of one kind — what a relation picker lists".into(),
+            help: "every record of one kind — or `--type '*'` for every kind in one read".into(),
             ui_placement: "recordTable.cell".into(),
             json_path: Some("content/records/<type>.jsonl".into()),
         },
@@ -1690,6 +1691,109 @@ static COMMANDS: LazyLock<Vec<CommandDef>> = LazyLock::new(|| {
             json_path: Some("{ \"id\": \"app.toggleSourcePane\" }".into()),
         },
         CommandDef {
+            id: "screen.inspector".into(),
+            title: "Toggle the editing sidebar".into(),
+            category: "app".into(),
+            effect: CommandEffect::Presentation,
+            params: vec![],
+            aliases: vec![],
+            plan_required: false,
+            help: "show or hide the composer's sidebar while a screen is being edited".into(),
+            ui_placement: "composer.inspector".into(),
+            json_path: Some("{ \"id\": \"screen.inspector\" }".into()),
+        },
+        CommandDef {
+            id: "app.assistant".into(),
+            title: "Ask the assistant".into(),
+            category: "app".into(),
+            effect: CommandEffect::Presentation,
+            params: vec![],
+            aliases: vec!["app.ask".to_string()],
+            plan_required: false,
+            help: "open the assistant — run a coding-agent CLI installed on this machine against the open plan".into(),
+            ui_placement: "app.window".into(),
+            json_path: Some("{ \"id\": \"app.assistant\" }".into()),
+        },
+        CommandDef {
+            id: "app.installCli".into(),
+            title: "Install command line tool".into(),
+            category: "app".into(),
+            effect: CommandEffect::Presentation,
+            params: vec![],
+            aliases: vec![],
+            plan_required: false,
+            help: "link the bundled `sam` into a directory on your PATH, so terminals and agents can run it".into(),
+            ui_placement: "app.window".into(),
+            json_path: Some("{ \"id\": \"app.installCli\" }".into()),
+        },
+        CommandDef {
+            id: "agent.list".into(),
+            title: "List the agent CLIs on this machine".into(),
+            category: "agent".into(),
+            effect: CommandEffect::Read,
+            params: vec![],
+            aliases: vec![],
+            plan_required: false,
+            help: "which agent CLIs are installed, where, and at which version".into(),
+            ui_placement: "palette".into(),
+            json_path: Some("{ \"id\": \"agent.list\" }".into()),
+        },
+        CommandDef {
+            id: "agent.models".into(),
+            title: "List an agent CLI's models".into(),
+            category: "agent".into(),
+            effect: CommandEffect::Read,
+            params: vec![
+                ParamDef::new("agent", "string", "which detected CLI to ask (default: the first installed)")
+                    .flag("--agent"),
+            ],
+            aliases: vec![],
+            plan_required: false,
+            help: "the models the chosen CLI reports, or its documented fallback ids".into(),
+            ui_placement: "palette".into(),
+            json_path: Some("{ \"id\": \"agent.models\", \"params\": { \"agent\": \"<id>\" } }".into()),
+        },
+        CommandDef {
+            id: "agent.run".into(),
+            title: "Run an agent on this plan".into(),
+            category: "agent".into(),
+            effect: CommandEffect::Read,
+            params: vec![
+                ParamDef::new(
+                    "prompt",
+                    "string",
+                    "what the agent should do, in plain words — it authors the plan through the sam CLI",
+                )
+                .positional()
+                .required(),
+                ParamDef::new("agent", "string", "which detected CLI to run (default: the first installed)")
+                    .flag("--agent"),
+                ParamDef::new("model", "string", "the model the CLI should use (default: its own configuration)")
+                    .flag("--model"),
+                ParamDef::new("resume", "string", "a session id captured from a previous turn's stream")
+                    .flag("--resume"),
+                ParamDef::new("context", "string", "what the window is showing (the desktop builds this itself)")
+                    .flag("--context"),
+            ],
+            aliases: vec![],
+            plan_required: false,
+            help: "run one turn of an installed agent CLI against the open plan and return its transcript".into(),
+            ui_placement: "app.window".into(),
+            json_path: Some("{ \"id\": \"agent.run\", \"params\": { \"prompt\": \"<task>\" } }".into()),
+        },
+        CommandDef {
+            id: "agent.cancel".into(),
+            title: "Stop the running agent".into(),
+            category: "agent".into(),
+            effect: CommandEffect::Presentation,
+            params: vec![],
+            aliases: vec![],
+            plan_required: false,
+            help: "stop the agent turn the assistant is streaming".into(),
+            ui_placement: "app.window".into(),
+            json_path: Some("{ \"id\": \"agent.cancel\" }".into()),
+        },
+        CommandDef {
             id: "rail.select".into(),
             title: "Go to a destination".into(),
             category: "app".into(),
@@ -1761,12 +1865,13 @@ pub fn menu_json(keybindings: &[(String, String)]) -> serde_json::Value {
 /// the platform's own conventions — ⌘Z is not SAM's invention — so undo works on
 /// a plan whose `shell.json` declares nothing, and a plan that binds the same
 /// key to another command overrides this list.
-pub const DEFAULT_KEYBINDINGS: [(&str, &str); 5] = [
+pub const DEFAULT_KEYBINDINGS: [(&str, &str); 6] = [
     ("mod+z", "edit.undo"),
     ("mod+shift+z", "edit.redo"),
     ("mod+k", "app.palette"),
     ("mod+shift+j", "app.toggleSourcePane"),
     ("mod+comma", "app.openSettings"),
+    ("mod+j", "app.assistant"),
 ];
 
 /// The modifiers a binding may carry (`mod` is the platform's own: ⌘ on macOS,

@@ -34,14 +34,14 @@
   } = $props();
 
   /**
-   * What a press has to miss to be a drag: the frame's own controls, and
-   * anything a press already means something else to — a link, a field, an open
-   * menu. The panel is a species of its own: `role="menu"` sits on its inner
-   * list, so its padding and its footer sentence would otherwise walk up to the
-   * frame and become a drag. The preview is inert, so a press over it always
-   * reaches the frame.
+   * What a press has to miss to be a drag: the frame's own controls, anything a
+   * press already means something else to — a link, a field, an open menu — and
+   * a record row, whose press belongs to the sidebar (§4.8). The panel is a
+   * species of its own: `role="menu"` sits on its inner list, so its padding and
+   * its footer sentence would otherwise walk up to the frame and become a drag.
+   * The preview is otherwise pointer-less, so a press over it reaches the frame.
    */
-  const CONTROLS = 'button, a, input, [role="menu"], .cd-menu';
+  const CONTROLS = 'button, a, input, [role="menu"], .cd-menu, [data-record-id]';
 
   const label = $derived(widgetLabel(surface));
   /** The surface's designs, in the lab's own order; none or one is a stated fact (§4.5). */
@@ -114,32 +114,67 @@
     announce(`${label}, design ${target.id.toUpperCase()} — ${target.name}.`);
   }
 
-  /** Native `inert` support check with fallback for older environments. */
-  const INERT = typeof HTMLElement !== 'undefined' && 'inert' in HTMLElement.prototype;
-
   /**
-   * The fallback, completed. Without `inert` the CSS takes the pointer away
-   * (`.cmp-frame__body`) and this takes the tab stops: a widget is full of real
-   * controls (Start, Reveal, Log…), and a frame a keyboard can Tab into and
-   * press Enter is exactly the failure the mechanism exists to prevent. The
-   * wrapper's `aria-hidden` keeps the preview out of the tree; every parked
-   * control is restored on destroy.
+   * The parked controls. The stylesheet takes the preview's pointer away
+   * (`.cmp-frame__body { pointer-events: none }`) and this takes its tab stops:
+   * a widget is full of real controls (Start, Reveal, Log…), and a frame a
+   * keyboard can Tab into and press Enter is exactly the failure the mechanism
+   * exists to prevent. A **record row** is the one exception (§4.3): it is what
+   * the sidebar edits, so it keeps its tab stop — and, through the stylesheet,
+   * its pointer. Widgets install rows and controls after their own reads land,
+   * so the parking follows the subtree (the observer), and everything parked is
+   * restored on destroy.
    */
-  function inertByHand(node: HTMLElement, on: boolean) {
-    if (!on) return { destroy() {} };
-    const parked: Array<[HTMLElement, string | null]> = [];
-    for (const el of node.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]')) {
-      parked.push([el, el.getAttribute('tabindex')]);
-      el.tabIndex = -1;
-    }
+  function inertByHand(node: HTMLElement) {
+    const SELECTOR = 'a[href], button, input, select, textarea, [tabindex]';
+    const parked = new Map<HTMLElement, string | null>();
+    const park = (root: HTMLElement): void => {
+      const candidates = [
+        ...(root.matches(SELECTOR) ? [root] : []),
+        ...root.querySelectorAll<HTMLElement>(SELECTOR),
+      ];
+      for (const el of candidates) {
+        if (el.hasAttribute('data-record-id') || parked.has(el)) continue;
+        parked.set(el, el.getAttribute('tabindex'));
+        el.tabIndex = -1;
+      }
+    };
+    park(node);
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const added of record.addedNodes) {
+          if (added instanceof HTMLElement) park(added);
+        }
+      }
+    });
+    observer.observe(node, { childList: true, subtree: true });
     return {
       destroy() {
+        observer.disconnect();
         for (const [el, previous] of parked) {
           if (previous === null) el.removeAttribute('tabindex');
           else el.setAttribute('tabindex', previous);
         }
       },
     };
+  }
+
+  /**
+   * A press on a record row is the sidebar's, not the widget's (§4.8): the
+   * variant's own door (`record.panel`, a navigation) is stopped in the capture
+   * phase, and the row's record — its id, and its kind when the row carries one
+   * — becomes what the sidebar edits. A row that cannot name its kind gets it
+   * resolved from the id by the session, which can ask the plan.
+   */
+  function onPickRecord(event: MouseEvent): void {
+    if (!(event.target instanceof Element)) return;
+    const row = event.target.closest<HTMLElement>('[data-record-id]');
+    if (!row) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const id = row.dataset.recordId ?? '';
+    if (id.length === 0) return;
+    void app.pickRecord(id, row.dataset.recordType ?? null);
   }
 
   /** One move, one write: the list goes through the session's single path. */
@@ -175,8 +210,9 @@
   }
 
   /**
-   * Starts drag-and-drop reordering when dragging the frame bar or inert preview body.
-   * Clicks on nested controls are ignored, and movement must exceed the drag threshold.
+   * Starts drag-and-drop reordering when dragging the frame bar or inert preview
+   * body. Clicks on nested controls — and on a record row, whose press the
+   * sidebar answers — are ignored, and movement must exceed the drag threshold.
    */
   function onpointerdown(event: PointerEvent): void {
     if (event.target instanceof Element && event.target.closest(CONTROLS)) return;
@@ -189,7 +225,14 @@
     // makes this gesture reachable.
     if (event.target !== event.currentTarget) return;
     // Left and right are the designs, up and down are the place in the stack:
-    // the two axes the frame draws — the arrows flanking it, and the drag.
+    // the two axes the frame draws — the arrows flanking it, and the drag. Enter
+    // is the press's keyboard twin (§4.8): a press on a component asks for the
+    // sidebar, so a keyboard student's way into it is the same gesture.
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      app.pickSurface(surface);
+      return;
+    }
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       if (!switchable) return;
       event.preventDefault();
@@ -227,14 +270,17 @@
   class="cmp-frame"
   class:is-lifted={lifted}
   class:is-settling={gliding}
+  class:is-selected={app.selectedSurface === surface}
   style:--cmp-span={span}
   style:transform={offset ? `translate(${offset.x}px, ${offset.y}px)` : null}
   bind:this={node}
   data-frame
   data-surface={surface}
+  data-selected={app.selectedSurface === surface ? '1' : undefined}
   role="region"
   tabindex="0"
   aria-label={label}
+  aria-current={app.selectedSurface === surface ? 'true' : undefined}
   onkeydown={onkeydown}
   onpointerdown={onpointerdown}
 >
@@ -253,11 +299,12 @@
          two arrows flank the component itself — `‹ [component] ›`, outside it
          on both sides and centred on it — so stepping through the designs
          reads as moving the object sideways. The bar keeps the *name* of the
-         design it is wearing as a label; the middle is never a control, and a
-         surface with one design states the fact instead of offering a switch
-         (`disabled`, with the reason in the title). -->
+         design it is wearing: the component's own name, then the design as the
+         app writes every short code (a mono keycap), and a surface with one
+         design states the fact instead of offering a switch (`disabled`, with
+         the reason in the title). The middle is never a control. -->
     <span class="cmp-frame__name">
-      {label}<span class="cmp-frame__design">{switchable ? ` · ${chosen.toUpperCase()}` : ''}</span>
+      {label}{#if switchable}<span class="cmp-frame__design"> · </span><span class="cmp-frame__key">{chosen.toUpperCase()}</span>{/if}
     </span>
 
     <span class="cmp-frame__spacer"></span>
@@ -265,9 +312,10 @@
     <!-- The width control: the frame's one sizing act, and its label is the
          width the press will give the component (`Half width` while it stands
          full, `Full width` while it stands half) — the same forward-stating
-         rule the rail's theme disc follows. -->
+         rule the rail's theme disc follows. It wears a hairline rather than a
+         fill: it is a preference about the component, not the component. -->
     <button
-      class="cd-pill cd-pill--quiet cd-pill--sm cmp-width"
+      class="cd-pill cd-pill--sm cmp-width"
       type="button"
       aria-label={`${span === 1 ? 'Full width' : 'Half width'} for ${label}`}
       title={span === 1 ? 'Give it the whole row' : 'Half the row — two components can stand side by side'}
@@ -298,12 +346,12 @@
     onclick={() => step(-1)}
   ><Icon name="chevronleft" size={15} /></button>
 
-  <div
-    class="cmp-frame__body"
-    {...INERT ? { inert: true } : { tabindex: -1 }}
-    use:inertByHand={!INERT}
-    aria-hidden={INERT ? undefined : 'true'}
-  >
+  <!-- The preview is inert except for its record rows (§4.3): a press over a
+       widget reaches the frame — the drag's surface — and the one control edit
+       mode answers is a row that names a record, because that row is what the
+       sidebar edits (§4.8). Everything else keeps its pointer and its tab stop
+       taken away, so an action can never fire from a layout gesture. -->
+  <div class="cmp-frame__body" use:inertByHand onclickcapture={onPickRecord}>
     {@render body(surface)}
   </div>
 

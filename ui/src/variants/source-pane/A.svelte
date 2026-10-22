@@ -278,12 +278,14 @@
 
 <style>
   /* ── THE PANE ───────────────────────────────────────────────────────────
-     A column of the room: full width of the track the shell gives it (the
-     declared width is `.cd-body > .src-pane` in `styles/source-pane.css`), the
-     well taking the slack. */
+     A column of the room: the shell gives it its track (`.cd-body > .src-pane`
+     in `styles/source-pane.css` declares the 380px) and the well takes the
+     slack. No `width` here — this scoped rule loads after the shell's and a
+     `width: 100%` beat the declared column, leaving the grid's `auto` track at
+     the content's min-content width: a 32px sliver at the window edge, which
+     is how *Edit as JSON* used to look like it opened nothing. */
   .sp-pane {
     position: relative;
-    width: 100%;
     height: 100%;
     min-width: 0;
     min-height: 0;

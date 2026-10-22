@@ -18,6 +18,8 @@
     sessionCommand,
     onStart,
     onPlan,
+    link,
+    onWatch,
   }: TodayFocusProps = $props();
 
   const reduced = typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -329,6 +331,23 @@
         <span class="xa-pull__t" aria-hidden="true">Start</span>
         <Duration raised {minutes} onCommit={onMinutes} />
       </div>
+
+      {#if link}
+        <!-- Under the claim, beside the band's second column: the material is
+             an alternative to starting, never a fourth state of the band. -->
+        <div class="tf-acts">
+          <button
+            class="cd-pill cd-pill--ghost"
+            type="button"
+            title="Open the material in your browser"
+            aria-label={title ? `Watch ${title}` : 'Watch the material'}
+            onclick={onWatch}
+          >
+            <Icon name="play" size={13} />
+            Watch
+          </button>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>

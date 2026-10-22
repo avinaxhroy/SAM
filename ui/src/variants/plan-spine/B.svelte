@@ -44,12 +44,14 @@
   });
 
   /** The week on the canvas: what the panel selected, else the term's first.
-      The design never keeps a selection of its own. */
-  const openWeek = $derived(weeks.find((week) => week.id === selectedId) ?? weeks[0]);
+      The design never keeps a selection of its own — and a term with no weeks
+      has nothing to open, so the canvas says so instead of dereferencing it
+      (a screen mounted before its rows arrive draws `weeks: []`). */
+  const openWeek = $derived(weeks.find((week) => week.id === selectedId) ?? weeks[0] ?? null);
 
   /** The canvas head's one meta run — its dates and its phase, whichever the
       plan actually declared. */
-  const openMeta = $derived([openWeek.dates, openWeek.phase].filter(Boolean).join(' · '));
+  const openMeta = $derived(openWeek ? [openWeek.dates, openWeek.phase].filter(Boolean).join(' · ') : '');
 
   let rail = $state<HTMLElement | null>(null);
   /** Arrival happens once: the rail is centred on the week you are in and then
@@ -89,14 +91,15 @@
    */
   function stepWeek(event: KeyboardEvent): void {
     const dir = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-    if (dir === 0 || weeks.length === 0) return;
+    const current = openWeek;
+    if (dir === 0 || current === null) return;
     event.preventDefault();
     const from = Math.max(
       0,
-      weeks.findIndex((week) => week.id === openWeek.id),
+      weeks.findIndex((week) => week.id === current.id),
     );
     const week = weeks[Math.max(0, Math.min(weeks.length - 1, from + dir))];
-    if (week.id !== openWeek.id) onSelect(week.id);
+    if (week.id !== current.id) onSelect(week.id);
     const row = rail?.querySelector<HTMLElement>(`.psb-week[data-week="${week.id}"]`);
     if (!row) return;
     row.focus({ preventScroll: true });
@@ -156,54 +159,60 @@
       aria-label="The open week"
       onkeydown={stepWeek}
     >
-      {#key openWeek.id}
-        <div class="psb-canvas__in">
-          <header class="psb-chead">
-            <h2 class="psb-chead__t">{openWeek.name}</h2>
-            {#if openMeta}<p class="psb-chead__s num">{openMeta}</p>{/if}
-            <p class="psb-chead__fig num">{readOf(openWeek)}</p>
-          </header>
+      {#if openWeek}
+        {#key openWeek.id}
+          <div class="psb-canvas__in">
+            <header class="psb-chead">
+              <h2 class="psb-chead__t">{openWeek.name}</h2>
+              {#if openMeta}<p class="psb-chead__s num">{openMeta}</p>{/if}
+              <p class="psb-chead__fig num">{readOf(openWeek)}</p>
+            </header>
 
-          {#if openWeek.topics.length === 0}
-            <p class="psb-void">No topics in this week.</p>
-          {:else}
-            <div class="psb-topics">
-              {#each openWeek.topics as topic (topic.id)}
-                <button
-                  class="psb-topic"
-                  type="button"
-                  data-done={topic.state === 'done' ? '1' : undefined}
-                  data-command="record.panel"
-                  data-placement="recordTable.rowContext"
-                  onclick={() => onTopic(topic)}
-                >
-                  <span class="psb-topic__body">
-                    <span class="psb-topic__t">{topic.label}</span>
-                    {#if topic.kind}<span class="psb-topic__note">{topic.kind}</span>{/if}
-                  </span>
-                  <span class="psb-badge" data-s={topic.state}>{topic.stage}</span>
-                  {#if topic.minutes !== null}
-                    <span class="psb-topic__m num">{topic.minutes} min</span>
-                  {/if}
-                </button>
-              {/each}
-            </div>
-          {/if}
+            {#if openWeek.topics.length === 0}
+              <p class="psb-void">No topics in this week.</p>
+            {:else}
+              <div class="psb-topics">
+                {#each openWeek.topics as topic (topic.id)}
+                  <button
+                    class="psb-topic"
+                    type="button"
+                    data-done={topic.state === 'done' ? '1' : undefined}
+                    data-command="record.panel"
+                    data-placement="recordTable.rowContext"
+                    data-record-id={topic.id}
+                    data-record-type={topic.type}
+                    onclick={() => onTopic(topic)}
+                  >
+                    <span class="psb-topic__body">
+                      <span class="psb-topic__t">{topic.label}</span>
+                      {#if topic.kind}<span class="psb-topic__note">{topic.kind}</span>{/if}
+                    </span>
+                    <span class="psb-badge" data-s={topic.state}>{topic.stage}</span>
+                    {#if topic.minutes !== null}
+                      <span class="psb-topic__m num">{topic.minutes} min</span>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+            {/if}
 
-          {#if newTopicCommand}
-            <button
-              class="psb-write"
-              type="button"
-              data-command={newTopicCommand}
-              data-placement="today.screen"
-              onclick={onNewTopic}
-            >
-              <Icon name="plus" size={13} />
-              New topic
-            </button>
-          {/if}
-        </div>
-      {/key}
+            {#if newTopicCommand}
+              <button
+                class="psb-write"
+                type="button"
+                data-command={newTopicCommand}
+                data-placement="today.screen"
+                onclick={onNewTopic}
+              >
+                <Icon name="plus" size={13} />
+                New topic
+              </button>
+            {/if}
+          </div>
+        {/key}
+      {:else}
+        <p class="psb-void">No week to open yet.</p>
+      {/if}
     </div>
   </div>
 </div>

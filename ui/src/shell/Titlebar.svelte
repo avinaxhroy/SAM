@@ -12,6 +12,7 @@
   import Timer from './Timer.svelte';
   import { shortcutFor } from '../commands/registry';
   import { app } from '../session.svelte';
+  import { assistant } from '../assistant.svelte';
   // The identity mark is the bundle's artwork, not a redrawn glyph, so the tab,
   // the Dock and the titlebar are one mark. The cross into `design/` is the same
   // one `styles/app.css` already makes for `design/components.css`.
@@ -113,6 +114,30 @@
         <Icon name={app.screenEditing ? 'check' : 'pencil'} />
       </button>
     {/if}
+
+    <!--
+      THE ASSISTANT'S DOOR (§4.7's in-app door, UI_SPEC "The assistant deck").
+
+      One sparkle beside the search pill: the app runs the coding-agent CLI
+      already installed on this machine against the open plan, and this is
+      where that deck opens from. It stays quiet with the rest when no plan is
+      open — the agent has nothing to work in — and while a turn runs it
+      carries the ambient working state (a pulsing dot), because the deck can
+      be closed without stopping the agent.
+    -->
+    <button
+      class:is-working={assistant.running}
+      class="cd-iconbtn"
+      type="button"
+      title="Ask the assistant"
+      aria-label="Ask the assistant"
+      aria-pressed={assistant.open}
+      data-command="app.assistant"
+      data-placement="app.window"
+      onclick={() => app.run('app.assistant')}
+    >
+      <Icon name="sparkle" />
+    </button>
 
     <!--
       ONE SEARCH SURFACE IN THE WHOLE APP.

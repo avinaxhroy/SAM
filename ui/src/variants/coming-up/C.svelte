@@ -101,6 +101,8 @@
             type="button"
             data-command="record.panel"
             data-placement="recordTable.rowContext"
+            data-record-id={row.id}
+            data-record-type={row.kind}
             aria-label={`${row.label} — open the record`}
             onclick={() => onOpen(row.id)}
           >

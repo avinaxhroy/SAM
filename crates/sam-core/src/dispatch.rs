@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock, Mutex};
 
 use serde_json::json;
 
@@ -173,7 +173,20 @@ static DESTINATIONS: LazyLock<BTreeMap<&'static str, &'static str>> = LazyLock::
             "the System surface — the machine's own place",
         ),
         ("screen.edit", "the screen editor, in the app"),
+        (
+            "screen.inspector",
+            "the editing sidebar, in the app — its own control is the pane's ✕",
+        ),
         ("app.toggleSourcePane", "the source pane"),
+        ("app.assistant", "the assistant, in the app"),
+        (
+            "app.installCli",
+            "the user's PATH — the desktop runs the platform's own permission ask",
+        ),
+        (
+            "agent.cancel",
+            "the running agent turn, in the app — its own control is the deck's Stop",
+        ),
         ("rail.select", "the selected sidebar destination"),
         (
             "record.reveal",
@@ -205,6 +218,119 @@ pub fn open_read(root: &Path) -> Result<ReadSession, DispatchError> {
 
 pub struct CommandSession;
 
+/// One loaded read snapshot, shared by every read command that names the same
+/// plan at the same revision.
+struct CachedRead {
+    root: PathBuf,
+    resources_dir: PathBuf,
+    revision: String,
+    config: Arc<ResolvedConfig>,
+}
+
+/// A process-local read cache for the desktop shell (§4.6).
+///
+/// The engine's read path is deliberately a full load: bytes → decode →
+/// validate → publish. That is the correct answer once, but the UI asks for
+/// several projections of the same snapshot while it draws a screen, and the
+/// shell is one long-lived process. This cache returns the *same* immutable
+/// snapshot for the same `(plan root, revision, resources)`; the revision is
+/// recomputed from the source bytes before a hit, so an external edit can never
+/// be served stale. Writes clear it wholesale.
+///
+/// The CLI does not use it (one process per command), and `source` reads bypass
+/// it because they need `source_files`, which a read-only load does not retain.
+#[derive(Clone, Default)]
+pub struct ReadCache {
+    inner: Arc<Mutex<Option<CachedRead>>>,
+    /// One loader at a time on a miss: the boot fires several reads together,
+    /// and three concurrent misses would otherwise parse the same plan three
+    /// times before any of them filled the slot.
+    load_lock: Arc<Mutex<()>>,
+}
+
+impl ReadCache {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Drop the snapshot. Called on every write, including refused ones — the
+    /// next read pays one load rather than risk serving a pre-write view.
+    pub fn clear(&self) {
+        if let Ok(mut slot) = self.inner.lock() {
+            *slot = None;
+        }
+    }
+
+    /// Test-only: whether a snapshot is currently held.
+    #[cfg(test)]
+    pub fn is_cached(&self) -> bool {
+        self.inner
+            .lock()
+            .map(|slot| slot.is_some())
+            .unwrap_or(false)
+    }
+
+    fn config_for(
+        &self,
+        root: &Path,
+        resources_dir: &Path,
+        revision: &str,
+    ) -> Option<Arc<ResolvedConfig>> {
+        let slot = self.inner.lock().ok()?;
+        let cached = slot.as_ref()?;
+        if cached.root == root
+            && cached.resources_dir == resources_dir
+            && cached.revision == revision
+        {
+            Some(Arc::clone(&cached.config))
+        } else {
+            None
+        }
+    }
+
+    /// A hit, or one load shared by every reader that arrived while it ran.
+    fn get_or_load<E>(
+        &self,
+        root: &Path,
+        resources_dir: &Path,
+        revision: &str,
+        load: impl FnOnce() -> Result<Arc<ResolvedConfig>, E>,
+    ) -> Result<Arc<ResolvedConfig>, E> {
+        if let Some(hit) = self.config_for(root, resources_dir, revision) {
+            return Ok(hit);
+        }
+        let guard = match self.load_lock.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        // Another reader may have loaded while this one waited for the lock.
+        if let Some(hit) = self.config_for(root, resources_dir, revision) {
+            return Ok(hit);
+        }
+        let config = load()?;
+        self.store(root, resources_dir, revision, &config);
+        drop(guard);
+        Ok(config)
+    }
+
+    fn store(
+        &self,
+        root: &Path,
+        resources_dir: &Path,
+        revision: &str,
+        config: &Arc<ResolvedConfig>,
+    ) {
+        if let Ok(mut slot) = self.inner.lock() {
+            *slot = Some(CachedRead {
+                root: root.to_path_buf(),
+                resources_dir: resources_dir.to_path_buf(),
+                revision: revision.to_string(),
+                config: Arc::clone(config),
+            });
+        }
+    }
+}
+
 /// Resolves a command ID to its definition, matching static registry commands first
 /// and falling back to dynamic per-type handlers (`<type>.new`, `<type>.paste`, §4.7 rule 2).
 fn resolve_request(id: &str) -> Option<(&'static CommandDef, Vec<(String, String)>)> {
@@ -233,7 +359,23 @@ fn resolve_request(id: &str) -> Option<(&'static CommandDef, Vec<(String, String
 impl CommandSession {
     /// Run one request. Locking, recovery, revision checks and commit all
     /// happen here — callers cannot get them wrong (§4.6).
-    pub fn run(mut request: DispatchRequest) -> Result<DispatchOutcome, DispatchError> {
+    pub fn run(request: DispatchRequest) -> Result<DispatchOutcome, DispatchError> {
+        Self::run_inner(request, None)
+    }
+
+    /// The desktop shell's entry: the same run, with a revision-keyed snapshot
+    /// shared by the reads that draw one screen.
+    pub fn run_cached(
+        request: DispatchRequest,
+        cache: &ReadCache,
+    ) -> Result<DispatchOutcome, DispatchError> {
+        Self::run_inner(request, Some(cache))
+    }
+
+    fn run_inner(
+        mut request: DispatchRequest,
+        cache: Option<&ReadCache>,
+    ) -> Result<DispatchOutcome, DispatchError> {
         // Presentation commands never touch the plan.
         let Some((def, injected)) = resolve_request(&request.id) else {
             return Err(DispatchError::Usage(format!(
@@ -244,6 +386,20 @@ impl CommandSession {
         for (name, value) in injected {
             request.params.insert(name, ParamValue::Str(value));
         }
+
+        // The CLI's own install: a machine action, not a plan one — no lock,
+        // and headless it never prompts (§4.9 rule 2). When the link needs
+        // rights this process does not have, the answer names the command to
+        // run instead; the desktop's own door runs the platform's prompt.
+        if def.id == "app.installCli" {
+            let exe_dir = std::env::current_exe()
+                .ok()
+                .and_then(|exe| exe.parent().map(std::path::Path::to_path_buf));
+            return crate::cli_install::install_json(exe_dir.as_deref())
+                .map(DispatchOutcome::Read)
+                .map_err(DispatchError::Io);
+        }
+
         if def.effect == CommandEffect::Presentation {
             return match DESTINATIONS.get(def.id.as_str()) {
                 Some(destination) => Ok(DispatchOutcome::Presentation {
@@ -256,11 +412,23 @@ impl CommandSession {
             };
         }
 
+        // `agent.*` commands drive an external CLI and hold **no** plan lock:
+        // the agent's own `sam apply` must be free to take the write lock
+        // while this command is still in flight (§4.7's execution loop runs
+        // inside the turn). Detection needs no plan at all, and a run resolves
+        // only the plan root.
+        if def.id.starts_with("agent.") {
+            return crate::agent::dispatch_arm(&def.id, &request);
+        }
+
         // `plan.new` and `profile.import` have no plan root to lock: the staged
         // validation in `config_store` IS the transaction (§4.1 ownership), and
         // it must be reachable from every surface — the picker's button, the
         // palette, `SAM plan.new`, and `SAM invoke -`.
         if matches!(def.id.as_str(), "plan.new" | "profile.import") {
+            if let Some(cache) = cache {
+                cache.clear();
+            }
             return create_plan_outcome(&request, def.id.as_str());
         }
 
@@ -290,6 +458,18 @@ impl CommandSession {
             root
         };
         if def.effect == CommandEffect::Read {
+            // `paths` and `plans` describe the machine's folders, not the
+            // plan's content: both answer from the root alone, and making them
+            // pay a full load was one of the boot's nine.
+            if matches!(def.id.as_str(), "paths" | "plans") {
+                return Ok(DispatchOutcome::Read(read_json(
+                    &def.id,
+                    &request.params,
+                    None,
+                    &request.resources_dir,
+                    request.plan.as_deref(),
+                )?));
+            }
             let Some(root) = root else {
                 return Ok(DispatchOutcome::Read(read_json(
                     &def.id,
@@ -300,44 +480,122 @@ impl CommandSession {
                 )?));
             };
             let _session = open_read(&root)?;
-            // The source pane's file read returns raw bytes, so it keeps the
-            // full load; every other read only projects data (§4.6).
-            let config = if def.id == "source" {
-                config_store::load_with(&root, "explicit", &request.resources_dir)?
+            // The source pane's reads — a file's bytes, a lint of typed text —
+            // keep the full load when there is one; every other read only
+            // projects data (§4.6). And the pane is the repair door: a plan
+            // that does not load still hands its bytes over, for the same
+            // reason `paths` works on an invalid plan (§4.7) — a finding whose
+            // file cannot be opened is a finding that cannot be acted on.
+            let config = if def.id == "source" || def.id == "source.check" {
+                config_store::load_with(&root, "explicit", &request.resources_dir)
+                    .ok()
+                    .map(Arc::new)
+            } else if let Some(cache) = cache {
+                let revision = config_store::raw_revision(&root);
+                Some(cache.get_or_load(
+                    &root,
+                    &request.resources_dir,
+                    &revision,
+                    || {
+                        config_store::load_readonly(
+                            &root,
+                            "explicit",
+                            &request.resources_dir,
+                        )
+                        .map(Arc::new)
+                    },
+                )?)
             } else {
-                config_store::load_readonly(&root, "explicit", &request.resources_dir)?
+                Some(Arc::new(config_store::load_readonly(
+                    &root,
+                    "explicit",
+                    &request.resources_dir,
+                )?))
             };
             return Ok(DispatchOutcome::Read(read_json(
                 &def.id,
                 &request.params,
-                Some(&config),
+                config.as_deref(),
                 &request.resources_dir,
                 Some(&root),
             )?));
         }
 
-        // Writes under the write session.
+        // Writes under the write session. A write may change any source byte,
+        // so the snapshot cache is dropped before the lock is taken: a refused
+        // write costs one reload, a committed one would otherwise serve the
+        // pre-write plan to the refresh that follows it.
+        if let Some(cache) = cache {
+            cache.clear();
+        }
         let root = root.ok_or_else(|| DispatchError::Usage(format!("{} needs a plan", def.id)))?;
         let lock = PlanLock::acquire_write(&root, WRITE_RETRY)?;
         transaction::recover(&root)?;
-        let config = config_store::load_with(&root, "explicit", &request.resources_dir)?;
+        let dry_run = flag(&request.params, "dry-run");
+        // The pin is checked against the raw fingerprint — the value a load
+        // would produce (§4.7) — so it is checked before the load and the
+        // recovery path below gets the same guarantee.
         if let Some(expected) = &request.if_revision {
-            if expected != &config.revision {
+            let revision = config_store::raw_revision(&root);
+            if expected != &revision {
                 return Err(DispatchError::Transaction(
                     TransactionError::ExternalConflict(format!(
-                        "plan revision is {} but --if-revision pins {expected} — re-read with SAM paths and re-plan",
-                        config.revision
+                        "plan revision is {revision} but --if-revision pins {expected} — re-read with SAM paths and re-plan"
                     )),
                 ));
             }
         }
+        // The recovery verbs (tx.restore, edit.undo, edit.redo) plan from the
+        // raw bytes when the plan does not load: restoring a before-image IS
+        // the repair, and demanding a loadable plan before allowing it would
+        // lock the door from the inside. The whole-plan validator still has
+        // the last word on what a restore may leave behind (§4.6 step 2), so
+        // the only thing that moves is whose bytes the restore is planned
+        // against.
+        let recovery = |verb: &str| -> Result<DispatchOutcome, DispatchError> {
+            let revision = config_store::raw_revision(&root);
+            let files = config_store::source_file_bytes(&root);
+            restore(&root, &revision, &files, &request, dry_run, verb)
+        };
+        let config = match config_store::load_with(&root, "explicit", &request.resources_dir) {
+            Ok(config) => config,
+            Err(error) => match def.id.as_str() {
+                "tx.restore" => return recovery("restore"),
+                "edit.undo" => return recovery("undo"),
+                "edit.redo" => return recovery("redo"),
+                // The pane's save is the repair door too: a plan that does not
+                // load is exactly the plan a save must be able to fix, so the
+                // write plans against the raw bytes and the overlay validator
+                // proves the fix before a byte lands.
+                "source.apply" => {
+                    let (file, text) = source_apply_parts(&request.params)?;
+                    let revision = config_store::raw_revision(&root);
+                    let files = config_store::source_file_bytes(&root);
+                    let edit = doc_edit::source_ops::apply(
+                        &root,
+                        &files,
+                        &request.resources_dir,
+                        &file,
+                        &text,
+                        dry_run,
+                    )?;
+                    return edit_commit(&root, &revision, &files, edit, dry_run);
+                }
+                _ => return Err(error.into()),
+            },
+        };
 
-        let dry_run = flag(&request.params, "dry-run");
         let outcome = match def.id.as_str() {
             "apply" => apply_batch(&root, &config, &request.params, dry_run)?,
-            "tx.restore" => restore(&root, &config, &request, dry_run, "restore")?,
-            "edit.undo" => restore(&root, &config, &request, dry_run, "undo")?,
-            "edit.redo" => restore(&root, &config, &request, dry_run, "redo")?,
+            "tx.restore" => {
+                restore(&root, &config.revision, &config.source_files, &request, dry_run, "restore")?
+            }
+            "edit.undo" => {
+                restore(&root, &config.revision, &config.source_files, &request, dry_run, "undo")?
+            }
+            "edit.redo" => {
+                restore(&root, &config.revision, &config.source_files, &request, dry_run, "redo")?
+            }
             "record.new" => {
                 let planned = doc_edit::record_ops::new_record(&config, &request.params)?;
                 batch_outcome(&root, planned, dry_run, "record.new")?
@@ -718,19 +976,10 @@ impl CommandSession {
                 }
             }
             "source.apply" => {
-                let file = require(&request.params, "file")?;
-                let text = match request.params.get("content") {
-                    Some(ParamValue::Bytes(bytes)) => String::from_utf8(bytes.clone())
-                        .map_err(|_| DispatchError::Usage("--content is not valid UTF-8".into()))?,
-                    Some(ParamValue::Str(text)) => text.clone(),
-                    _ => {
-                        return Err(DispatchError::Usage(
-                            "missing required parameter --content".into(),
-                        ));
-                    }
-                };
+                let (file, text) = source_apply_parts(&request.params)?;
                 let edit = doc_edit::source_ops::apply(
-                    &config,
+                    &root,
+                    &config.source_files,
                     &request.resources_dir,
                     &file,
                     &text,
@@ -954,9 +1203,14 @@ fn apply_batch(
 /// mechanism reached by the accelerator — the app supplies the txid it recorded
 /// when the edit committed, and `--if-revision` (checked before this runs) is
 /// what makes a stale entry refuse rather than clobber a newer write (§4.8 P6).
+/// The two facts a restore plans against: the plan's current revision and its
+/// raw source bytes. A loaded plan hands over its own (the snapshot just read);
+/// a plan that does not load hands over the raw files — the same values, read
+/// without the load that would refuse (the `paths` rule, §4.7).
 fn restore(
     root: &Path,
-    config: &ResolvedConfig,
+    revision: &str,
+    source_files: &BTreeMap<String, Vec<u8>>,
     request: &DispatchRequest,
     dry_run: bool,
     verb: &str,
@@ -971,8 +1225,8 @@ fn restore(
     if dry_run {
         let commit = CommitResult {
             txid: String::new(),
-            base_revision: config.revision.clone(),
-            new_revision: config.revision.clone(),
+            base_revision: revision.to_string(),
+            new_revision: revision.to_string(),
             files: Vec::new(),
         };
         let notes = restore.notes;
@@ -987,20 +1241,13 @@ fn restore(
 
     // Whole-plan validation before anything is written (§4.6 step 2).
     transaction::validate_by_overlay(root, &restore.changes, &request.resources_dir)?;
-    let base_hashes: BTreeMap<String, String> = config
-        .source_files
+    let base_hashes: BTreeMap<String, String> = source_files
         .iter()
         .map(|(path, bytes)| (path.clone(), config_store::fnv_hex(bytes)))
         .collect();
     let new_revision = transaction::revision_after(&base_hashes, &restore.changes);
     let summary = format!("{verb} {txid}");
-    let result = transaction::commit(
-        root,
-        &restore.changes,
-        &config.revision,
-        &new_revision,
-        &summary,
-    )?;
+    let result = transaction::commit(root, &restore.changes, revision, &new_revision, &summary)?;
     let notes = restore.notes;
     let data = json!({
         "txid": txid,
@@ -1066,6 +1313,36 @@ fn edit_outcome(
     edit: doc_edit::PlannedEdit,
     dry_run: bool,
 ) -> Result<DispatchOutcome, DispatchError> {
+    edit_commit(root, &config.revision, &config.source_files, edit, dry_run)
+}
+
+/// The file and text a `source.apply` carries — the pane's own two
+/// parameters, read once by the loaded door and the repair door alike.
+fn source_apply_parts(params: &Params) -> Result<(String, String), DispatchError> {
+    let file = require(params, "file")?;
+    let text = match params.get("content") {
+        Some(ParamValue::Bytes(bytes)) => String::from_utf8(bytes.clone())
+            .map_err(|_| DispatchError::Usage("--content is not valid UTF-8".into()))?,
+        Some(ParamValue::Str(text)) => text.clone(),
+        _ => {
+            return Err(DispatchError::Usage(
+                "missing required parameter --content".into(),
+            ));
+        }
+    };
+    Ok((file, text))
+}
+
+/// The commit half of [`edit_outcome`], against explicit revision and raw
+/// source bytes — so the repair door commits the very same way without a
+/// loaded plan to read them from.
+fn edit_commit(
+    root: &Path,
+    revision: &str,
+    source_files: &BTreeMap<String, Vec<u8>>,
+    edit: doc_edit::PlannedEdit,
+    dry_run: bool,
+) -> Result<DispatchOutcome, DispatchError> {
     let data = edit.preview.clone().unwrap_or_else(|| json!({}));
     let summary = if edit.summary.is_empty() {
         "edit".to_string()
@@ -1076,8 +1353,8 @@ fn edit_outcome(
         return Ok(DispatchOutcome::Write {
             commit: CommitResult {
                 txid: String::new(),
-                base_revision: config.revision.clone(),
-                new_revision: config.revision.clone(),
+                base_revision: revision.to_string(),
+                new_revision: revision.to_string(),
                 files: Vec::new(),
             },
             changes: edit.changes,
@@ -1086,19 +1363,12 @@ fn edit_outcome(
             dry_run,
         });
     }
-    let base_hashes: BTreeMap<String, String> = config
-        .source_files
+    let base_hashes: BTreeMap<String, String> = source_files
         .iter()
         .map(|(path, bytes)| (path.clone(), config_store::fnv_hex(bytes)))
         .collect();
     let new_revision = transaction::revision_after(&base_hashes, &edit.changes);
-    let commit = transaction::commit(
-        root,
-        &edit.changes,
-        &config.revision,
-        &new_revision,
-        &summary,
-    )?;
+    let commit = transaction::commit(root, &edit.changes, revision, &new_revision, &summary)?;
     Ok(DispatchOutcome::Write {
         commit,
         changes: edit.changes,
@@ -1274,7 +1544,11 @@ fn create_plan_outcome(
         config_store::plan_destination(&paths.plans_dir, name.as_deref(), None)
             .map_err(DispatchError::Usage)?
     };
-    if target.exists() {
+    // A folder that holds nothing is a destination, not a duplicate (§3.2):
+    // the storage door points a blank plan at the empty folder a student
+    // chose. Everything else that already exists is refused, in the same
+    // words as before.
+    if target.exists() && !config_store::empty_directory(&target) {
         return Err(DispatchError::Io(format!(
             "plan already exists: {}",
             target.display()
@@ -1668,6 +1942,9 @@ pub fn read_json(
                 // §4.10's file association, as the shell observed it: the last
                 // file the OS handed the app, and which door it came through.
                 "lastOpen": crate::resources::last_open(&paths),
+                // The folder the shell was last on (R11), when it still names a
+                // plan — what the next launch opens.
+                "lastPlan": crate::resources::last_plan(&paths),
             }))
         }
         "views" => {
@@ -1902,21 +2179,38 @@ pub fn read_json(
         // engine's (`DOCUMENTS` plus every records file the config declares), so
         // a new type's file appears in the picker with no code change.
         "source" => {
-            let Some(config) = config else {
+            let Some(root) = plan else {
                 return Err(DispatchError::Usage("source needs a plan".into()));
+            };
+            // A loaded plan reads its own snapshot; a plan that does not load
+            // reads the same bytes straight from disk, so the file a finding
+            // stands on can still be opened (the read validates nothing — the
+            // save still does).
+            let raw = config.is_none().then(|| config_store::source_file_bytes(root));
+            let bytes_of = |path: &str| -> Option<Vec<u8>> {
+                match (config, &raw) {
+                    (Some(config), _) => config.source_files.get(path).cloned(),
+                    (None, Some(files)) => files.get(path).cloned(),
+                    (None, None) => None,
+                }
             };
             match (params.get("file"), params.get("id")) {
                 (Some(ParamValue::Str(file)), _) => {
-                    let bytes = config.source_files.get(file).ok_or_else(|| {
+                    let bytes = bytes_of(file).ok_or_else(|| {
                         DispatchError::Usage(format!("{file} is not part of this plan"))
                     })?;
                     Ok(json!({
                         "kind": "file",
                         "file": file,
-                        "text": String::from_utf8_lossy(bytes),
+                        "text": String::from_utf8_lossy(&bytes),
                     }))
                 }
                 (_, Some(ParamValue::Str(id))) => {
+                    let Some(config) = config else {
+                        return Err(DispatchError::Usage(format!(
+                            "no record named \"{id}\" — the plan on disk does not load"
+                        )));
+                    };
                     let positioned = doc_edit::record_ops::positioned(config, id)
                         .ok_or_else(|| DispatchError::Usage(format!("no record named \"{id}\"")))?;
                     let text = ResolvedConfig::canonical_line(&positioned.record)
@@ -1932,11 +2226,28 @@ pub fn read_json(
                 _ => {
                     let mut files: Vec<String> = doc_edit::DOCUMENTS
                         .iter()
-                        .filter(|document| config.source_files.contains_key(**document))
+                        .filter(|document| bytes_of(document).is_some())
                         .map(|document| (*document).to_string())
                         .collect();
-                    for type_name in config.types.keys() {
-                        files.push(format!("content/records/{type_name}.jsonl"));
+                    match config {
+                        Some(config) => {
+                            for type_name in config.types.keys() {
+                                files.push(format!("content/records/{type_name}.jsonl"));
+                            }
+                        }
+                        None => {
+                            let records = raw
+                                .as_ref()
+                                .map(|files| {
+                                    files
+                                        .keys()
+                                        .filter(|path| path.starts_with("content/records/"))
+                                        .cloned()
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or_default();
+                            files.extend(records);
+                        }
                     }
                     Ok(json!({ "kinds": ["record", "file"], "files": files }))
                 }
@@ -1994,12 +2305,16 @@ pub fn read_json(
                 return Err(DispatchError::Usage("records needs a plan".into()));
             };
             let type_name = require(params, "type")?;
+            // `*` is the model's one-read door: the plan-wide record read a
+            // work surface needs to draw itself without one engine load per
+            // kind. Every other value keeps the one-kind contract.
+            let all = type_name == "*";
             let limit = optional(params, "limit")
                 .and_then(|text| text.parse::<usize>().ok())
                 .unwrap_or(usize::MAX);
             let records: Vec<serde_json::Value> = config
                 .records_iter()
-                .filter(|record| record.type_ == type_name)
+                .filter(|record| all || record.type_ == type_name)
                 .take(limit)
                 .map(|record| serde_json::to_value(record).unwrap_or(serde_json::Value::Null))
                 .collect();
@@ -2052,6 +2367,9 @@ pub fn read_json(
                         "date": manifest.date,
                         "summary": manifest.summary,
                         "files": manifest.entries.iter().map(|entry| entry.path.clone()).collect::<Vec<String>>(),
+                        // The assistant turn that wrote it, when one did: the
+                        // deck's receipt is read by this, never by a timestamp.
+                        "run": manifest.run,
                     }))
                     .collect::<Vec<serde_json::Value>>(),
                 "retention": retention,
@@ -2339,6 +2657,56 @@ mod tests {
         );
     }
 
+    /// The settings screen's own current values are `views.study`. Reads load
+    /// without retaining source bytes (§4.6 — only `source` keeps them), so a
+    /// projection that reached for `source_files` answered "default" for every
+    /// row: the seed's own 180 minutes came back as the screen's 240-minute
+    /// fallback, and a write never showed in the row that wrote it.
+    #[test]
+    fn views_reports_the_plans_settings_through_a_read_only_load() {
+        let plan = temp_plan();
+        let config = crate::config_store::load_readonly(&plan, "explicit", &resources())
+            .expect("the seed loads read-only");
+        assert!(
+            config.source_files.is_empty(),
+            "this is the load the app's reads take — no retained bytes"
+        );
+        let data = read_json(
+            "views",
+            &Params::new(),
+            Some(&config),
+            &resources(),
+            Some(&plan),
+        )
+        .expect("views answers");
+        assert_eq!(data["study"]["dailyTargetMin"], serde_json::json!("180"));
+        assert_eq!(data["study"]["scheduler"], serde_json::json!("fixed"));
+
+        // The next read after a write reports the written value: the screen's
+        // refresh is the same projection read again.
+        run(
+            "settings.set",
+            &plan,
+            Params::from([
+                ("key".to_string(), ParamValue::Str("timezone".into())),
+                ("value".to_string(), ParamValue::Str("Asia/Kolkata".into())),
+            ]),
+        )
+        .expect("the timezone writes");
+        let config = crate::config_store::load_readonly(&plan, "explicit", &resources())
+            .expect("the plan reloads");
+        let data = read_json(
+            "views",
+            &Params::new(),
+            Some(&config),
+            &resources(),
+            Some(&plan),
+        )
+        .expect("views answers");
+        assert_eq!(data["study"]["timezone"], serde_json::json!("Asia/Kolkata"));
+        let _ = std::fs::remove_dir_all(&plan);
+    }
+
     /// The first run's theme disc. A machine with no plan has no
     /// `appearance.json` to read, and the register and the default theme are
     /// bundled — so the resolve answers anyway: the one control the rail draws
@@ -2395,6 +2763,203 @@ mod tests {
             "the blank plan carries no records — the seed's demo is not copied"
         );
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The storage door's rule (§3.2): a folder that holds nothing is a
+    /// destination for a new plan — the change-plan sheet points a blank plan
+    /// at the empty folder a student chose — and a folder that already holds
+    /// something is refused in the same words as ever.
+    #[test]
+    fn a_new_plan_takes_an_empty_folder_and_refuses_an_occupied_one() {
+        let base =
+            std::env::temp_dir().join(format!("sam-plan-empty-{}", crate::transaction::make_txid()));
+        let chosen = base.join("chosen");
+        std::fs::create_dir_all(&chosen).expect("the chosen folder exists and is empty");
+        let params = Params::from([(
+            "target".to_string(),
+            ParamValue::Str(chosen.to_string_lossy().into_owned()),
+        )]);
+        run("plan.new", &chosen, params).expect("an empty folder takes the plan");
+        assert!(
+            chosen.join("content/views.json").is_file(),
+            "the plan landed inside the folder the student picked"
+        );
+        assert!(
+            chosen.join(".sam/lock").is_file(),
+            "and it is a writable plan, not a copy without its state"
+        );
+
+        let again = Params::from([(
+            "target".to_string(),
+            ParamValue::Str(chosen.to_string_lossy().into_owned()),
+        )]);
+        let error = run("plan.new", &chosen, again)
+            .err()
+            .expect("an occupied folder is refused");
+        assert!(
+            error.to_string().contains("plan already exists"),
+            "the refusal keeps its words: {error}"
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// The change-plan sheet's own question, asked through the same door: a
+    /// dry run takes an empty folder and writes nothing — that is what makes
+    /// *Make a new plan here* an offer rather than a guess. An occupied folder
+    /// is refused here too, so the offer is never made where the press would
+    /// fail.
+    #[test]
+    fn a_dry_run_answers_whether_an_empty_folder_takes_a_plan_without_writing() {
+        let base =
+            std::env::temp_dir().join(format!("sam-plan-probe-{}", crate::transaction::make_txid()));
+        let chosen = base.join("chosen");
+        std::fs::create_dir_all(&chosen).expect("the chosen folder exists and is empty");
+        // Finder's droppings are not content: the folder still looks empty.
+        std::fs::write(chosen.join(".DS_Store"), b"finder").expect("ds store");
+        let params = Params::from([
+            (
+                "target".to_string(),
+                ParamValue::Str(chosen.to_string_lossy().into_owned()),
+            ),
+            ("dry-run".to_string(), ParamValue::Bool(true)),
+        ]);
+        let outcome = run("plan.new", &chosen, params).expect("an empty folder takes the plan");
+        let DispatchOutcome::Write { dry_run, data, .. } = outcome else {
+            panic!("plan.new answers with a write outcome");
+        };
+        assert!(dry_run, "the run is a dry one");
+        assert_eq!(data["plan"], chosen.to_string_lossy().as_ref());
+        assert!(
+            !chosen.join("content").exists(),
+            "a dry run writes nothing at all: {:?}",
+            std::fs::read_dir(&chosen).map(|entries| entries
+                .filter_map(Result::ok)
+                .map(|entry| entry.file_name())
+                .collect::<Vec<_>>())
+        );
+
+        std::fs::write(chosen.join("notes.txt"), b"real").expect("a real entry");
+        let occupied = Params::from([
+            (
+                "target".to_string(),
+                ParamValue::Str(chosen.to_string_lossy().into_owned()),
+            ),
+            ("dry-run".to_string(), ParamValue::Bool(true)),
+        ]);
+        let error = run("plan.new", &chosen, occupied)
+            .err()
+            .expect("an occupied folder is refused by the probe");
+        assert!(
+            error.to_string().contains("plan already exists"),
+            "the probe keeps the refusal's words: {error}"
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// The repair loop (§4.7's rule for `paths`, extended to the pane): a plan
+    /// that does not load still hands its bytes over and still takes a save —
+    /// the read validates nothing, and the write proves the whole plan loads
+    /// before a byte lands.
+    #[test]
+    fn a_plan_that_does_not_load_still_opens_and_takes_a_repair() {
+        let plan = temp_plan();
+        let views = plan.join("content/views.json");
+        let good = std::fs::read_to_string(&views).expect("the seed's views read");
+        let broken = good.replace("\"schemaVersion\": 1,", "\"schemaVersion\": 1,,");
+        std::fs::write(&views, &broken).expect("the hand edit lands");
+
+        let refused = run(
+            "view",
+            &plan,
+            Params::from([("name".to_string(), ParamValue::Str("today.screen".into()))]),
+        )
+        .err()
+        .expect("a broken plan refuses a projection");
+        assert!(
+            !refused.to_string().is_empty(),
+            "the refusal carries the loader's findings"
+        );
+
+        let read = run(
+            "source",
+            &plan,
+            Params::from([(
+                "file".to_string(),
+                ParamValue::Str("content/views.json".into()),
+            )]),
+        )
+        .expect("the pane still reads the file it is asked to repair");
+        let DispatchOutcome::Read(data) = read else {
+            panic!("source is a read");
+        };
+        assert_eq!(
+            data["text"].as_str(),
+            Some(broken.as_str()),
+            "the bytes are exactly the file's, validation and all"
+        );
+
+        let fixed = run(
+            "source.apply",
+            &plan,
+            Params::from([
+                (
+                    "file".to_string(),
+                    ParamValue::Str("content/views.json".into()),
+                ),
+                ("content".to_string(), ParamValue::Str(good)),
+            ]),
+        )
+        .map(|_| ())
+        .map_err(|error| error.to_string());
+        assert!(fixed.is_ok(), "a save that fixes the plan lands: {fixed:?}");
+        assert!(
+            config_store::load_with(&plan, "explicit", &resources()).is_ok(),
+            "and the plan loads again"
+        );
+        let _ = std::fs::remove_dir_all(&plan);
+    }
+
+    /// The recovery door does not require the thing it recovers: `tx.restore`
+    /// plans from the raw bytes when the plan does not load, and the overlay
+    /// validator proves the restored state loads before it commits.
+    #[test]
+    fn a_restore_reaches_a_plan_that_does_not_load() {
+        let plan = temp_plan();
+        let committed = run(
+            "view.setComponents",
+            &plan,
+            Params::from([
+                ("name".to_string(), ParamValue::Str("today.screen".into())),
+                ("surfaces".to_string(), ParamValue::Str("week-chart".into())),
+            ]),
+        )
+        .expect("the composition lands");
+        let DispatchOutcome::Write { commit, .. } = committed else {
+            panic!("a composition write is a write");
+        };
+        let txid = commit.txid;
+
+        let views = plan.join("content/views.json");
+        let text = std::fs::read_to_string(&views).expect("views read");
+        std::fs::write(&views, text.replace("\"schemaVersion\": 1,", "\"schemaVersion\": 1,,"))
+            .expect("the hand edit lands");
+
+        let restored = run(
+            "tx.restore",
+            &plan,
+            Params::from([("txid".to_string(), ParamValue::Str(txid))]),
+        )
+        .map(|_| ())
+        .map_err(|error| error.to_string());
+        assert!(
+            restored.is_ok(),
+            "the restore reaches the plan and commits: {restored:?}"
+        );
+        assert!(
+            config_store::load_with(&plan, "explicit", &resources()).is_ok(),
+            "the restored bytes are the before-image, which loads"
+        );
+        let _ = std::fs::remove_dir_all(&plan);
     }
 
     #[test]
@@ -2793,6 +3358,67 @@ mod tests {
             navigation[1]["icon"],
             serde_json::Value::Null,
             "a destination that names no icon says so, and the frame picks the fallback"
+        );
+        let _ = std::fs::remove_dir_all(&plan);
+    }
+
+    /// The shell's snapshot cache: two reads of one revision share a load, and
+    /// a write drops the snapshot before its result can be served to the
+    /// refresh that follows it.
+    #[test]
+    fn one_read_can_return_every_kind() {
+        let plan = temp_plan();
+        let params = Params::from([("type".to_string(), ParamValue::Str("*".into()))]);
+        let DispatchOutcome::Read(payload) =
+            run("records", &plan, params).expect("the model-wide read succeeds")
+        else {
+            panic!("records is a read");
+        };
+        let records = payload["records"].as_array().expect("records is a list");
+        assert_eq!(
+            records.len(),
+            17,
+            "the seed's 17 records come back in one projection"
+        );
+        let kinds: std::collections::BTreeSet<&str> = records
+            .iter()
+            .filter_map(|record| record["type"].as_str())
+            .collect();
+        assert!(kinds.contains("topic") && kinds.contains("course") && kinds.contains("note"));
+        let _ = std::fs::remove_dir_all(&plan);
+    }
+
+    #[test]
+    fn reads_share_a_snapshot_until_a_write_drops_it() {
+        let plan = temp_plan();
+        let cache = ReadCache::new();
+
+        let read = |id: &str, params: Params| {
+            let mut request = DispatchRequest::new(id, resources());
+            request.plan = Some(plan.clone());
+            request.params = params;
+            CommandSession::run_cached(request, &cache)
+        };
+
+        read("views", Params::new()).expect("the first read loads and stores");
+        assert!(cache.is_cached(), "a read leaves a snapshot for the next one");
+        read("today.view", Params::new()).expect("the second read reuses it");
+        assert!(cache.is_cached());
+
+        let mut params = Params::new();
+        params.insert("id".into(), ParamValue::Str("t.demo.01".into()));
+        params.insert("field".into(), ParamValue::Str("title".into()));
+        params.insert("value".into(), ParamValue::Str("Renamed".into()));
+        read("record.setField", params).expect("the write commits");
+        assert!(!cache.is_cached(), "a write drops the pre-write snapshot");
+
+        let DispatchOutcome::Read(payload) = read("views", Params::new()).expect("a read")
+        else {
+            panic!("views is a read");
+        };
+        assert!(
+            payload["views"].is_object(),
+            "the post-write read loads the new revision"
         );
         let _ = std::fs::remove_dir_all(&plan);
     }

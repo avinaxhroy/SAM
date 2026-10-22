@@ -2,7 +2,7 @@
 //!
 //! Dispatches commands directly through `sam-core` and routes mutations via `CommandSession` (§4.9).
 
-use std::io::{IsTerminal, Read};
+use std::io::{IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -38,16 +38,24 @@ fn main() -> ExitCode {
         Err(message) => return usage(&message, json),
     };
 
+    // `sam <id> --help` answered before anything resolves a plan.
+    if let Some(id) = cli.help_for.clone() {
+        return command_help(&id, json);
+    }
+
     let Some(command) = cli.command.clone() else {
         help(json);
         return ExitCode::from(OK);
     };
 
     match command.as_str() {
-        "help" => {
-            help(json);
-            ExitCode::from(OK)
-        }
+        "help" => match cli.positionals.first() {
+            Some(id) => command_help(id, json),
+            None => {
+                help(json);
+                ExitCode::from(OK)
+            }
+        },
         "version" => version(json),
         "selfcheck" => selfcheck(json),
         "tokens" => tokens(json),
@@ -69,6 +77,7 @@ fn main() -> ExitCode {
             cli.plan.as_deref(),
             cli.name.as_deref(),
             dispatch::optional(&cli.params, "preset").as_deref(),
+            cli.dry_run,
             json,
         ),
         "apply" => {
@@ -106,6 +115,11 @@ fn main() -> ExitCode {
         }
         "uicheck" => uicheck(cli.plan.as_deref(), json),
         "invoke" => invoke(cli.plan, cli.if_revision, json, json_flag),
+        // `agent.run` streams on a terminal (§4.9's terminal door for §4.7's
+        // execution loop): the turn can last minutes, so its transcript is
+        // drawn as it happens. `--json` — or a pipe, where the envelope is the
+        // contract — falls through to the generic dispatcher below.
+        "agent.run" if !json => agent_stream(cli.plan, cli.params),
         // Remaining commands resolved dynamically by the engine (§4.9, D15).
         other => {
             let mut params = cli.params.clone();
@@ -122,6 +136,85 @@ fn main() -> ExitCode {
             }
             run_session(other, params, cli.plan, cli.if_revision, json, json_flag)
         }
+    }
+}
+
+/// `agent.run` on a terminal: stream the turn. Prose goes to stdout — a pipe
+/// carries exactly what the assistant said — while tool calls, file writes and
+/// the CLI's own errors go to stderr, per the §4.9 output contract. The exit
+/// code stays inside SAM's vocabulary: a spawn failure is IO, a nonzero agent
+/// exit is INVALID, zero is zero.
+fn agent_stream(plan: Option<PathBuf>, params: Params) -> ExitCode {
+    let prompt = match dispatch::optional(&params, "prompt") {
+        Some(prompt) if !prompt.trim().is_empty() => prompt,
+        _ => {
+            return usage(
+                "agent.run requires one prompt — agent.list shows the CLIs on this machine",
+                false,
+            )
+        }
+    };
+    let agent_id = dispatch::optional(&params, "agent");
+    let model = dispatch::optional(&params, "model");
+    let resume = dispatch::optional(&params, "resume");
+    let context = dispatch::optional(&params, "context");
+    let paths = match resolve_paths(false) {
+        Ok(paths) => paths,
+        Err(code) => return code,
+    };
+    let root = match config_store::plan_root(plan.as_deref()) {
+        Ok((root, _origin)) => root,
+        Err(error) => return io_failure(&error.to_string(), false),
+    };
+    let spec = match sam_core::agent::prepare_run(sam_core::agent::RunRequest {
+        agent_id: agent_id.as_deref(),
+        model: model.as_deref(),
+        resume: resume.as_deref(),
+        context: context.as_deref(),
+        prompt: &prompt,
+        plan_root: &root,
+        resources_dir: &paths.resources_dir,
+        // A terminal Ctrl-C reaches the child through the foreground group;
+        // the CLI has no Stop button, so it must not detach one.
+        isolate: false,
+    }) {
+        Ok(spec) => spec,
+        Err(message) => return usage(&message, false),
+    };
+    eprintln!("SAM: {} is working in {}", spec.name, root.display());
+    let run = match sam_core::agent::start(
+        spec,
+        std::sync::Arc::new(|event| match event {
+            sam_core::agent::AgentEvent::Text { text } => {
+                print!("{text}");
+                let _ = std::io::stdout().flush();
+            }
+            sam_core::agent::AgentEvent::Tool { name, summary, .. } => {
+                eprintln!("  · {name}: {summary}")
+            }
+            sam_core::agent::AgentEvent::File { path } => eprintln!("  wrote {path}"),
+            sam_core::agent::AgentEvent::Session { id } => eprintln!("  session {id}"),
+            sam_core::agent::AgentEvent::Error { message } => {
+                eprintln!("SAM: agent error: {message}")
+            }
+            sam_core::agent::AgentEvent::Stderr { line } => eprintln!("  {line}"),
+            sam_core::agent::AgentEvent::Log { line } => eprintln!("  {line}"),
+            sam_core::agent::AgentEvent::Started { .. }
+            | sam_core::agent::AgentEvent::Thinking { .. }
+            | sam_core::agent::AgentEvent::ToolResult { .. }
+            | sam_core::agent::AgentEvent::Result { .. }
+            | sam_core::agent::AgentEvent::Exit { .. } => {}
+        }),
+    ) {
+        Ok(run) => run,
+        Err(message) => return io_failure(&message, false),
+    };
+    let code = run.wait();
+    println!();
+    if code == 0 {
+        ExitCode::from(OK)
+    } else {
+        ExitCode::from(INVALID)
     }
 }
 
@@ -218,14 +311,20 @@ fn uicheck(plan: Option<&Path>, json: bool) -> ExitCode {
 /// Flags that resolve commands in pass 1 without values.
 const COMMAND_FLAGS: [&str; 5] = ["--help", "-h", "--version", "-V", "--invoke"];
 
+#[derive(Debug)]
 struct Cli {
     json: bool,
     plan: Option<PathBuf>,
     name: Option<String>,
     if_revision: Option<String>,
     command: Option<String>,
+    /// `sam <id> --help`: the verb resolves, and the command's own definition
+    /// is the answer instead of a run.
+    help_for: Option<String>,
     params: Params,
     dry_run: bool,
+    /// Bare words that bound no parameter (the `help <id>` form reads one).
+    positionals: Vec<String>,
 }
 
 /// Matches dynamic per-type commands (`<type>.new`, `<type>.paste`) (§4.7).
@@ -247,6 +346,27 @@ fn slot_text(value: &ParamValue) -> String {
 }
 
 fn parse(argv: &[String], json: bool) -> Result<Cli, String> {
+    // `sam help <id>` short-circuits verb resolution: pass 1 scans every
+    // argument, so without this `sam help source` would resolve `source` as
+    // the verb and run it.
+    if argv.first().is_some_and(|arg| arg == "help") {
+        return Ok(Cli {
+            json,
+            plan: None,
+            name: None,
+            if_revision: None,
+            command: Some("help".into()),
+            help_for: None,
+            params: Params::new(),
+            dry_run: false,
+            positionals: argv[1..]
+                .iter()
+                .filter(|arg| !arg.starts_with('-'))
+                .cloned()
+                .collect(),
+        });
+    }
+
     // Pass 1: resolve command verb (alias flags or explicit identifiers).
     let mut command: Option<String> = None;
     for arg in argv {
@@ -301,20 +421,28 @@ fn parse(argv: &[String], json: bool) -> Result<Cli, String> {
         name: None,
         if_revision: None,
         command: command.clone(),
+        help_for: None,
         params: Params::new(),
         dry_run: false,
+        positionals: Vec::new(),
     };
     let mut positionals: Vec<String> = Vec::new();
     let mut positional_index = 0;
     let mut index = 0;
+    let mut help_requested = false;
 
     while index < argv.len() {
         let arg = argv[index].as_str();
         if arg.starts_with('-') && arg != "-" {
-            // Consume flags that resolved the command in pass 1.
+            // Consume flags that resolved the command in pass 1. `--help` beside
+            // a resolved verb is not a run: the command's own definition is the
+            // answer (an agent that guesses flags pays one cheap call to learn).
             if COMMAND_FLAGS.contains(&arg)
                 || def.is_some_and(|def| def.aliases.iter().any(|alias| alias == arg))
             {
+                if arg == "--help" || arg == "-h" {
+                    help_requested = true;
+                }
                 index += 1;
                 continue;
             }
@@ -392,7 +520,27 @@ fn parse(argv: &[String], json: bool) -> Result<Cli, String> {
                             }
                             index += 1;
                         }
-                        None => return Err(format!("unknown argument '{other}'")),
+                        None => {
+                            // A wrong flag is the moment to teach, not just to
+                            // refuse: name what the command does take.
+                            let mut message = format!("unknown argument '{other}'");
+                            match def {
+                                Some(def) => {
+                                    let known: Vec<String> =
+                                        def.params.iter().map(param_display).collect();
+                                    if !known.is_empty() {
+                                        message.push_str(&format!(
+                                            " — \"{}\" takes: {}",
+                                            def.id,
+                                            known.join(", ")
+                                        ));
+                                    }
+                                    message.push_str(&format!("; see `sam {} --help`", def.id));
+                                }
+                                None => message.push_str(" — SAM --help lists the commands"),
+                            }
+                            return Err(message);
+                        }
                     }
                 }
             }
@@ -414,9 +562,216 @@ fn parse(argv: &[String], json: bool) -> Result<Cli, String> {
     }
 
     if cli.command.is_none() && !positionals.is_empty() {
-        return Err(format!("unknown command '{}'", positionals[0]));
+        let token = &positionals[0];
+        let mut message = format!("unknown command '{token}'");
+        let suggestions = command_suggestions(token);
+        if suggestions.is_empty() {
+            message.push_str(" — SAM --commands lists the registry");
+        } else {
+            message.push_str(&format!(
+                " — did you mean {}?",
+                suggestions
+                    .iter()
+                    .map(|id| format!("\"{id}\""))
+                    .collect::<Vec<_>>()
+                    .join(" or ")
+            ));
+        }
+        return Err(message);
     }
+    // `sam <id> --help`: the verb resolved in pass 1 and a help flag followed.
+    // The registry answers; nothing runs and no plan loads.
+    if help_requested {
+        if let Some(command) = &cli.command {
+            if command_registry::resolve(command).is_some() {
+                cli.help_for = Some(command.clone());
+            }
+        }
+    }
+    cli.positionals = positionals;
     Ok(cli)
+}
+
+/// One parameter as the CLI spells it: a flag with its value type, or a bare
+/// positional name; `...` marks a repeatable.
+fn param_display(param: &command_registry::ParamDef) -> String {
+    let core = match &param.flag {
+        Some(flag) if param.type_ == "boolean" => flag.clone(),
+        Some(flag) => format!("{flag} <{}>", param.type_),
+        None => format!("<{}>", param.name),
+    };
+    if param.repeats {
+        format!("{core}...")
+    } else {
+        core
+    }
+}
+
+/// The usage skeleton: positionals first, then flags, then `--json` (which
+/// every command accepts through the CLI's own parser).
+fn usage_skeleton(def: &command_registry::CommandDef) -> String {
+    let mut parts = vec![format!("sam {}", def.id)];
+    for param in &def.params {
+        if !param.positional {
+            continue;
+        }
+        let token = format!("<{}>", param.name);
+        parts.push(if param.required { token } else { format!("[{token}]") });
+    }
+    for param in &def.params {
+        if param.positional {
+            continue;
+        }
+        let Some(flag) = &param.flag else { continue };
+        let token = if param.type_ == "boolean" {
+            flag.clone()
+        } else {
+            format!("{flag} <{}>", param.type_)
+        };
+        let token = if param.repeats {
+            format!("{token}...")
+        } else {
+            token
+        };
+        parts.push(if param.required { token } else { format!("[{token}]") });
+    }
+    parts.push("[--json]".into());
+    parts.join(" ")
+}
+
+fn effect_word(effect: CommandEffect) -> &'static str {
+    match effect {
+        CommandEffect::Read => "read",
+        CommandEffect::Write => "write",
+        CommandEffect::Presentation => "presentation",
+    }
+}
+
+/// One command's whole definition, exactly what the dispatcher enforces.
+fn command_help_text(def: &command_registry::CommandDef) -> String {
+    let mut text = String::new();
+    text.push_str(&format!("sam {} — {}\n", def.id, def.title));
+    let aliases = if def.aliases.is_empty() {
+        String::new()
+    } else {
+        format!(" · also: {}", def.aliases.join(", "))
+    };
+    text.push_str(&format!(
+        "{} · {} · {}{}\n",
+        def.category,
+        effect_word(def.effect),
+        if def.plan_required {
+            "needs a plan"
+        } else {
+            "no plan needed"
+        },
+        aliases
+    ));
+    if let Some(path) = &def.json_path {
+        text.push_str(&format!("json: {path}\n"));
+    }
+    text.push('\n');
+    text.push_str(&format!("{}\n\n", def.help));
+    text.push_str(&format!("Usage: {}\n", usage_skeleton(def)));
+    if !def.params.is_empty() {
+        text.push_str("\nParameters:\n");
+        for param in &def.params {
+            let placement = if param.positional { "positional" } else { "flag" };
+            let required = if param.required { ", required" } else { "" };
+            let repeats = if param.repeats { ", repeatable" } else { "" };
+            text.push_str(&format!(
+                "  {:<26} ({placement}{required}{repeats})  {}\n",
+                param_display(param),
+                param.help
+            ));
+        }
+    }
+    text
+}
+
+/// `sam <id> --help` / `sam help <id>`: the flag authority for a lost agent,
+/// answered from the registry with no plan load and no spawn of anything.
+fn command_help(id: &str, json: bool) -> ExitCode {
+    let Some(def) = command_registry::resolve(id) else {
+        return match builtin_help(id) {
+            Some(line) => {
+                if json {
+                    print_envelope(None, json!({ "id": id, "help": line }), &[])
+                } else {
+                    println!("sam {id} — {line}");
+                    ExitCode::from(OK)
+                }
+            }
+            None if is_per_type_id(id) => {
+                let line = format!(
+                    "a per-type command from the plan's own schema — `sam --commands --plan <folder> --json` lists it; its fields are the type's (`sam --schema --json`), and `sam help <type>.new` has no more to say without a plan"
+                );
+                if json {
+                    print_envelope(None, json!({ "id": id, "help": line }), &[])
+                } else {
+                    println!("sam {id} — {line}");
+                    ExitCode::from(OK)
+                }
+            }
+            None => usage(
+                &format!("no command \"{id}\" — SAM --commands lists the registry"),
+                json,
+            ),
+        };
+    };
+    if json {
+        return print_envelope(None, serde_json::to_value(def).unwrap_or_default(), &[]);
+    }
+    print!("{}", command_help_text(def));
+    ExitCode::from(OK)
+}
+
+/// The verbs the binary owns itself (no registry row to read).
+fn builtin_help(id: &str) -> Option<&'static str> {
+    match id {
+        "help" => Some("list the commands, or `sam help <id>` for one"),
+        "version" => Some("print the version"),
+        "invoke" => Some("run requests from one JSON payload on stdin"),
+        _ => None,
+    }
+}
+
+/// Near ids for a mistyped verb: ids containing the token, or within two edits
+/// of it. Small and dependency-free; the point is one more cheap correction.
+fn command_suggestions(token: &str) -> Vec<&'static str> {
+    let needle = token.to_ascii_lowercase();
+    let mut scored: Vec<(usize, &'static str)> = Vec::new();
+    for def in command_registry::commands() {
+        let id = def.id.as_str();
+        let lower = id.to_ascii_lowercase();
+        let distance = edit_distance(&needle, &lower);
+        let contains = needle.len() >= 3 && lower.contains(&needle);
+        if contains || distance <= 2 {
+            scored.push((distance, id));
+        }
+    }
+    scored.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(b.1)));
+    scored.dedup_by_key(|(_, id)| *id);
+    scored.into_iter().map(|(_, id)| id).take(3).collect()
+}
+
+/// Plain Levenshtein; registry ids are short, so the table is tiny.
+fn edit_distance(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut previous: Vec<usize> = (0..=b.len()).collect();
+    let mut current = vec![0; b.len() + 1];
+    for (i, ca) in a.iter().enumerate() {
+        current[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = if ca == cb { 0 } else { 1 };
+            current[j + 1] = (previous[j] + cost)
+                .min(previous[j + 1] + 1)
+                .min(current[j] + 1);
+        }
+        std::mem::swap(&mut previous, &mut current);
+    }
+    previous[b.len()]
 }
 
 // ── output contract (§4.9) ───────────────────────────────────────────────────
@@ -599,7 +954,7 @@ fn help(json: bool) {
     println!("SAM {VERSION} — Configurable Study OS (Phase 3: expressions and headless queries)\n");
     println!("Usage: SAM <command-id> [flags]\n");
     println!(
-        "The verb is the registry id — the same id ⌘K will show (§4.9).\nNothing prompts; data on stdout, diagnostics on stderr; JSON when piped or --json.\n"
+        "The verb is the registry id — the same id ⌘K will show (§4.9).\nNothing prompts; data on stdout, diagnostics on stderr; JSON when piped or --json.\nEvery command answers `sam <id> --help` with its full flag list.\n"
     );
     println!("Commands:");
     let mut defs: Vec<_> = command_registry::commands().iter().collect();
@@ -615,24 +970,22 @@ fn help(json: bool) {
         } else {
             format!("  ({})", def.aliases.join(", "))
         };
-        let effect = match def.effect {
-            CommandEffect::Read => "read",
-            CommandEffect::Write => "write",
-            CommandEffect::Presentation => "presentation",
-        };
+        let effect = effect_word(def.effect);
         println!("    {:<14} [{effect}] {}{aliases}", def.id, def.help);
     }
     println!(
         "\nAgent loop (§4.7):\n\
-         \x20 SAM paths --json                                    → plan root + revision\n\
-         \x20 SAM apply batch.jsonl --dry-run --json              → record-level diff, no writes\n\
-         \x20 SAM apply batch.jsonl --if-revision <hash> --json   → commit at the reviewed revision\n\
+         \x20 SAM <id> --help                                      → one command's full flags\n\
+         \x20 SAM paths --plan \"<folder>\" --json                    → plan root + revision\n\
+         \x20 SAM apply batch.jsonl --dry-run --json --plan \"<folder>\" → record-level diff, no writes\n\
+         \x20 SAM apply batch.jsonl --if-revision <hash> --json --plan \"<folder>\" → commit at the reviewed revision\n\
          \n\
          Exit codes: 0 success · 1 validation failure · 2 usage error\n\
          \x20           3 revision conflict / lock busy · 4 I/O or recovery failure\n\
          \x20           5 presentation unavailable\n\
          \n\
-         --plan <dir> selects a plan root; without it the single plan under\n\
+         --plan <dir> selects a plan root; SAM_PLAN=<dir> is this choice's environment\n\
+         form (the flag wins), and without either the single plan under\n\
          the platform data directory is used. plan.new creates one."
     );
 }
@@ -1102,6 +1455,9 @@ fn tx_list(plan: Option<&Path>, json: bool) -> ExitCode {
                     "summary": manifest.summary,
                     "baseRevision": manifest.base_revision,
                     "newRevision": manifest.new_revision,
+                    // The assistant turn that committed it, when one did
+                    // (`SAM_RUN`): the deck's Undo is read by this.
+                    "run": manifest.run,
                     "files": manifest.entries.iter().map(|entry| entry.path.clone()).collect::<Vec<_>>(),
                 }))
                 .collect::<Vec<_>>(),
@@ -1145,6 +1501,7 @@ fn plan_new(
     target: Option<&Path>,
     name: Option<&str>,
     preset: Option<&str>,
+    dry_run: bool,
     json: bool,
 ) -> ExitCode {
     if target.is_some() == name.is_some() {
@@ -1162,6 +1519,35 @@ fn plan_new(
         Err(message) => return usage(&message, json),
     };
     let preset = preset.unwrap_or("blank");
+
+    // `--dry-run` is the same answer without the write: the preset exists and
+    // the destination is free, proven by the engine's own rule
+    // (`config_store::plan_target_check`). Before this, the flag was parsed and
+    // then dropped here — a dry run created the plan it promised not to.
+    if dry_run {
+        return match config_store::plan_target_check(&target, preset, &paths.resources_dir) {
+            Ok(_) => {
+                if json {
+                    print_envelope(
+                        None,
+                        json!({
+                            "plan": target.display().to_string(),
+                            "preset": preset,
+                            "dryRun": true,
+                        }),
+                        &[],
+                    )
+                } else {
+                    println!(
+                        "would create {} from preset {preset} (dry run, nothing written)",
+                        target.display()
+                    );
+                    ExitCode::from(OK)
+                }
+            }
+            Err(error) => map_config_error(error, json),
+        };
+    }
 
     match config_store::create_plan(&target, preset, &paths.resources_dir) {
         Ok(created) => {
@@ -1250,4 +1636,72 @@ fn dispatch_once(
 
 fn resolve_paths(json: bool) -> Result<resources::Paths, ExitCode> {
     resources::paths().map_err(|error| io_failure(&format!("cannot resolve paths: {error}"), json))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_command_declares_its_flags_and_positionals_in_its_own_help() {
+        let def = command_registry::resolve("view.block.add").expect("the def exists");
+        let text = command_help_text(def);
+        assert!(text.contains("sam view.block.add — Add a block"), "{text}");
+        assert!(text.contains("<name>"), "the positional is spelled: {text}");
+        assert!(text.contains("--kind <string>"), "{text}");
+        assert!(text.contains("--value <string>..."), "repeats are marked: {text}");
+        assert!(text.contains("(positional, required)"), "{text}");
+        assert!(text.contains("Usage: sam view.block.add <name> --kind <string>"), "{text}");
+    }
+
+    #[test]
+    fn a_boolean_flag_prints_without_a_type() {
+        let def = command_registry::resolve("apply").expect("the def exists");
+        let text = command_help_text(def);
+        // `apply` declares `--dry-run` as a boolean.
+        assert!(text.contains("--dry-run"), "{text}");
+        assert!(!text.contains("--dry-run <"), "a boolean takes no <value>: {text}");
+    }
+
+    #[test]
+    fn a_mistyped_verb_gets_near_suggestions() {
+        let suggestions = command_suggestions("sorce");
+        assert!(suggestions.contains(&"source"), "{suggestions:?}");
+        assert!(command_suggestions("definitely-not-a-command").is_empty());
+    }
+
+    #[test]
+    fn edit_distance_counts_the_usual_way() {
+        assert_eq!(edit_distance("sorce", "source"), 1);
+        assert_eq!(edit_distance("abc", "abc"), 0);
+        assert_eq!(edit_distance("", "abc"), 3);
+    }
+
+    #[test]
+    fn a_help_flag_beside_a_verb_reads_the_verb_instead_of_running_it() {
+        let cli = parse(&["view.block.add".into(), "--help".into()], false).expect("parses");
+        assert_eq!(cli.help_for.as_deref(), Some("view.block.add"));
+        // A bare `--help` stays the global list.
+        let cli = parse(&["--help".into()], false).expect("parses");
+        assert_eq!(cli.help_for, None);
+        assert_eq!(cli.command.as_deref(), Some("help"));
+    }
+
+    #[test]
+    fn the_help_subcommand_reads_its_id_instead_of_resolving_a_verb() {
+        let cli = parse(&["help".into(), "source".into()], false).expect("parses");
+        assert_eq!(cli.command.as_deref(), Some("help"));
+        assert_eq!(cli.positionals, vec!["source".to_string()]);
+    }
+
+    #[test]
+    fn a_wrong_flag_names_what_the_command_takes() {
+        let error = parse(
+            &["view.block.add".into(), "--doc".into(), "x".into()],
+            false,
+        )
+        .expect_err("refused");
+        assert!(error.contains("--kind <string>"), "{error}");
+        assert!(error.contains("sam view.block.add --help"), "{error}");
+    }
 }

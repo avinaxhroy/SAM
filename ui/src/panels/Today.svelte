@@ -6,6 +6,7 @@
   import { coverageOf, openRecord, setAside } from '../variants/today-focus/host';
   import { rowsOf } from '../variants/coming-up/props';
   import { app } from '../session.svelte';
+  import { openExternal } from '../ipc';
   import { durationText, nameOf, recordLabel, todayGroup, type TodayGroupId, type TodayItem } from '../types';
   import { readPlanModel, workKindOf, type PlanModel } from './model';
 
@@ -139,6 +140,10 @@
     kind: focus?.item.kind ?? null,
     onOpen: () => {
       if (focus) openRecord(focus.item);
+    },
+    link: focus?.item.link ?? null,
+    onWatch: () => {
+      if (focus?.item.link) void openExternal(focus.item.link);
     },
     onDefer: () => {
       if (focus) void setAside(focus.item, app.todayFacts?.date ?? null);
@@ -357,6 +362,9 @@
           onLog={(item) => void app.logTime(item, targetMin)}
           onAdd={(item) => void app.addToToday(item.id)}
           onRemove={(item) => void app.removeFromToday(item.id)}
+          onWatch={(item) => {
+            if (item.link) void openExternal(item.link);
+          }}
           onAddToToday={() => void app.openSheet({ kind: 'today.add' })}
         />
         <Variant

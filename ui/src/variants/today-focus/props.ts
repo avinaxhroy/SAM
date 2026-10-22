@@ -50,6 +50,14 @@ export type TodayFocusProps = {
   /** The record's own door — the detail panel (`record.panel`). */
   onOpen: () => void;
   /**
+   * The study material the focused record names (`Watch`), or null when the
+   * plan carries none. Optional by design: with no link the action is not
+   * drawn at all — no disabled button, no placeholder.
+   */
+  link: string | null;
+  /** Open that material in the browser. */
+  onWatch: () => void;
+  /**
    * `Not this`: the recommendation's day is moved on by a week
    * (`record.defer`), so the day ranks the next thing instead. A write, so it
    * leaves a receipt the student can undo — never a silent skip.

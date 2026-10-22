@@ -14,10 +14,17 @@ sam <command-id> [arguments...] [options]
 
 | Flag | Description |
 |---|---|
-| `--plan <path>` | Path to the plan directory. If omitted, targets the machine's default active plan directory. |
+| `--plan <path>` | Path to the plan directory. If omitted, the `SAM_PLAN` environment variable is honored, and failing that the machine's single default plan directory is used. |
 | `--json` | Output machine-readable JSON. JSON is also enabled automatically when standard output is not a terminal (e.g. piped to another process). |
 | `--if-revision <hash>` | Enforces optimistic concurrency. Aborts with exit code `3` (`CONFLICT`) if the current plan revision hash does not match. |
 | `--dry-run` | Validates the mutation and computes changes without writing bytes to disk. |
+| `--help`, `-h` | Beside a command, prints that command's whole registry definition — parameters, types, effect, JSON identity (`sam view.block.add --help`). Alone, prints the command catalog. |
+
+Plans live in any folder: `--plan "<folder>"` (quoted; paths may contain spaces) is the
+contract, and `SAM_PLAN=<folder>` is its environment form — the in-app assistant sets it
+for its child so a call that forgets the flag still lands on the plan the window has
+open. A wrong flag replies with the command's own parameter list, so learning an API
+costs one call, not a guess.
 
 ---
 

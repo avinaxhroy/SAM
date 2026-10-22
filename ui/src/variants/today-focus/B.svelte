@@ -23,6 +23,8 @@
     sessionCommand,
     onStart,
     onPlan,
+    link,
+    onWatch,
   }: TodayFocusProps = $props();
 
   let open = $state(false);
@@ -121,6 +123,18 @@
             Start
           </button>
           <Duration {minutes} onCommit={onMinutes} />
+          {#if link}
+            <button
+              class="cd-pill cd-pill--ghost"
+              type="button"
+              title="Open the material in your browser"
+              aria-label={title ? `Watch ${title}` : 'Watch the material'}
+              onclick={onWatch}
+            >
+              <Icon name="play" size={15} />
+              Watch
+            </button>
+          {/if}
         </div>
       </div>
     </div>

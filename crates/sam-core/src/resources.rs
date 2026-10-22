@@ -25,6 +25,20 @@ pub const RESOURCES_ENV: &str = "SAM_RESOURCES";
 /// costs a rebuild — never source bytes.
 pub const INDEXES_ENV: &str = "SAM_INDEX_DIR";
 
+/// The environment form of `--plan` (§4.9): the assistant sets it for the
+/// agent child so a `sam` call that forgets the flag still lands on the plan
+/// the window has open — the folder may live anywhere, and the machine's
+/// default resolution must never be a silent second choice. An explicit
+/// `--plan` always wins over it.
+pub const PLAN_ENV: &str = "SAM_PLAN";
+
+/// The turn's identity while an agent child runs (§4.7's in-app door): the
+/// assistant sets it beside `SAM_PLAN`, and a transaction the child commits
+/// records it. That is what lets the deck offer the Undo for *this run's*
+/// writes instead of guessing from a timestamp — and never offer someone
+/// else's. Unset for every ordinary command, so their transactions carry none.
+pub const RUN_ENV: &str = "SAM_RUN";
+
 /// The resolved locations (§4.1). A plan root is `--plan` or the data
 /// directory's single plan (§4.1 scope 2); the derived index is Phase 6's.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -140,6 +154,34 @@ pub fn last_open(paths: &Paths) -> Option<JSONValue> {
         "source": value.get("lastOpenSource").cloned(),
         "at": value.get("lastOpenAt").cloned(),
     }))
+}
+
+/// Record the plan folder this window is on. Writer: `src-tauri`'s
+/// `watch_plan` on every accepted plan — the one command already told the open
+/// folder. Reader: the shell at startup, through `shell_info`, so a relaunch
+/// opens the folder the student last worked in rather than whichever plan the
+/// machine's plans root happens to resolve.
+pub fn note_last_plan(paths: &Paths, plan: &str) -> Result<(), String> {
+    update_runtime(paths, |document| {
+        document.insert("lastPlan".into(), serde_json::json!(plan));
+        document.insert(
+            "lastPlanAt".into(),
+            serde_json::json!(crate::transaction::iso_now()),
+        );
+    })
+}
+
+/// The remembered plan, when it is still a plan on this disk. A folder that has
+/// moved, been renamed or stopped carrying `content/types.json` is not a plan
+/// the window can open — the picker is the honest destination then, not a boot
+/// failure the student did not ask for.
+pub fn last_plan(paths: &Paths) -> Option<String> {
+    let path = runtime_field(paths, "lastPlan")?;
+    let root = Path::new(&path);
+    if !root.is_dir() || !root.join("content/types.json").is_file() {
+        return None;
+    }
+    Some(path)
 }
 
 /// Record that the page asked for something: the shell's breadcrumb of the
@@ -648,5 +690,31 @@ mod tests {
             register.get("space.md").unwrap().type_.as_deref(),
             Some("dimension")
         );
+    }
+
+    #[test]
+    fn the_last_plan_is_remembered_only_while_it_is_a_plan() {
+        let data =
+            std::env::temp_dir().join(format!("sam-last-plan-{}", crate::transaction::make_txid()));
+        let plan = data.join("the plan");
+        std::fs::create_dir_all(plan.join("content")).expect("a scratch plan folder");
+        std::fs::write(plan.join("content/types.json"), "{}").expect("a types document");
+        let paths = Paths {
+            data_dir: data.clone(),
+            plans_dir: data.join("plans"),
+            indexes_dir: data.join("indexes"),
+            resources_dir: data.join("resources"),
+        };
+
+        note_last_plan(&paths, plan.to_str().expect("a UTF-8 scratch path"))
+            .expect("the runtime note is writable");
+        assert_eq!(last_plan(&paths).as_deref(), plan.to_str());
+
+        // A folder that stops being a plan is not a destination the next launch
+        // should open: the picker is the honest answer, not a boot failure.
+        std::fs::remove_file(plan.join("content/types.json")).expect("the marker is removable");
+        assert_eq!(last_plan(&paths), None);
+
+        std::fs::remove_dir_all(&data).ok();
     }
 }

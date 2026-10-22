@@ -251,7 +251,7 @@
      The first pass here stacked five whites at full strength and produced an
      opaque white chip — the rim has to be thin at these sizes, or it becomes
      the surface. Every rung below is deliberately low-alpha. */
-  --glass:        color-mix(in oklab, var(--ink) 5%, transparent);
+  --glass:        color-mix(in oklab, var(--ink) 7%, transparent);
   --glass-blur:   26px;
   --glass-line:   oklch(100% 0 0 / 0.55);   /* the light itself */
   --glass-rim:    oklch(100% 0 0 / 0.26);   /* the boundary, lit all round */
@@ -283,6 +283,87 @@
   --dur-loop: 1400ms;  /* the one duration that repeats: the loading sweep */
   --ease:     cubic-bezier(0.16, 1, 0.3, 1);   /* ref S1/S2/S5 — ease-out */
   --ease-pop: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── The assistant's working state ─────────────────────────────────────
+     While an agent edits the plan the room dims and is lit, in two layers that
+     do two jobs. Underneath, the material: a grain painted once into a canvas
+     (`shell/material.ts`) and never animated. On top, the light: a field that
+     flows across it (`shell/veil.ts`; `styles/assistant.css` is the layer both
+     are drawn on). Never a blur *of the app* (the round-4 ruling stands:
+     backdrop-filter makes the room a different room; this is a layer of its
+     own), and never ink, so the deck's own accent stays the window's single
+     dark object. */
+  /* The room, taken down far enough that the field has something to be
+     brighter *than*: light over a white page is a stain, light over a dimmed
+     one is light. Deep enough to do that and no deeper — the ink underneath
+     keeps its contrast, which is what the working state has to leave intact. */
+  --ai-veil:       var(--scrim);
+  /* Without a field there is no light on top to make up for the dim, so the
+     degraded path scrims less and keeps the room legible on its own. */
+  --ai-veil-bare:  color-mix(in oklab, var(--scrim) 92%, transparent);
+  /* The field's ramp, trough → crest. The light climbs it: the cool iris the
+     sparkle's own blue sits beside, the lilac its mark is mixed from, and the
+     rose the send warms to — one family read in one direction, because four
+     hues across a whole window are a rainbow and this is one room being lit,
+     not four. The stops climb in lightness as well as in hue, because a ramp
+     that dips in the middle paints a grey band through the brightest part of
+     the field: the crest has to be the brightest stop or it reads as shadow. */
+  --ai-field-a:    color-mix(in oklab, var(--wash-iris) 74%, var(--on-info));
+  --ai-field-b:    color-mix(in oklab, var(--w-lilac) 60%, var(--wash-rose));
+  --ai-field-c:    color-mix(in oklab, var(--wash-rose) 62%, var(--w-lilac));
+  /* What the field is tuned by — every one of them a number the shader reads
+     off `documentElement`: how many eddies stand in one room-height, how hard
+     the light burns, how far the ramp is pulled off its own grey, and the
+     flow's tempo in field-units a second. 0.1 crosses one eddy in about ten seconds — fast enough to be seen
+     moving, slow enough not to pull the eye off the work. Three is the scale
+     the room needs: fewer eddies than that and the window holds two or three
+     blobs, so the *whole* veil brightens and dims as they drift rather than
+     only where the light moves. */
+  --ai-field-scale: 3.0;
+  --ai-field-light: 1.0;
+  --ai-field-chroma: 2.2;
+  --ai-field-rate:  0.1;
+  /* ── Layer 1, the material ──────────────────────────────────────────────
+     How hard the light shows the surface it lands on. `shell/material.ts`
+     paints one 240px tile: a variable-dot halftone, six pixels between dot
+     centres, each cell's dot sized by the tone of the patch it sits in. Ink
+     only, one polarity — it takes light away and never adds it, which is what a
+     print on a surface does and what a sparkle does not. The field multiplies
+     its light by that tile, so a dot is only visible where there is light to
+     see it by. A screen's period is its subject; a blot's period is a mistake. */
+  --ai-texture: 0.26;
+  --ai-mesh: 0.10;
+  /* The assistant's own accent — the sparkle and the send button, mixed from
+     tokens so both themes stay in the register. */
+  --ai-mark:   color-mix(in oklab, var(--fg-lilac) 62%, var(--on-overdue));
+  --ai-accent: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--fg-lilac) 78%, var(--w-lilac)),
+    color-mix(in oklab, var(--on-overdue) 62%, var(--w-butter))
+  );
+  /* ── Without a field ───────────────────────────────────────────────────
+     What a machine that will not run a field gets instead: the same ramp,
+     swept. Two seamless bands of it, blurred so wide each is a light rather
+     than a shape and tiled so a sweep carries it the full width of the room
+     without uncovering it. Still not ink, still not a picture of the field —
+     the degraded path says the same thing more slowly. */
+  --ai-wash-sat:   1.5;
+  --ai-wash-blend: 0.62;
+  --ai-blur:       48px;
+  /* Motion is the working state's own language, and the field is the one part
+     of it with no duration at all: it flows on its own clock and never loops,
+     so an hour-long turn never repeats. What is left here is the fallback's
+     sweep (`--dur-travel`), the accent — the send's circle, the island's dot —
+     travelling while the turn runs (`--dur-flow`), and the island growing on
+     the press (`--dur-expand`); the sparkle's pulse is `--dur-loop`, above.
+     Reduced motion cancels every one of them and leaves the field a single
+     still frame (`styles/assistant.css`, `shell/veil.ts`). */
+  --dur-travel: 14s;     /* the fallback's one full sweep across the veil  */
+  --dur-flow:   3.6s;    /* the accent's travel while a turn runs          */
+  --dur-expand: 520ms;   /* the island's growth, the one deform in the window */
+  --ease-drift: linear;
+  --deck-w:     640px;
+  --deck-max-h: 46vh;
 
   /* ── Geometry ──────────────────────────────────────────────────────────
      Two kinds of number live here and they are not interchangeable:
@@ -391,6 +472,19 @@
   /* In dark the light comes from the sheet's own top edge, so the room-lit
      stop is the *lighter* one here too — a glow above the window. */
   --room-lit:   color-mix(in oklab, var(--backdrop) 86%, var(--card));
+
+  /* The field, at night. Every stop has to be built the other way round: the
+     `on-*` inks are this theme's bright end, so the ramp mixes *them* and the
+     room's own card to land luminous violet → pink → rose on a dark ground,
+     where the light theme built the same three from the pale washes. */
+  --ai-veil:     var(--scrim);
+  --ai-veil-bare: var(--scrim);
+  /* A dark veil shows a tooth that a pale one would read as fog. */
+  --ai-texture:  0.30;
+  --ai-mesh:    0.14;
+  --ai-field-a:  color-mix(in oklab, var(--on-info) 62%, var(--card));
+  --ai-field-b:  color-mix(in oklab, var(--on-info) 68%, var(--on-overdue));
+  --ai-field-c:  color-mix(in oklab, var(--on-info) 52%, var(--on-overdue));
 
   /* Dark text optically thickens on a light-on-dark surface. A variable
      face lets us take the weight down 50 units instead of lying about it. */

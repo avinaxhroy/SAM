@@ -30,6 +30,7 @@
     onStop,
     onAdd,
     onRemove,
+    onWatch,
     onAddToToday,
   }: Props = $props();
 
@@ -181,6 +182,8 @@
               class="tqb-row"
               data-dated={isDated(state) ? '1' : undefined}
               data-run={runningId === row.item.id ? '1' : undefined}
+              data-record-id={row.item.id}
+              data-record-type={row.item.kind}
               style={`--i:${Math.min(i, 6)}`}
             >
               {#if course}
@@ -206,6 +209,17 @@
                 >
                   <Icon name={row.group === 'committed' ? 'close' : 'plus'} size={14} />
                 </button>
+                {#if row.item.link}
+                  <button
+                    class="cd-iconbtn"
+                    type="button"
+                    title="Open the material in your browser"
+                    aria-label={`Watch ${titleOf(row.item)}`}
+                    onclick={() => onWatch(row.item)}
+                  >
+                    <Icon name="play" size={13} />
+                  </button>
+                {/if}
                 {#if runningId === row.item.id}
                   {#if elapsed}
                     <span class="cd-chip cd-chip--info">

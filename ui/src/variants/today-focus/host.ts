@@ -49,7 +49,7 @@ export async function coverageOf(
   const records = (await app.recordsOf(study)) ?? [];
   if (records.length === 0) return null;
 
-  const queue = await app.run('reviews.due', {}, { tracked: false });
+  const queue = await app.reviewsDue();
   const stages = new Map<string, string[]>();
   if (queue) {
     const read = queue.data as ReviewRead;

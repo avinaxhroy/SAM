@@ -4,6 +4,7 @@
   import type { Coverage, TodayFocusProps, WhyFact } from '../../../variants/today-focus/props';
   import { coverageOf, openRecord, setAside } from '../../../variants/today-focus/host';
   import { app } from '../../../session.svelte';
+  import { openExternal } from '../../../ipc';
   import { shared } from '../../shared.svelte';
   import { durationText, todayGroup, type TodayGroupId, type TodayItem } from '../../../types';
 
@@ -149,6 +150,10 @@
     kind: focus?.item.kind ?? null,
     onOpen: () => {
       if (focus) openRecord(focus.item);
+    },
+    link: focus?.item.link ?? null,
+    onWatch: () => {
+      if (focus?.item.link) void openExternal(focus.item.link);
     },
     onDefer: () => {
       if (focus) void setAside(focus.item, app.todayFacts?.date ?? null);

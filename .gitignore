@@ -29,3 +29,6 @@ Desktop.ini
 # Logs & scratch workspace
 *.log
 /tmp
+AddComponent.png
+AssistantUI.png
+*.png

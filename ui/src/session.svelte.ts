@@ -4,14 +4,21 @@
  */
 import {
   IpcError,
+  closeWindow,
   dispatch,
+  installCli,
   openPreferences,
+  openSourceInMainWindow,
   pickDirectory,
   pickProfileFile,
   pickProfileOut,
   publishWrite,
+  rememberPlan as rememberPlanInShell,
+  sendPreference,
+  type Diagnostic,
   type DispatchResult,
   type PlanChanged,
+  type PreferenceChange,
 } from './ipc';
 import {
   applyAppearance,
@@ -20,7 +27,9 @@ import {
   type AppearanceRead,
   type ThemeRead,
 } from './appearance';
-import { durationText } from './types';
+import { styles } from './variants/styles.svelte';
+import { durationText, recordLabel } from './types';
+import { assistant, buildAppContext } from './assistant.svelte';
 import { defaultSurfaces } from './composer/defaults';
 import { widgetLabel } from './composer/widgets/registry';
 import type {
@@ -103,6 +112,12 @@ export type Sheet =
 export type PaneDraft = {
   target: SourceTarget;
   text: string;
+  /**
+   * The plan file the draft's target lives in. A record target names an id, not
+   * a file, and the editor needs the path to lint and commit — and to hand the
+   * draft back intact when the pane is closed and opened again.
+   */
+  file?: string;
   /** A revision landed while this draft was open: offer Reload, never clobber. */
   external: boolean;
 };
@@ -170,10 +185,14 @@ const PRESENT: Record<string, true> = {
   'app.palette': true,
   'app.toggleSourcePane': true,
   'app.openSettings': true,
+  'app.assistant': true,
+  'agent.cancel': true,
   'app.gettingStarted': true,
   'app.changePlan': true,
+  'app.installCli': true,
   'app.openSystem': true,
   'screen.edit': true,
+  'screen.inspector': true,
   'rail.select': true,
   'view.edit': true,
   'record.reveal': true,
@@ -198,6 +217,12 @@ export class Session {
   /** The folder an explicit open is attempting right now; null = nobody asked. */
   private opening: string | null = null;
   /**
+   * The open in flight belongs to a surface that answers its own refusal (the
+   * change-plan sheet). A folder the engine refuses is then diagnosed for the
+   * caller — never toasted over the sheet that is about to turn it into a door.
+   */
+  private quietOpen = false;
+  /**
    * The plan every piece of session state below was read for: the plan-scoped
    * state (a session, a screen draft, the undo stack) is shed when this stops
    * matching `plan` — a switch — and kept when it does not (D9's re-read of the
@@ -215,6 +240,13 @@ export class Session {
   reviewCount = $state(0);
   /** Renderer path reported by shell launch (§4.10, §9). */
   rendererPath = $state<string>('native');
+  /**
+   * True in the OS's Preferences window (§4.10). That window's whole content is
+   * the settings screen, so it has no canvas to return to and no source pane to
+   * open a file in — the two places where the screen has to ask the main window
+   * instead of acting on its own state.
+   */
+  preferences = $state(false);
 
   /** Daily facts projection from `today.view` (P2, U1). */
   todayFacts = $state<TodayFacts | null>(null);
@@ -225,6 +257,14 @@ export class Session {
   themes = $state<ThemeRead[]>([]);
   activeTheme = $state<string | null>(null);
   appearance = $state<AppearanceRead | null>(null);
+  /**
+   * The student's light/dark choice for this machine — the preference, not the
+   * mode a theme pins. `localStorage` is the store, and it is not reactive, so
+   * the value the settings switch draws lives here: reading the store directly
+   * in a `$derived` captured the value at mount and the switch said "Light"
+   * while the window was dark until the app was restarted.
+   */
+  mode = $state<'light' | 'dark'>(storedMode());
 
   // ── the screen ─────────────────────────────────────────────────────────
   selected = $state<string | null>(null);
@@ -250,6 +290,24 @@ export class Session {
   screenDraft = $state<ScreenComponent[] | null>(null);
   /** View ID from which the active screen draft was created. */
   screenDraftFor = $state<string | null>(null);
+  /** The record the composer's sidebar is editing (COMPOSER §4.8); null = screen settings. */
+  picked = $state<{ id: string; type: string } | null>(null);
+  /**
+   * The component the composer has selected: the surface key of the frame a
+   * press landed on. Volatile like `picked` — it is a place in the mode, not a
+   * fact about the plan — and it is what lets a press on a component be felt:
+   * the frame takes the selection's border and the sidebar states which
+   * component it belongs to. A row press replaces it with that record.
+   */
+  selectedSurface = $state<string | null>(null);
+  /**
+   * Whether the composer's sidebar is drawn (§4.8). Open when the mode is
+   * entered; the pane's own ✕ closes it (`screen.inspector`) and a press on a
+   * component brings it back. Volatile like `picked` — it never reaches a plan.
+   */
+  inspectorOpen = $state(true);
+  /** The composer's polite live region (§5): the sentence a screen reader hears next. */
+  live = $state('');
   /** Dry-run preview text for confirmation sheets (Appendix C.2). */
   sheetPreview = $state<string | null>(null);
   /** Parsed dry-run summary counts for confirmation sheets. */
@@ -269,6 +327,13 @@ export class Session {
   pending = $state(0);
   /** Error message from failed `system.view` read. */
   machineError = $state<string | null>(null);
+  /**
+   * The plan on disk did not load (D9's `invalid` state): the engine's own
+   * findings, kept as a list so the canvas can state the first one and offer
+   * the ways out (open the file, try again) instead of pasting raw JSON into a
+   * toast. `null` = the plan the window holds is the plan on disk.
+   */
+  planFault = $state<{ message: string; findings: Diagnostic[] } | null>(null);
 
   // ── undo (§4.8 P6) ─────────────────────────────────────────────────────
   undoStack = $state<UndoEntry[]>([]);
@@ -276,6 +341,11 @@ export class Session {
 
   /** Per-kind record lists, invalidated by every accepted revision. */
   recordCache: Record<string, RecordDoc[]> = {};
+
+  /** The review queue, shared by every panel that draws it until the next
+   *  published revision. Five screens mounting on one revision was five full
+   *  `reviews.due` reads for one answer. */
+  private reviewCache: { key: string; value: Promise<DispatchResult | null> } | null = null;
 
   types = $derived(this.views?.types ?? {});
   type = $derived<ViewsRead['types'][string] | undefined>(
@@ -312,10 +382,14 @@ export class Session {
   }
 
   // ── bootstrap contract (Appendix C.5) ──────────────────────────────────
-  /** Bootstraps plan connection and determines lifecycle phase (Appendix C.5). */
-  async boot(plan: string | null = null): Promise<void> {
+  /** Bootstraps plan connection and determines lifecycle phase (Appendix C.5).
+   *  Answers whether a plan is open when it returns: the change-plan sheet
+   *  closes on that answer, not on a string comparison of two spellings of the
+   *  same folder. */
+  async boot(plan: string | null = null): Promise<boolean> {
     this.busy = true;
     this.loadRecent();
+    let opened = false;
     try {
       const listing = await dispatch('plans', {}, { plan });
       const data = listing.data as { plansDir: string; plans: PlanRead[]; plan: string | null };
@@ -328,7 +402,7 @@ export class Session {
       // screen's own boot is exactly the plan-less case (BUILDLOG 2026-10-06).
       if (plan === null && data.plans.length !== 1) {
         await this.enterPicker(data.plans);
-        return;
+        return false;
       }
 
       // What the window is on now — an open that fails has to leave it exactly
@@ -342,9 +416,18 @@ export class Session {
         this.paths = paths.data as PathsRead;
         this.plan = this.paths.plan;
         this.revision = this.paths.revision;
-        if (this.plan) this.rememberPlan(this.plan);
         await this.load();
+        // Remembered only once the plan has loaded: a folder that merely
+        // resolved a root (an empty folder, a broken plan) is not a plan, and
+        // a failed open must not leave its candidate in the recent list — the
+        // sheet would then list the folder it is about to offer to create.
+        if (this.plan) this.rememberPlan(this.plan);
+        // The shell's memory is what survives a relaunch; the session's own
+        // list is a window memory. Written here, once the plan has read, so a
+        // refused folder never becomes the next launch's destination.
+        if (this.plan) await rememberPlanInShell(this.plan);
         this.phase = 'ready';
+        opened = this.plan !== null;
       } catch (failure) {
         // The plan root resolved but its own read did not: `load()` shed the
         // old folder's state on the way in (it is entering `load()` on a
@@ -363,14 +446,27 @@ export class Session {
           // …unless the student named the folder themselves: a typed path, a
           // picked directory or a remembered plan that is not a plan has to say
           // so, or the press reads as one that did nothing.
-          if (this.opening !== null) this.report(failure);
+          if (this.opening !== null) this.reportOpen(failure);
           // A refused *switch* is not a refused *start*: a window that already
           // has a plan stays on it — the sheet that asked is still drawn over
           // it and the engine's words are in the toast — instead of falling
           // back to the room under a plan the titlebar still names.
           if (this.plan === null) await this.enterPicker(data.plans);
         } else {
-          this.report(failure);
+          // The root resolved but its own read did not. Two readings, and the
+          // difference matters: when the window's plan is the one that failed
+          // to read, the canvas carries the fault and its way out; when an
+          // explicit open of *another* folder failed, the old plan is whole
+          // and that refusal belongs to the door that asked (the sheet), in
+          // the engine's words — the open that fails never blames the plan
+          // still open.
+          const abandoned =
+            was !== null && this.plan === was && this.opening !== null && this.opening !== was;
+          if (abandoned || this.plan === null) this.reportOpen(failure);
+          else {
+            this.diagnose(failure);
+            this.noteFault(failure);
+          }
           if (this.plan === null) this.phase = 'several';
         }
       }
@@ -380,6 +476,7 @@ export class Session {
     } finally {
       this.busy = false;
     }
+    return opened;
   }
 
   /**
@@ -388,7 +485,7 @@ export class Session {
    * for the length of the attempt, so a folder that is not a plan reports its
    * refusal instead of silently landing back on the room.
    */
-  async openPlan(plan: string): Promise<void> {
+  async openPlan(plan: string, options: { quiet?: boolean } = {}): Promise<boolean> {
     // A session belongs to the folder it was started in: switching folders
     // under it would leave a running clock on work the plan being opened has
     // never heard of, and its "Stop · log" would write the minutes into the
@@ -397,16 +494,29 @@ export class Session {
     // waits — stopping is one press, and it is the student's.
     if (this.timer) {
       this.notice(`${this.timer.item.label} is still running — stop it first`);
-      return;
+      return false;
     }
     this.busy = true;
     this.opening = plan;
+    this.quietOpen = options.quiet === true;
     try {
-      await this.boot(plan);
+      return await this.boot(plan);
     } finally {
       this.opening = null;
+      this.quietOpen = false;
       this.busy = false;
     }
+  }
+
+  /**
+   * An open that failed: the sheet that asked owns the refusal, so a quiet
+   * open is diagnosed and offered as its next door; every other door is told
+   * in the toast it has always used. Not a separate path for the engine — the
+   * same failure, told to the caller that can act on it.
+   */
+  private reportOpen(failure: unknown): void {
+    if (this.quietOpen) this.diagnose(failure);
+    else this.report(failure);
   }
 
   /**
@@ -419,6 +529,9 @@ export class Session {
    */
   private async enterPicker(plans: PlanRead[]): Promise<void> {
     this.plan = null;
+    // No plan is open, so there is no plan-on-disk fault to state: the room's
+    // own refusals live in its sentence and the toast.
+    this.planFault = null;
     this.phase = plans.length === 0 ? 'noneExists' : 'several';
     try {
       await this.loadRegistry();
@@ -468,6 +581,45 @@ export class Session {
     const plan = (created.data as { plan?: string } | undefined)?.plan ?? null;
     if (plan) await this.openPlan(plan);
     else await this.boot();
+  }
+
+  /**
+   * `plan.new` **at** a folder the student chose: the folder IS the plan, so
+   * there is no name to ask for — an empty folder becomes the blank plan, and
+   * one that already holds something is refused in the engine's own words
+   * (`config_store::empty_directory` is the rule). The change-plan sheet's
+   * door for a folder that holds no plan yet.
+   */
+  async createPlanAt(folder: string): Promise<boolean> {
+    const created = await this.run(
+      'plan.new',
+      { target: folder, preset: 'blank' },
+      { tracked: false },
+    );
+    if (!created) return false;
+    const plan = (created.data as { plan?: string })?.plan ?? null;
+    if (plan) return this.openPlan(plan);
+    return this.boot();
+  }
+
+  /**
+   * Whether `plan.new` would take this folder, asked as a dry run: the engine's
+   * own emptiness rule (`config_store::empty_directory`) is the answer, not a
+   * second guess in the page. The change-plan sheet asks before it offers
+   * *Make a new plan here* — a folder that already holds something, or a broken
+   * plan, must not be dressed as a destination.
+   *
+   * The dry run writes nothing: `plan.new` returns the destination it would use
+   * and changes no file. A refusal is kept in `lastDiagnostic`, like any quiet
+   * write the caller answers itself.
+   */
+  async canCreatePlanAt(folder: string): Promise<boolean> {
+    const probe = await this.run(
+      'plan.new',
+      { target: folder, preset: 'blank', 'dry-run': true },
+      { tracked: false, quiet: true },
+    );
+    return probe !== null && probe.ok;
   }
 
   /** The storage door (R11): where the next plan is written. `null` = the dialog
@@ -526,9 +678,14 @@ export class Session {
     }
     const views = await dispatch('views', {}, { plan: this.plan });
     this.views = views.data as ViewsRead;
+    // A load that lands is the plan on disk loading: whatever fault the window
+    // was carrying is answered (the file was fixed, or a restore moved it back).
+    this.planFault = null;
     this.today = this.views.today ?? null;
-    void this.refreshReviewCount();
-    void this.loadToday();
+    // The dashboard's own reads land before the folder sheet closes: a switch
+    // that resolved while these were still in flight left the new plan under
+    // the old plan's day until the next screen press re-read it.
+    await Promise.all([this.refreshReviewCount(), this.loadToday()]);
     this.restoreTimer();
     await this.loadRegistry();
     // The appearance is resolved from the same snapshot a screen is drawn from:
@@ -572,14 +729,23 @@ export class Session {
   }
 
   /** Refreshes pending review item count for the review destination badge (R3). */
+  /** The review queue as one read per published revision. */
+  reviewsDue(): Promise<DispatchResult | null> {
+    const key = `${this.plan ?? ''}|${this.revision ?? ''}`;
+    if (this.reviewCache?.key === key) return this.reviewCache.value;
+    const value = this.run('reviews.due', {}, { tracked: false });
+    this.reviewCache = { key, value };
+    return value;
+  }
+
   async refreshReviewCount(): Promise<void> {
     if (!this.plan) {
       this.reviewCount = 0;
       return;
     }
     try {
-      const result = await dispatch('reviews.due', {}, { plan: this.plan });
-      const queue = result.data as { due?: unknown[] } | undefined;
+      const result = await this.reviewsDue();
+      const queue = result?.data as { due?: unknown[] } | undefined;
       this.reviewCount = Array.isArray(queue?.due) ? queue.due.length : 0;
     } catch {
       this.reviewCount = 0;
@@ -746,7 +912,10 @@ export class Session {
       await this.load();
       this.phase = 'ready';
     } catch (failure) {
-      this.report(failure);
+      // Same rule as boot's own catch: the fault card is the surface for a
+      // plan that does not load, so the failure is kept, not toasted.
+      this.diagnose(failure);
+      this.noteFault(failure);
     } finally {
       this.busy = false;
     }
@@ -787,6 +956,13 @@ export class Session {
     if (!type) return [];
     const cached = this.recordCache[type];
     if (cached) return cached;
+    // The model read every kind in one projection; a later per-kind picker is
+    // a slice of that snapshot, not a second engine read.
+    if (type !== '*' && this.recordCache['*']) {
+      const slice = this.recordCache['*'].filter((record) => record.type === type);
+      this.recordCache[type] = slice;
+      return slice;
+    }
     const result = await this.run('records', { type }, { tracked: false });
     const records = ((result?.data as { records?: RecordDoc[] } | undefined)?.records ?? []);
     this.recordCache[type] = records;
@@ -835,13 +1011,45 @@ export class Session {
     const def = this.commandDef(id);
     if (def && def.effect === 'presentation') return this.present(id, params);
 
+    // The assistant's ids are the deck's own verbs in this window (§4.7's
+    // in-app door): a run's transcript has to be on screen, and the detection
+    // read IS the deck's picker — neither produces anything a silent dispatch
+    // could show. The engine keeps their read semantics for the CLI and
+    // `invoke`; this interception is the app's door, the same way the
+    // presentation table above is.
+    if (id === 'agent.run' || id === 'agent.list') {
+      await assistant.openDeck();
+      if (id === 'agent.run') {
+        const prompt = typeof params.prompt === 'string' ? params.prompt : '';
+        // The deck builds the same window snapshot its own Run sends, so the
+        // palette door and the deck door are one turn, not two. Its answer is
+        // the door's answer: a row that says "ran" while the turn was refused
+        // costs the student the prompt they typed.
+        const ran = await assistant.start(prompt, this.plan, buildAppContext(this));
+        return ran
+          ? { ok: true, destination: 'the assistant deck', available: true }
+          : {
+              ok: false,
+              destination: 'the assistant deck',
+              available: true,
+              reason: 'a turn is already running',
+            };
+      }
+      return { ok: true, destination: 'the assistant deck', available: true };
+    }
+
     this.pending += 1;
     try {
       const result = await dispatch(id, params, {
         plan: this.plan,
         ifRevision: options.ifRevision ?? null,
       });
-      this.recordCache = {};
+      // A read changes nothing: clearing the snapshot cache here — and running
+      // the write refresh below — made every `recordsOf` cost a second full
+      // engine load (and a view refresh) for the same bytes. A dry run reports
+      // a `txid` slot too (empty), so it is asked directly.
+      const wrote = result.txid !== undefined && result.dryRun !== true;
+      if (wrote) this.recordCache = {};
       if (options.tracked !== false && result.txid && result.revision) {
         this.undoStack = [
           ...this.undoStack,
@@ -855,14 +1063,20 @@ export class Session {
         this.revision = result.revision;
         await publishWrite(this.plan);
       }
-      await this.afterWrite(result.files ?? []);
+      if (wrote) await this.afterWrite(result.files ?? []);
       return result;
     } catch (failure) {
       // A refusal the caller handles itself (`quiet`): the engine's words are
       // kept where the caller reads them, and the student is not told about a
       // gate the caller is about to offer as the next step. Today's door is the
       // case: `pipeline.anchor-required` is the recall's invitation.
-      if (options.quiet) this.diagnose(failure);
+      //
+      // An open in flight is the same rule at one remove: the window is holding
+      // a *candidate* folder for the length of the attempt, so a background
+      // read a screen makes against it (`recordsOf` under a widget) is the
+      // attempt's noise, not a fault to toast over the sheet that asked. The
+      // door reports the attempt itself, in its own surface.
+      if (options.quiet || this.opening !== null) this.diagnose(failure);
       else this.report(failure);
       return null;
     } finally {
@@ -894,8 +1108,14 @@ export class Session {
   }
 
   // ── appearance (§6 Phase 7) ────────────────────────────────────────────
-  /** Fetch theme catalog and active theme ID for settings swatches. */
+  /** Resolve the active appearance; the theme **catalogue** is Settings' read,
+   *  loaded when that screen opens rather than on every boot. */
   async loadAppearance(): Promise<void> {
+    await this.resolveAppearance();
+  }
+
+  /** Fetch the theme catalogue and active theme ID for Settings' swatches. */
+  async loadThemes(): Promise<void> {
     try {
       const listing = await dispatch('theme.list', {}, { plan: this.plan });
       const data = listing.data as { themes?: ThemeRead[]; active?: string };
@@ -904,15 +1124,16 @@ export class Session {
     } catch (failure) {
       this.report(failure);
     }
-    await this.resolveAppearance();
   }
 
   /** Resolve appearance for stored mode preference and apply to document. */
   async resolveAppearance(): Promise<void> {
     try {
+      // The session's own `mode`, not a second read of `localStorage`: one
+      // value, so the switch and the resolved register cannot disagree.
       const resolved = await dispatch(
         'appearance.resolve',
-        { mode: storedMode() },
+        { mode: this.mode },
         { plan: this.plan },
       );
       const appearance = resolved.data as AppearanceRead;
@@ -924,8 +1145,35 @@ export class Session {
     }
   }
 
-  /** The machine's light/dark preference, stored where the pre-paint script reads it. */
+  /**
+   * The machine's light/dark preference, stored where the pre-paint script reads
+   * it — and handed to the window that draws the app when this one is the
+   * Preferences window, whose store no other webview shares (§4.10).
+   */
   setMode(mode: 'light' | 'dark'): void {
+    this.applyMode(mode);
+    sendPreference({ key: 'theme', value: mode });
+  }
+
+  /**
+   * One preference written in the other window (§4.10): the component designs
+   * and the interface size are the app's own store, and the Preferences window
+   * is a second webview with its own copy of it — the window that draws the
+   * components is told rather than assumed to share.
+   */
+  applyPreference(change: PreferenceChange): void {
+    if (change.key === 'component-styles') {
+      styles.adopt(change.value);
+      return;
+    }
+    if (change.key === 'theme' && (change.value === 'light' || change.value === 'dark')) {
+      this.applyMode(change.value);
+    }
+  }
+
+  /** Set the mode with no outbound message — the adopting half of `setMode`. */
+  private applyMode(mode: 'light' | 'dark'): void {
+    this.mode = mode;
     rememberMode(mode);
     void this.resolveAppearance();
   }
@@ -979,6 +1227,10 @@ export class Session {
     switch (id) {
       case 'app.palette':
         this.paletteOpen = true;
+        // One console at a time (§5: one rail, one console): the deck yields to
+        // the palette the same way the palette yields to the deck — a running
+        // turn keeps its veil and the titlebar's sparkle either way.
+        assistant.close();
         break;
       case 'app.toggleSourcePane':
         this.sourcePane = !this.sourcePane;
@@ -990,6 +1242,24 @@ export class Session {
           this.paletteOpen = false;
           this.settingsOpen = true;
         }
+        break;
+      case 'app.assistant':
+        // The assistant deck (§4.7's in-app door). Like the pencil it is a mode
+        // of the window: the palette yields, and the deck owns the rest (its
+        // own ✕ and Esc close it; a running turn keeps going if it is closed).
+        this.paletteOpen = false;
+        void assistant.toggle();
+        break;
+      case 'agent.cancel':
+        // The deck's Stop, nameable from anywhere: a palette row while a turn
+        // runs does exactly what the deck's own control does.
+        void assistant.cancel();
+        break;
+      case 'app.installCli':
+        // The bundled CLI onto the user's PATH (§4.10's machine seam): the
+        // shell runs the platform's own permission ask; the toast carries the
+        // one line the press earned.
+        await this.installCommandLineTool();
         break;
       case 'app.gettingStarted':
         // Reopen getting-started sheet (R11).
@@ -1026,6 +1296,24 @@ export class Session {
           this.beginScreenEdit();
         }
         break;
+      case 'screen.inspector':
+        // The composer's sidebar, by the pane's own ✕ (§4.8) — and the palette's
+        // row for it, which is why this is a toggle that cannot be a no-op: the
+        // pane only exists inside the mode, so asking for it from anywhere opens
+        // the mode (the pencil's own branch, settings and system closed first).
+        if (!this.screenEditing) {
+          this.settingsOpen = false;
+          this.systemOpen = false;
+          this.beginScreenEdit();
+        } else if (this.inspectorOpen) {
+          this.closeInspector();
+        } else {
+          // One right column (UI_SPEC §2.2): asking for the sidebar puts the
+          // source editor away rather than drawing a second pane beside it.
+          this.sourcePane = false;
+          this.openInspector();
+        }
+        break;
       case 'rail.select':
         // Navigating to a view closes floating sheets (D7).
         this.settingsOpen = false;
@@ -1040,6 +1328,12 @@ export class Session {
         });
         break;
       case 'record.reveal':
+        // *Edit as JSON* opens the file in the column that is already there:
+        // the record panel and the composer's sidebar give it their place
+        // instead of standing beside it (UI_SPEC §2.2, COMPOSER §4.8 — Reveal
+        // closes the pane it was pressed in).
+        this.detail = null;
+        if (this.screenEditing) this.closeInspector();
         this.sourcePane = true;
         if (typeof params.id === 'string') {
           this.draft = null;
@@ -1051,7 +1345,15 @@ export class Session {
         const id = typeof params.id === 'string' ? params.id : null;
         const type = typeof params.type === 'string' ? params.type : (this.outcome?.type ?? '');
         if (!id) break;
-        this.detail = this.detail?.id === id ? null : { id, type };
+        // A row press asks for the record's own pane; the source editor yields
+        // the column rather than leaving the press unanswered (and the same
+        // row, pressed again, then closes the panel as it always has).
+        if (this.sourcePane) {
+          this.sourcePane = false;
+          this.detail = { id, type };
+        } else {
+          this.detail = this.detail?.id === id ? null : { id, type };
+        }
         if (this.detail) this.selection = id;
         break;
       }
@@ -1063,6 +1365,9 @@ export class Session {
 
   /** Open a sheet and fetch dry-run preview if destructive (Appendix C.2). */
   async openSheet(sheet: Sheet): Promise<void> {
+    // One floating layer at a time (§11): a sheet takes the floor from the
+    // assistant deck, the same as it takes it from the palette.
+    assistant.close();
     this.sheetPreview = null;
     this.lastDiagnostic = null;
     this.sheet = sheet;
@@ -1130,9 +1435,40 @@ export class Session {
 
   /** Open a file directly in the source pane (D3). */
   openFile(file: string): void {
+    // The Preferences window is the settings screen and nothing else (§4.10):
+    // it has no source pane, so a file door there asks the main window — the
+    // one that draws the pane — to open the file and come forward. Setting
+    // `sourcePane` here would be a press that changes nothing a reader sees.
+    if (this.preferences) {
+      void openSourceInMainWindow(file).then((opened) => {
+        if (!opened) this.notice('the editor opens in the main SAM window');
+      });
+      return;
+    }
     this.paneFile = file;
     this.draft = null;
+    // The source editor takes the right column; a record panel left from the
+    // screen being left does not hide behind it and return on close.
+    this.detail = null;
     this.sourcePane = true;
+  }
+
+  /**
+   * Leave Settings (D7). In the canvas the screen closes and the rail takes the
+   * keyboard back; the Preferences window *is* the screen, so Done closes it.
+   */
+  closeSettings(): void {
+    if (this.preferences) {
+      closeWindow();
+      return;
+    }
+    this.settingsOpen = false;
+    requestAnimationFrame(() => {
+      const current =
+        document.querySelector<HTMLElement>('.cd-nav [data-view][aria-current="page"]') ??
+        document.querySelector<HTMLElement>('.cd-nav [data-view]');
+      current?.focus();
+    });
   }
 
   async selectView(view: string): Promise<void> {
@@ -1140,6 +1476,8 @@ export class Session {
     if (view !== this.selected && this.screenEditing) this.endScreenEdit();
     this.selected = view;
     this.selection = null;
+    this.picked = null;
+    this.selectedSurface = null;
     await this.refresh(view);
   }
 
@@ -1184,6 +1522,12 @@ export class Session {
 
   /** Enter screen edit mode, seeding working draft from resolved components. */
   beginScreenEdit(): void {
+    this.picked = null;
+    this.selectedSurface = null;
+    // The mode draws its own sidebar in the right column, so the source editor
+    // yields it (one pane at a time).
+    this.sourcePane = false;
+    this.inspectorOpen = true;
     if (this.screenDraft === null || this.screenDraftFor !== this.outcome?.view) {
       this.screenDraft = this.screenComponents.map((component) => ({ ...component }));
       this.screenDraftFor = this.outcome?.view ?? this.selected;
@@ -1196,6 +1540,104 @@ export class Session {
     this.screenEditing = false;
     this.screenDraft = null;
     this.screenDraftFor = null;
+    this.picked = null;
+    this.selectedSurface = null;
+    // The pane is open again for the next entry: a mode that came back without
+    // its sidebar would look like the sidebar had been removed.
+    this.inspectorOpen = true;
+  }
+
+  // ── the composer's sidebar (COMPOSER §4.8) ─────────────────────────────
+  /**
+   * Put the pane back. A press on a component (§4.3) and a press on a record
+   * row (`pickRecord`) both come through here: the sidebar is where the mode's
+   * recording side lives, so touching the canvas asks for it.
+   */
+  openInspector(): void {
+    if (this.inspectorOpen) return;
+    this.inspectorOpen = true;
+    this.announce('Editing settings open.');
+  }
+
+  /**
+   * Put the pane away, by the pane's own ✕ (`screen.inspector`). Closing it is
+   * not leaving the mode — the screen stays editable — and it drops the pick, so
+   * the pane comes back on the screen's own settings rather than on whatever
+   * record or component was last read, which is what a component press asks for.
+   */
+  closeInspector(): void {
+    this.picked = null;
+    this.selectedSurface = null;
+    if (!this.inspectorOpen) return;
+    this.inspectorOpen = false;
+    this.announce('Editing settings closed. Press a component to bring them back.');
+  }
+  /**
+   * Say one sentence to the polite live region the composer owns (§5). Cleared
+   * first so the same sentence twice still announces twice.
+   */
+  announce(text: string): void {
+    this.live = '';
+    queueMicrotask(() => (this.live = text));
+  }
+
+  /** The kind a record id belongs to — the fallback when a canvas row cannot say its own. */
+  private async kindOfRecord(id: string): Promise<string | null> {
+    for (const name of Object.keys(this.types)) {
+      const records = await this.recordsOf(name);
+      if (records.some((record) => record.id === id)) return name;
+    }
+    return null;
+  }
+
+  /**
+   * The record the sidebar edits. A pressed canvas row names its kind when it
+   * can (`data-record-type`); otherwise the kind is resolved from the record's
+   * own id, because the plan is the only authority on what a record is.
+   */
+  async pickRecord(id: string, type: string | null = null): Promise<void> {
+    const kind =
+      type !== null && this.types[type] !== undefined ? type : await this.kindOfRecord(id);
+    if (!kind) return;
+    this.picked = { id, type: kind };
+    // A row is the more specific subject: picking one moves the pane off a
+    // selected component and onto that record.
+    this.selectedSurface = null;
+    // A press on a row is a press on the canvas's recording side: a row picked
+    // while the pane was away brings it back (§4.8), or the student would have
+    // pressed a control that does nothing. The source editor yields the column.
+    this.sourcePane = false;
+    this.inspectorOpen = true;
+    const record = (this.recordCache[kind] ?? []).find((candidate) => candidate.id === id);
+    this.announce(record ? `Editing ${recordLabel(record)}` : 'Record ready to edit');
+  }
+
+  /**
+   * Select a component (§4.3/§4.8): the frame takes the selection's border and
+   * the sidebar moves off the screen's acts to *this component* — its name, its
+   * design, its width and its place. It writes nothing: the frame keeps every
+   * gesture it owns, and this pane never mirrors them.
+   */
+  pickSurface(surface: string): void {
+    if (!this.screenEditing || surface.length === 0) return;
+    this.picked = null;
+    this.selectedSurface = surface;
+    this.inspectorOpen = true;
+    this.announce(`${widgetLabel(surface)} selected.`);
+  }
+
+  /** Back to the screen's own settings (the sidebar's default, §4.8). */
+  unpickRecord(): void {
+    if (this.picked === null && this.selectedSurface === null) return;
+    this.picked = null;
+    this.selectedSurface = null;
+    this.announce('Back to the screen’s own settings.');
+  }
+
+  /** A press on the stack's own gap, and the Escape rung under a pick: both
+      put the pane back on the screen without leaving the mode. */
+  clearPick(): void {
+    this.unpickRecord();
   }
 
   /**
@@ -1226,6 +1668,15 @@ export class Session {
       this.screenDraft = previous;
       this.screenDraftFor = previous === null ? null : name;
       return;
+    }
+    // The selected component may be the one just taken off the screen: the
+    // sidebar falls back to the screen's own settings rather than naming a
+    // frame that is no longer there.
+    if (
+      this.selectedSurface !== null &&
+      !components.some((component) => component.surface === this.selectedSurface)
+    ) {
+      this.selectedSurface = null;
     }
     this.notice(receiptFor(before, components), {
       label: 'Undo',
@@ -1308,8 +1759,18 @@ export class Session {
   // ── external change (D9, §4.8 P6) ──────────────────────────────────────
   /** Handle external plan change notification (D9, §4.8 P6). */
   handlePlanChanged(event: PlanChanged): void {
+    // A publication from a folder this window has left is not news about this
+    // plan: the switch's own load is the truth, and letting the old watcher
+    // through would diagnose the window against a folder it no longer holds.
+    if (this.plan === null || event.plan !== this.plan) return;
     if (event.valid === false) {
-      this.notice(`the plan on disk does not load — ${event.message ?? 'run SAM --configcheck'}`);
+      // The watcher could not even read the folder — the fault card carries
+      // the sentence, and its *Try again* is the next press. No toast: the
+      // canvas is already saying it, and the two would talk over each other.
+      this.planFault = {
+        message: event.message ?? 'the plan could not be read',
+        findings: [],
+      };
       return;
     }
     if (!event.revision || event.revision === this.revision) return;
@@ -1321,10 +1782,66 @@ export class Session {
   }
 
   // ── small shared verbs ─────────────────────────────────────────────────
+  /**
+   * Link the bundled `sam` onto this machine's PATH (`app.installCli`): the
+   * one action that makes a terminal — or an independent agent — find the CLI
+   * the app already carries. The engine plans; the shell runs the platform's
+   * own permission ask; the toast says where the link landed.
+   */
+  async installCommandLineTool(): Promise<void> {
+    try {
+      const result = await installCli();
+      const where = result.path ?? 'your PATH';
+      if (result.action === 'already') {
+        this.notice(`\`sam\` is already on your PATH at ${where}`);
+      } else {
+        this.notice(`Installed \`sam\` at ${where} — terminals and agents can run it now`);
+      }
+    } catch (failure) {
+      this.report(failure);
+    }
+  }
+
   report(failure: unknown): void {
     this.diagnose(failure);
     this.toast = this.lastDiagnostic;
     this.toastAction = null;
+  }
+
+  /**
+   * Keep the plan's own fault: a load that answered with findings is the plan
+   * on disk not loading (D9's `invalid` state), and the canvas draws the way
+   * out of it (App.svelte's fault card). Set only where a load is decided —
+   * boot, reload, the watcher's invalid frame — never by a refused write, so a
+   * usage refusal does not dress up as a broken plan. Cleared by the next load
+   * that succeeds.
+   */
+  private noteFault(failure: unknown): void {
+    this.planFault = {
+      message:
+        failure instanceof IpcError
+          ? failure.diagnostic.message
+          : String(failure instanceof Error ? failure.message : failure),
+      findings: failure instanceof IpcError ? failure.diagnostics : [],
+    };
+  }
+
+  /** The finding a recovery action can open: the first one standing on a plan file. */
+  get faultFinding(): Diagnostic | null {
+    return (
+      this.planFault?.findings.find((finding) => finding.path.startsWith('content/')) ?? null
+    );
+  }
+
+  /** Open the file a finding stands on in the source pane — the repair door. */
+  openFaultFile(): void {
+    const finding = this.faultFinding;
+    if (finding) this.openFile(finding.path.split('#')[0]);
+  }
+
+  /** Re-read the plan on disk: the fault card's *Try again* (D9). */
+  retryPlan(): void {
+    void this.reload();
   }
 
   /**

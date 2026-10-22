@@ -1,0 +1,925 @@
+/*
+  The assistant deck, the assistant island, and the working veil (§4.7's
+  in-app door; UI_SPEC "The assistant deck", "The assistant island").
+
+  **The deck** is the window's second console: a card on the floor, centred,
+  that rises from the bottom edge — the geometry the timer dock already taught
+  the window (`--dock-h`), so a running timer and an open deck never collide.
+  Its material is the rail's at panel strength: `--pane` over the backdrop blur
+  with `--rim-glass`, so while a turn runs the veil's washes read *through* the
+  panel instead of being covered by a sheet. The head is the sparkle, the name,
+  the two pills that decide the turn (the model, the CLI) and the close mark;
+  the prompt is one well with a single circular act.
+
+  **The island** is the run's state as chrome, at the head of the room — *not*
+  in this card. One capsule of ink — black in the light theme, white in the
+  dark one (the register's `--ink`/`--ink-inv` pair), so it stands out over
+  whatever screen is behind it — that says what is happening in a word and
+  *grows* on the press into the process (the live line and the turn's own
+  rows). The pill and the process are one surface, so the morph never changes
+  colour in the middle: Apple's Dynamic Island is the reading, and
+  `shell/Island.svelte` is the whole of it.
+
+  While a turn runs, the room dims behind `.cd-ai-veil`: the scrim and a faint
+  grain on the layer itself, then two seamless sweeps of the assistant's own
+  hues — the lilac and the rose the sparkle and the send are mixed from, two
+  steps either side — each a periodic gradient that tiles, so its position
+  sweep can carry it across the window without ever uncovering it. The sweep is
+  the owner's correction taken literally: a gradient that sits there is a skin,
+  and the same gradient travelling is work in progress. The blur is a `filter`
+  on the layer, never `backdrop-filter` on the app (round-4 ruling). Not the
+  four course rooms — four hues across a whole window are a rainbow.
+
+  Every value is a token (§5 design.no.literals; `tools/tokenlint.mjs`).
+*/
+
+.cd-deck {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--space-2xl) + var(--dock-h, 0px) + var(--space-xs));
+  transform: translateX(-50%);
+  width: min(var(--deck-w), calc(100% - 2 * var(--gutter)));
+  /* The console family: the palette's layer is 90, and this is its sibling. */
+  z-index: 90;
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  /* `--glass` is a 5% veil, which is the whole material on a 60px column over
+     the gutter — but this panel is 640px wide and spends the idle state over
+     the canvas, where a 5% veil lets the card behind it read straight through
+     the deck. `--pane` is the register's own answer ("a surface laid over a
+     wash so words stay legible"), and it keeps the two things the rail's glass
+     is made of: the backdrop blur and the rim. */
+  background: var(--pane);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-pop), var(--rim-glass);
+  animation: cd-deck-in var(--dur-2) var(--ease-pop);
+}
+
+/* The blur is declared in the fold-proof shape `chrome.css` Correction 2
+   established: two adjacent declarations collapse to the prefixed one in the
+   build and the standard property then never paints, so the standard goes in
+   its own `@supports` block. */
+.cd-deck {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+}
+@supports (backdrop-filter: blur(0px)) {
+  .cd-deck {
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  }
+}
+
+@keyframes cd-deck-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ── the island: the run's state at the window's head ───────────────────── */
+
+.cd-ai-island {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--titlebar-h) + var(--space-xs));
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  justify-content: center;
+  width: min(560px, calc(100% - 2 * var(--gutter)));
+  /* The wrapper is a box and nothing else: only the surface takes the pointer,
+     so the room under it is never blocked by empty space. */
+  pointer-events: none;
+}
+
+/* One capsule of ink, black in the light room and white in the dark one (the
+   register's own `--ink`/`--ink-inv` pair), and it *grows* on the press the
+   way a Dynamic Island does: the collapsed pill and the process are the same
+   surface, so there is never a seam or a colour change in the middle of the
+   morph. Both ends of the grow are the capsule's own measure, applied by the
+   component (`width`/`height`, in px): the pill's width and the head of the
+   room's, the pill's height and the process's. A ceiling in the stylesheet
+   spent the curve moving through space the panel did not use — the panel
+   arrived early, and the close waited on the ceiling, which is a press that
+   reads as stuck. The corner relaxes from a pill to a card while the box
+   travels, all on the one motion token. */
+.cd-ai-island__surface {
+  pointer-events: auto;
+  box-sizing: border-box;
+  width: auto;
+  height: var(--hit);
+  max-width: 100%;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--ink-inv);
+  box-shadow: var(--sh-ink);
+  overflow: hidden;
+  transition:
+    width var(--dur-expand) var(--ease-pop),
+    height var(--dur-expand) var(--ease-pop),
+    border-radius var(--dur-expand) var(--ease-pop);
+}
+
+.cd-ai-island__surface.is-open {
+  border-radius: var(--r-card);
+}
+
+/* The handle is the whole closed pill: the one word, and the press. */
+.cd-ai-island__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  height: var(--hit);
+  padding: 0 var(--space-md) 0 var(--space-sm);
+  border: 0;
+  background: none;
+  color: var(--ink-inv);
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cd-ai-island__toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.cd-ai-island__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-ai-island__chev {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  color: color-mix(in oklab, var(--ink-inv) 55%, transparent);
+  transition: transform var(--dur-2) var(--ease-pop);
+}
+
+.cd-ai-island__toggle[aria-expanded='true'] .cd-ai-island__chev {
+  transform: rotate(180deg);
+}
+
+/* The dot carries the assistant's accent, and while a turn runs it *travels*:
+   the smallest honest "work is on" the window can draw. */
+.cd-ai-island__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background-image: var(--ai-accent);
+  background-size: 200% 200%;
+}
+
+.cd-ai-island__surface.is-work .cd-ai-island__dot,
+.cd-ai-island__surface.is-work .cd-ai-island__pulse {
+  animation: cd-ai-flow var(--dur-flow) var(--ease-drift) infinite alternate;
+}
+
+/* The grown part. It lives inside the ink surface, so its text is drawn on
+   ink: the register's inverse holds the contrast, and the muted and danger
+   tones are mixes of that inverse (and, for danger, the state chip's deep
+   rose) — the same pair works on black-in-light and white-in-dark, so the
+   island needs no second palette.
+
+   Its width is the panel's (the component writes the head of the room's own
+   measure in px), not the surface's animating box: the process is laid out once
+   at the width it will be read at, so the rows never re-wrap frame by frame
+   while the capsule grows around them. It reveals from the left as the surface
+   widens, and its height is what the surface's target is measured from. */
+.cd-ai-island__content {
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm) var(--space-sm);
+  /* The box is still the pill when this mounts: hold the words back until the
+     surface has left it, or the first row shows through the 32px window. */
+  animation: cd-island-open var(--dur-2) var(--ease-pop) 90ms both;
+}
+
+@keyframes cd-island-open {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-2xs)));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cd-ai-island__who {
+  margin: 0;
+  font-size: var(--text-2xs);
+  color: color-mix(in oklab, var(--ink-inv) 62%, transparent);
+}
+
+/* The live line: the newest tool call (the argument a human would name it by),
+   else the tail of the newest prose. */
+.cd-ai-island__now {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-inv);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cd-ai-island__pulse {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background-image: var(--ai-accent);
+  background-size: 200% 200%;
+}
+
+.cd-ai-island__log {
+  display: grid;
+  gap: var(--space-2xs);
+  max-height: calc(var(--deck-max-h) - var(--space-4xl));
+  overflow-y: auto;
+}
+
+.cd-ai-island__row {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--ink-inv);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cd-ai-island__row--note,
+.cd-ai-island__row--tool {
+  color: color-mix(in oklab, var(--ink-inv) 64%, transparent);
+}
+
+.cd-ai-island__row--error {
+  color: color-mix(in oklab, var(--on-overdue) 38%, var(--ink-inv));
+}
+
+.cd-ai-island__row--tool {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.cd-ai-island__toolname {
+  font-weight: 600;
+  color: var(--ink-inv);
+}
+
+.cd-ai-island__toolwhat {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--track-code);
+  overflow-wrap: anywhere;
+}
+
+.cd-ai-island__toolfile {
+  margin-left: auto;
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--text-2xs);
+  color: color-mix(in oklab, var(--ink-inv) 48%, transparent);
+}
+
+.cd-ai-island__quiet {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: color-mix(in oklab, var(--ink-inv) 64%, transparent);
+}
+
+/* One control, one meaning: it puts the *process* away. While the turn runs
+   there is nothing to put away (Stop lives in the deck), so it is only drawn
+   once the turn is over — and it is what takes the island off the screen. */
+.cd-ai-island__put {
+  justify-self: start;
+  height: var(--hit);
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-inv);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink-inv) 28%, transparent);
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cd-ai-island__put:hover {
+  background: color-mix(in oklab, var(--ink-inv) 10%, transparent);
+}
+
+.cd-ai-island__put:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* ── the head: name, the two pills ──────────────────────────────────────── */
+
+.cd-deck__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.cd-deck__mark {
+  display: inline-flex;
+  color: var(--ai-mark);
+}
+
+.cd-deck__title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: var(--track-title);
+  color: var(--ink);
+}
+
+.cd-deck__spacer {
+  flex: 1;
+}
+
+.cd-deck__pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  height: var(--chip-h);
+  padding: 0 var(--space-md) 0 var(--space-xs);
+  border-radius: var(--r-pill);
+  background: var(--well);
+  color: var(--ink-2);
+  min-width: 0;
+}
+
+.cd-deck__pill.is-disabled {
+  opacity: 0.55;
+}
+
+.cd-deck__select {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: 0;
+  max-width: calc(var(--deck-w) / 4);
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.cd-deck__select:focus-visible {
+  outline: none;
+  color: var(--ink);
+}
+
+.cd-deck__chev {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.cd-deck__custom {
+  height: var(--chip-h);
+  width: calc(var(--deck-w) / 4);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--well);
+  padding: 0 var(--space-xs);
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--text-2xs);
+  color: var(--ink);
+}
+
+.cd-deck__close {
+  margin-left: var(--space-3xs);
+  background: var(--well);
+}
+
+/* The close mark sits on a well of its own (the reference's soft disc), so it
+   deepens a rung under the pointer — the hover the bare `.cd-iconbtn` gets for
+   free would be invisible against its own resting fill. */
+.cd-deck__close:hover {
+  background: var(--well-2);
+  color: var(--ink);
+}
+
+/* ── the receipt ────────────────────────────────────────────────────────── */
+
+.cd-deck__receipt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--rule);
+}
+
+.cd-deck__receipttext {
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+
+.cd-deck__txid {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+.cd-deck__receipt .cd-pill {
+  margin-left: auto;
+}
+
+/* ── the prompt well and the one circular act ───────────────────────────── */
+
+.cd-deck__fieldwrap {
+  position: relative;
+}
+
+.cd-deck__field {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 68px;
+  resize: none;
+  border: 0;
+  /* The well the system gives an input on a card. Over the pane it holds two
+     readings at once: inset while the deck floats over the canvas, and the
+     *lighter* slab — the reference's own field — while the veil is up. */
+  background: var(--well);
+  border-radius: var(--r-item);
+  /* Room for the circle at the field's foot. */
+  padding: var(--space-sm) calc(var(--hit) + var(--space-md)) var(--space-md) var(--space-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--ink);
+  transition: background var(--dur-1) var(--ease);
+}
+
+.cd-deck__field::placeholder {
+  color: var(--ink-3);
+}
+
+/* Focus is ink, read as a ring (§2: the system's one focus language), and a
+   2px ring is not an object — the one-dark-object reading is untouched. */
+.cd-deck__field:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.cd-deck__send {
+  position: absolute;
+  right: var(--space-xs);
+  bottom: var(--space-xs);
+  width: var(--hit);
+  height: var(--hit);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-pill);
+  /* Twice its own box, so the same gradient can travel across the circle
+     while a turn runs — the stop is where the deck says "work is on". */
+  background-image: var(--ai-accent);
+  background-size: 200% 200%;
+  color: var(--ink-inv);
+  box-shadow: var(--sh-1);
+  cursor: pointer;
+  transition:
+    transform var(--dur-1) var(--ease),
+    opacity var(--dur-1) var(--ease);
+}
+
+.cd-deck__send.is-stop {
+  animation: cd-ai-flow var(--dur-flow) var(--ease-drift) infinite alternate;
+}
+
+.cd-deck__send:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.cd-deck__send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cd-deck__send:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* The accent's travel: one gradient sliding across its own box, ping-pong so
+   the loop closes where it opened and never snaps. Every travelling accent in
+   the assistant's chrome shares it — the island's dot and pulse, the stop. */
+@keyframes cd-ai-flow {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 100% 100%;
+  }
+}
+
+/* ── the model picker: the pill opens a searchable listbox ─────────────── */
+
+.cd-mpick {
+  position: relative;
+}
+
+.cd-mpick__b {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  max-width: calc(var(--deck-w) / 4);
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cd-mpick__b:disabled {
+  cursor: default;
+}
+
+.cd-mpick__b:focus-visible {
+  outline: none;
+  color: var(--ink);
+}
+
+.cd-mpick__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-mpick__card {
+  position: absolute;
+  top: calc(100% + var(--space-2xs));
+  right: 0;
+  z-index: 5;
+  width: min(340px, calc(var(--deck-w) - 2 * var(--space-md)));
+  display: grid;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  background: var(--card);
+  border-radius: var(--r-item);
+  box-shadow: var(--sh-pop);
+}
+
+.cd-mpick__q {
+  height: var(--hit);
+  border: 0;
+  border-radius: var(--r-mini);
+  background: var(--well);
+  padding: 0 var(--space-xs);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--ink);
+}
+
+.cd-mpick__q::placeholder {
+  color: var(--ink-3);
+}
+
+.cd-mpick__q:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.cd-mpick__list {
+  display: grid;
+  gap: 1px;
+  max-height: 264px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cd-mpick__mark {
+  padding: var(--space-2xs) var(--space-xs) 0;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.cd-mpick__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  min-height: var(--hit);
+  padding: var(--space-2xs) var(--space-xs);
+  border: 0;
+  border-radius: var(--r-mini);
+  background: none;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.cd-mpick__row[data-on] {
+  background: var(--well);
+  color: var(--ink);
+}
+
+.cd-mpick__row:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.cd-mpick__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-mpick__id,
+.cd-mpick__note {
+  margin-left: auto;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+.cd-mpick__none {
+  margin: 0;
+  padding: var(--space-sm) var(--space-xs);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+.cd-mpick__hint {
+  margin: 0;
+  min-height: var(--chip-h);
+  padding: var(--space-2xs) var(--space-xs) var(--space-3xs);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+/* ── the blocked states ─────────────────────────────────────────────────── */
+
+.cd-deck__blocked {
+  display: grid;
+  gap: var(--space-2xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--rule);
+}
+
+.cd-deck__blocked .cd-hint {
+  margin: 0;
+}
+
+.cd-deck__installs {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2xs) 0 0;
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.cd-deck__installs li {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: baseline;
+}
+
+.cd-deck__installname {
+  min-width: 140px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.cd-deck__installs .cd-hint {
+  font-size: var(--text-2xs);
+}
+
+/* ── the working veil: the room, dimmed and lit ─────────────────────────── */
+
+.cd-ai-veil {
+  position: absolute;
+  top: var(--titlebar-h);
+  inset-inline: 0;
+  bottom: 0;
+  /* The scrim rung: above the canvas, below the island and the deck. The
+     titlebar (30) is outside this area entirely, so the live sparkle never
+     dims. Three floors, in the order they are seen: the scrim is this
+     element's own background, the material is the weave, and the light is the
+     field or the sweeps — each one a child with its own rung, so the light can
+     never be mistaken for the surface it is falling on. */
+  z-index: 40;
+  background-color: var(--ai-veil);
+  overflow: hidden;
+  pointer-events: auto;
+  /* The room dims and the light comes up, rather than both arriving at once. */
+  animation: cd-ai-veil-in var(--dur-expand) var(--ease) both;
+}
+
+/* The degraded path has no light to make up for the dim, so it scrims less. */
+.cd-ai-veil[data-field="fallback"] {
+  background-color: var(--ai-veil-bare);
+}
+
+@keyframes cd-ai-veil-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Layer 1 — the material. Still: a noise surface painted once, no animation, no
+   transform, nothing the field can drag along with it. The light crosses this,
+   which is what makes the light look like it is falling on something rather
+   than sliding over the window. The tile carries its own light tooth and its
+   own shadow, so it needs no blend mode against the theme — and a full-window
+   blend is not free: it re-composites everything behind it, every frame. */
+.cd-ai-veil__weave {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* With a field running the material is a sampler read inside the shader, and
+   the light multiplies by it, so it shows only where it is lit. Drawing the
+   canvas as well would put a second copy over the whole window — which is
+   exactly the dust this layer is not for. */
+.cd-ai-veil[data-field="live"] .cd-ai-veil__weave {
+  opacity: 0;
+}
+/* Without a field there is no light to reveal the surface, so the surface is
+   all a reader would see — and a burlap at full strength is not a veil. It is
+   the same tile at a whisper, and it is a different number from `--ai-texture`
+   because that one modulates light and this one is an opacity. */
+.cd-ai-veil__weave {
+  opacity: var(--ai-mesh);
+}
+
+/* Layer 2 — the light (shell/veil.ts): one full-window fragment shader, the
+   room's light while a turn runs. It sits above the scrim and the material and
+   below the island and the deck, draws nothing of its own geometry, and takes
+   no pointer — the layer keeps the click that dismisses the deck. Everything
+   that makes the veil load-bearing (the dim, the material, the pointer set, the
+   reduced-motion still) survives the canvas being absent, which is what
+   `[data-field]` is about. */
+.cd-ai-veil__field {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ── without a field: the two sweeps ────────────────────────────────────────
+   The veil before the shader, and the veil after it on a machine that will not
+   run one — no WebGL2, a link failure, a token that will not resolve to pixels,
+   a lost context. Same family as the field's ramp, same promise that the room
+   is moving while the work is: a lilac→rose band and an iris→peach band, each a
+   periodic gradient at a different angle, each tiling so its position sweep can
+   carry it the full width of the room without ever uncovering it. */
+.cd-ai-veil[data-field="fallback"]::before {
+  content: "";
+  position: absolute;
+  inset: -55%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 30%,
+    var(--ai-field-a) 44%,
+    var(--ai-field-c) 52%,
+    var(--ai-field-b) 62%,
+    transparent 76%,
+    transparent 100%
+  );
+  background-size: 240% 240%;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  filter: blur(var(--ai-blur)) saturate(var(--ai-wash-sat));
+  opacity: var(--ai-wash-blend);
+  z-index: 2;
+  animation: cd-ai-sweep var(--dur-travel) var(--ease-drift) infinite;
+}
+
+.cd-ai-veil[data-field="fallback"]::after {
+  content: "";
+  position: absolute;
+  inset: -55%;
+  background: linear-gradient(
+    205deg,
+    transparent 0%,
+    transparent 34%,
+    var(--ai-field-b) 46%,
+    var(--ai-field-c) 54%,
+    var(--ai-field-a) 64%,
+    transparent 78%,
+    transparent 100%
+  );
+  background-size: 280% 280%;
+  background-position: 100% 100%;
+  background-repeat: repeat;
+  filter: blur(var(--ai-blur)) saturate(var(--ai-wash-sat));
+  opacity: calc(var(--ai-wash-blend) * 0.6);
+  z-index: 2;
+  animation: cd-ai-sweep-opposite var(--dur-travel) var(--ease-drift) infinite;
+}
+
+@keyframes cd-ai-sweep {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes cd-ai-sweep-opposite {
+  from {
+    background-position: 100% 100%;
+  }
+  to {
+    background-position: 0% 0%;
+  }
+}
+
+/* ── the titlebar's live sparkle ────────────────────────────────────────── */
+
+.cd-iconbtn.is-working {
+  position: relative;
+}
+
+.cd-iconbtn.is-working::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--on-info);
+  animation: cd-ai-pulse var(--dur-loop) var(--ease) infinite;
+}
+
+@keyframes cd-ai-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-deck,
+  .cd-ai-island__surface,
+  .cd-ai-island__content {
+    animation: none;
+  }
+  .cd-ai-island__surface {
+    transition: none;
+  }
+  .cd-ai-veil,
+  .cd-ai-veil[data-field="fallback"]::before,
+  .cd-ai-veil[data-field="fallback"]::after,
+  .cd-deck__send.is-stop,
+  .cd-ai-island__surface.is-work .cd-ai-island__dot,
+  .cd-ai-island__surface.is-work .cd-ai-island__pulse,
+  .cd-iconbtn.is-working::after {
+    animation: none;
+  }
+}

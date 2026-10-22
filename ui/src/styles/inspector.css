@@ -1,0 +1,249 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAM · THE COMPOSER'S SIDEBAR (COMPOSER §4.8)
+
+   The pane edit mode's recording side lives in: the screen's own acts while
+   nothing is picked, one record's fields once a canvas row was pressed. It
+   takes the detail pane's column and its material — 360px, full height, its
+   own scroll — and the frame's own acts (drag, design arrows, width, remove)
+   stay on the frame, so nothing here mirrors them.
+
+   The pane's two states share one skeleton: a **head** that says what is being
+   edited (the subject's own glyph on its room's wash, its name, its one-line
+   standing), then the **acts** — a card of rows, not a heap of filled pills.
+   A row is the app's quietest control and its most legible: the act's glyph in
+   its own tile, the verb, the sentence that says what the verb means, and a
+   chevron where the press opens a sheet rather than doing the thing in place.
+   The sub-line is not decoration: the row used to be a bare verb ("Rename…"),
+   which made the student read a list of labels and guess at the consequence.
+
+   A destructive act keeps the readable red on the chip wash — the pair the
+   register measured at 8.18:1 — and never the filled `--chip-overdue` pill,
+   whose `--ink-inv` words come out at about 1.2:1.
+
+   Same floors as the composer: every value resolves through the token register
+   (D17, `tools/tokenlint.mjs`), no filled slab — the pane is a quiet column,
+   and the screen's one dark object belongs to the canvas — and motion is
+   `--dur-1`, hover and press only.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cmp-inspector {
+  width: calc(360px * var(--ui-s));
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(24px * var(--ui-s)) calc(20px * var(--ui-s)) calc(32px * var(--ui-s));
+  background: var(--card);
+  box-shadow: var(--sh-1);
+  display: grid;
+  align-content: start;
+  gap: calc(20px * var(--ui-s));
+  z-index: 10;
+}
+
+/* A live region a script shows and hides: `display` on these species would
+   out-rank the UA's [hidden] rule, so the attribute is made to win. */
+.cmp-inspector [hidden] { display: none !important; }
+
+/* ── the head ─────────────────────────────────────────────────────────────
+   One block per state, and it is the pane's whole orientation: the subject's
+   glyph on its room's wash at the left, its name, and its standing under it.
+   The hairline is the pane's only rule at full strength — it is what separates
+   "what I am editing" from "what I can do to it". */
+.cmp-insp__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: calc(16px * var(--ui-s));
+  border-bottom: 1px solid var(--rule);
+}
+.cmp-insp__eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+/* The head's controls, at its right edge — named rather than matched as
+   `:last-child`, because the two states carry a different number of them (the
+   record state has back and ✕, the screen state only ✕), and "whatever is
+   last" would be a different object in each. */
+.cmp-insp__headacts { flex: none; display: flex; align-items: center; gap: var(--space-3xs); }
+.cmp-insp__who { min-width: 0; display: grid; gap: var(--space-3xs); }
+/* The record state's two controls are children of the head's third column, so
+   the column is addressed by the element rather than by a class the record
+   state would have to remember to wear. */
+.cmp-insp__head > .cmp-insp__headacts { align-self: center; }
+
+.cmp-insp__title {
+  font-size: calc(17px * var(--ui-s));
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-title);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.cmp-insp__sub {
+  font-size: calc(13px * var(--ui-s));
+  color: var(--ink-3);
+}
+.cmp-insp__note {
+  margin: 0;
+  font-size: calc(13px * var(--ui-s));
+  color: var(--ink-2);
+  max-width: 44ch;
+}
+
+/* ── the acts ─────────────────────────────────────────────────────────────
+   A card of rows. Each row is the app's own quiet row: no fill at rest — the
+   card's hairline is the container and the well arrives on hover, which is what
+   tells the pointer the row is the control (rather than a pill's fill saying it
+   before it is asked). The row is two lines, so it stands above the `--hit`
+   floor rather than at it: a verb and its consequence do not fit on one. */
+.cmp-insp__group {
+  display: grid;
+  gap: var(--space-3xs);
+  padding: var(--space-2xs);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-tile);
+}
+
+/* The pane's own section label, inside a group: the eyebrow register the head
+   used before it carried a tile. */
+.cmp-insp__eyebrow + .cmp-insp__state { margin-top: var(--space-3xs); }
+.cmp-insp__group > .cmp-insp__eyebrow { padding: var(--space-2xs) var(--space-xs) 0; }
+
+.cmp-insp__act { margin: 0; }
+
+.cmp-insp__act,
+.cmp-insp__state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-xs) var(--space-xs);
+  border-radius: var(--r-item);
+  text-align: left;
+  color: var(--ink);
+  transition: background var(--dur-1) var(--ease);
+}
+.cmp-insp__act:hover { background: var(--well); }
+.cmp-insp__act[disabled] { opacity: 0.45; pointer-events: none; }
+
+.cmp-insp__acttext { min-width: 0; display: grid; gap: 1px; }
+.cmp-insp__actname {
+  font-size: calc(13px * var(--ui-s));
+  font-weight: var(--weight-label);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.cmp-insp__actsay {
+  font-size: calc(12px * var(--ui-s));
+  line-height: 1.4;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+/* The chevron: the row's own admission that the press opens a sheet rather
+   than doing the thing in place. `--ink-4` is the register's non-text tone —
+   it is a mark, and the row's words are the sentence. */
+.cmp-insp__go { flex: none; color: var(--ink-4); }
+
+/* ── what is picked ───────────────────────────────────────────────────────
+   A statement, not a control: the pane is asked "why are there no fields
+   here?" by every student who has not yet learned that a row is pickable. It
+   wears the well rather than the card, so it reads as a fact about the canvas
+   and never as an act the pane is offering. */
+.cmp-insp__state {
+  grid-template-columns: auto minmax(0, 1fr);
+  background: var(--well);
+}
+.cmp-insp__state .cmp-insp__actname { font-weight: var(--weight-label); }
+.cmp-insp__state .cmp-insp__actsay { color: var(--ink-2); }
+
+/* A destructive act is the readable red on the chip's own wash (`--on-overdue`
+   on `--chip-overdue`), which is the pair the token register measured at
+   8.18:1 — not the filled pill whose words disappear. */
+.cmp-insp__act--danger { color: var(--on-overdue); }
+.cmp-insp__act--danger .cmp-insp__actname { color: var(--on-overdue); }
+.cmp-insp__act--danger:hover { background: var(--chip-overdue); }
+.cmp-insp__act--danger .cmp-insp__go { color: var(--on-overdue); }
+
+/* ── the tip ──────────────────────────────────────────────────────────────
+   What the mode can do that the pane cannot show: the gesture that lives on
+   the canvas. One sentence at the pane's own inset — no plate, because it is
+   no longer a pair of instructions the pane is hiding, only the one thing
+   nothing else on this screen says. */
+.cmp-insp__tip {
+  margin: 0;
+  padding: 0 var(--space-2xs);
+  font-size: calc(12px * var(--ui-s));
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+/* ── the wait ─────────────────────────────────────────────────────────────
+   A stub per field, shaped like the form coming: the label line, then the
+   value line. The system's own skeleton does the sweeping (`components.css`
+   §21b), so reduced motion stills it with every other bar in the window. */
+.cmp-insp__skel { display: grid; gap: calc(18px * var(--ui-s)); }
+.cmp-insp__skelfield { display: grid; gap: var(--space-xs); }
+
+/* ── the record's fields ─────────────────────────────────────────────────
+   One block per field: the plan's own name for the column in the app's caps,
+   the app's own control for its type (`FieldControl` — the same family the
+   table's cells use), then the write's own state at the value it was about.
+   The dashed rule is the list layer's separator (`.cd-task`), so a long form
+   reads as a form and not as a heap. */
+.cmp-insp__fields { display: grid; }
+.cmp-insp__field { display: grid; gap: var(--space-2xs); min-width: 0; padding-top: calc(14px * var(--ui-s)); }
+.cmp-insp__field:first-child { padding-top: 0; }
+.cmp-insp__field + .cmp-insp__field { border-top: 1px dashed var(--rule); }
+.cmp-insp__label {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+.cmp-insp__ctl {
+  display: grid;
+  justify-items: stretch;
+  gap: var(--space-3xs);
+  min-width: 0;
+}
+
+/* The record's editable values are the table's own cells (`FieldControl`), but
+   this is a form and not a row: a cell here wears the well it would only take
+   on hover — there is no row under it saying "this is a surface" — it takes the
+   pane's full width, and it wraps rather than ellipsising, because a title read
+   in a form is read whole. A derived column is the same cell without the well,
+   which is the whole difference the student needs to see: one can be edited,
+   the other is the plan's own arithmetic. */
+.cmp-insp__ctl .cd-cell--edit {
+  width: 100%;
+  height: auto;
+  min-height: var(--hit);
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--well);
+  border-radius: var(--r-mini);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.cmp-insp__ctl .cd-cell--edit:hover { background: var(--well-2); }
+.cmp-insp__state { font-size: calc(12px * var(--ui-s)); color: var(--ink-3); }
+.cmp-insp__state--bad { color: var(--on-risk); }
+.cmp-insp__dev {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: var(--ui-meta);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmp-inspector [class*='cd-'] { transition: none; }
+  .cmp-insp__act,
+  .cmp-insp__state { transition: none; }
+}

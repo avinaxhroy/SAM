@@ -45,7 +45,25 @@
       variant?: 'table' | 'list';
     } = $props();
 
-    const rows = $derived(rowsOf(outcome));
+    /**
+     * A table draws a window, not the whole plan. A 10k-row projection is
+     * ~500k DOM nodes once every cell, tool and icon is counted; the first
+     * page keeps the screen responsive, and "Show more" reveals the rest in
+     * bounded steps. The engine has already resolved and ordered every row —
+     * this is a render bound, not a query limit.
+     */
+    const PAGE = 250;
+    const allRows = $derived(rowsOf(outcome));
+    let rowLimit = $state(PAGE);
+    let limitedFor = $state('');
+    $effect(() => {
+      const key = `${outcome.view}:${app.revision ?? ''}`;
+      if (limitedFor === key) return;
+      limitedFor = key;
+      rowLimit = PAGE;
+    });
+    const rows = $derived(allRows.slice(0, rowLimit));
+    const moreRows = $derived(Math.max(0, allRows.length - rows.length));
 
     /** Group advisory warnings by diagnostic code for summary presentation (D2). */
     const findings = $derived.by(() => {
@@ -561,6 +579,14 @@
          live inside whichever of the three the student kept. -->
     <Variant surface="record-table" {...panel} />
 
+    {#if moreRows > 0}
+      <div class="cd-table-more">
+        <button class="cd-pill cd-pill--quiet cd-pill--sm" type="button" onclick={() => (rowLimit += PAGE)}>
+          Show {Math.min(moreRows, PAGE)} more of {allRows.length}
+        </button>
+      </div>
+    {/if}
+
     {#if facts.length === 0}
       <!-- "nothing matches" and "nothing exists" are different states, and the
            fix differs: one is a filter, the other is a record. -->
@@ -611,5 +637,11 @@
   /* The count line's own `· saving…` (the head's, not the design's). */
   .cd-hint {
     color: var(--ink-3);
+  }
+
+  .cd-table-more {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-sm) 0 var(--space-md);
   }
 </style>

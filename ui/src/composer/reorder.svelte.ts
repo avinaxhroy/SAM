@@ -9,6 +9,15 @@ export type ReorderHost = {
   stack: () => HTMLElement | null;
   scroller: () => HTMLElement | null;
   drop: (from: number, to: number) => void;
+  /**
+   * A press that never became a drag — the frame's own *click*. The engine is
+   * the only thing that knows the difference, because the threshold is its
+   * (COMPOSER §4.4): a press that crossed it is a reorder, and a press that did
+   * not is the student asking the screen for something (the sidebar, §4.8). The
+   * frame's place in the stack travels with the press, so the screen can select
+   * the component that was pressed rather than only open the pane.
+   */
+  tap?: (index: number) => void;
 };
 
 /** Pointer movement threshold in pixels before drag activates (§4.4). */
@@ -116,6 +125,13 @@ export class Reorder {
         const to = slot > from ? slot - 1 : slot;
         if (to !== from) this.host.drop(from, to);
       }
+    } else if (this.pending) {
+      // The press never crossed the threshold: it is a click on a component, and
+      // the stack decides what a click means (the composer selects that
+      // component, §4.8). Reported *before* `release` clears the state that
+      // tells the two apart — and only while a press is actually in flight, so a
+      // stray pointerup cannot be read as one.
+      this.host.tap?.(this.pending.index);
     }
     this.release(true);
   };

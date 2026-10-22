@@ -21,6 +21,7 @@
   import Variant from '../../../variants/Variant.svelte';
   import type { Props as TodayQueueProps } from '../../../variants/today-queue/props';
   import { app } from '../../../session.svelte';
+  import { openExternal } from '../../../ipc';
   import { shared } from '../../shared.svelte';
   import { todayGroup, type TodayGroupId } from '../../../types';
 
@@ -71,6 +72,9 @@
     onLog: (item) => void app.logTime(item, shared.targetMin),
     onAdd: (item) => void app.addToToday(item.id),
     onRemove: (item) => void app.removeFromToday(item.id),
+    onWatch: (item) => {
+      if (item.link) void openExternal(item.link);
+    },
     onAddToToday: () => void app.openSheet({ kind: 'today.add' }),
   });
 </script>

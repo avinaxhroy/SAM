@@ -3,6 +3,11 @@
  * Dispatches `{ id, params }` over Tauri IPC in desktop builds or HTTP in browser harnesses.
  */
 
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { safeUrl } from './safeUrl';
+
 /** One dispatch result, exactly as `sam invoke` reports it. */
 export type DispatchResult = {
   ok: boolean;
@@ -26,22 +31,42 @@ export type Diagnostic = {
   path: string;
   line: number | null;
   message: string;
+  /** Present on validator findings (`error` / `warning`); absent elsewhere. */
+  severity?: string;
 };
 
 export class IpcError extends Error {
   readonly diagnostic: Diagnostic;
+  /**
+   * Every finding the engine answered with. A refused write and a plan that
+   * does not load both arrive as a *list* of diagnostics (§4.9: each finding
+   * carries its own path and line); the first is the head the one-line form
+   * shows, and the rest belong to the surface that can list them — never to a
+   * toast that would print raw JSON at the student.
+   */
+  readonly diagnostics: Diagnostic[];
 
-  constructor(diagnostic: Diagnostic) {
-    super(diagnostic.message);
+  constructor(diagnostics: Diagnostic | Diagnostic[]) {
+    const list = Array.isArray(diagnostics) ? diagnostics : [diagnostics];
+    const primary = list[0];
+    super(primary.message);
     this.name = 'IpcError';
-    this.diagnostic = diagnostic;
+    this.diagnostic = primary;
+    this.diagnostics = list;
   }
 
-  /** The one-line form an inline error, a toast and a pane marker all show. */
+  /**
+   * The one-line form an inline error, a toast and a pane marker all show. When
+   * the engine answered with a list, the line says how many findings wait
+   * behind it — the surface that can show them all is the fault card, not this
+   * sentence.
+   */
   get text(): string {
-    return this.diagnostic.line === null
-      ? `${this.diagnostic.message} [${this.diagnostic.code}]`
-      : `${this.diagnostic.path}:${this.diagnostic.line} — ${this.diagnostic.message} [${this.diagnostic.code}]`;
+    const one =
+      this.diagnostic.line === null
+        ? `${this.diagnostic.message} [${this.diagnostic.code}]`
+        : `${this.diagnostic.path}:${this.diagnostic.line} — ${this.diagnostic.message} [${this.diagnostic.code}]`;
+    return this.diagnostics.length > 1 ? `${one} (+${this.diagnostics.length - 1} more)` : one;
   }
 }
 
@@ -53,8 +78,39 @@ type TauriBridge = {
 
 type WebBridge = { endpoint: string };
 
+/**
+ * The shell no longer injects the full `__TAURI__` API (969 KB parsed before
+ * the app bundle). It injects `__TAURI_INTERNALS__`; these four members are all
+ * the page uses, so the bridge below is built from the tree-shaken API package
+ * and installed under the old name, keeping every call site and `transport()`
+ * unchanged.
+ */
+const tauriScope = globalThis as {
+  __TAURI__?: TauriBridge;
+  __TAURI_INTERNALS__?: unknown;
+  __SAM_WEB__?: WebBridge;
+};
+if (tauriScope.__TAURI_INTERNALS__ && !tauriScope.__TAURI__) {
+  tauriScope.__TAURI__ = {
+    core: {
+      invoke: (command, args) => invoke(command, args),
+    },
+    event: {
+      listen: (name, handler) =>
+        listen(name, (event) => handler({ payload: event.payload })),
+    },
+    window: {
+      getCurrentWindow: () => ({
+        close: () => {
+          void getCurrentWindow().close();
+        },
+      }),
+    },
+  };
+}
+
 function scope(): { __TAURI__?: TauriBridge; __SAM_WEB__?: WebBridge } {
-  return globalThis as { __TAURI__?: TauriBridge; __SAM_WEB__?: WebBridge };
+  return tauriScope;
 }
 
 /**
@@ -97,7 +153,7 @@ export async function dispatch(
         ifRevision: options.ifRevision ?? null,
       })
       .catch((error: unknown) => {
-        throw new IpcError(parseDiagnostic(error));
+        throw new IpcError(parseDiagnostics(error));
       });
     return raw as DispatchResult;
   }
@@ -125,36 +181,67 @@ export async function dispatch(
 /**
  * Engine errors reach the frontend as JSON text inside whatever the transport
  * wraps them in (a Rust `Err(String)`, an HTTP body, an exception message).
- * Rather than trusting the wrapper, find the first JSON object in it — and fall
- * back to the raw text so nothing is ever swallowed.
+ * A refused plan carries **every finding**, one JSON object per line, so the
+ * reader walks the text for balanced objects instead of trusting one slice of
+ * it: the whole diagnostics list is what lets a fault card say "12 findings"
+ * rather than a toast pasting the raw stream at the student. Anything that is
+ * not an engine object falls back to the raw text so nothing is swallowed.
  */
-function parseDiagnostic(error: unknown): Diagnostic {
+function parseDiagnostics(error: unknown): Diagnostic[] {
   const text =
     typeof error === 'string'
       ? error
       : error instanceof Error
         ? error.message
         : String(error);
-  const start = text.indexOf('{');
-  if (start >= 0) {
-    const end = text.lastIndexOf('}');
-    if (end > start) {
-      try {
-        const parsed = JSON.parse(text.slice(start, end + 1)) as Partial<Diagnostic>;
-        if (typeof parsed.message === 'string') {
-          return {
-            code: parsed.code ?? 'ipc.error',
-            path: parsed.path ?? '-',
-            line: parsed.line ?? null,
-            message: parsed.message,
-          };
-        }
-      } catch {
-        /* not JSON — fall through to the raw text */
+  const found: Diagnostic[] = [];
+  let index = 0;
+  while (index < text.length) {
+    const start = text.indexOf('{', index);
+    if (start < 0) break;
+    const end = balancedObjectEnd(text, start);
+    if (end < 0) break;
+    index = end;
+    try {
+      const parsed = JSON.parse(text.slice(start, end)) as Partial<Diagnostic>;
+      if (typeof parsed.message === 'string') {
+        found.push({
+          code: parsed.code ?? 'ipc.error',
+          path: parsed.path ?? '-',
+          line: parsed.line ?? null,
+          message: parsed.message,
+          ...(typeof parsed.severity === 'string' ? { severity: parsed.severity } : {}),
+        });
       }
+    } catch {
+      /* a brace that is not JSON — keep walking */
     }
   }
-  return { code: 'ipc.error', path: '-', line: null, message: text };
+  if (found.length > 0) return found;
+  return [{ code: 'ipc.error', path: '-', line: null, message: text }];
+}
+
+/** The index just past the JSON object opening at `start`, or -1 when it never closes. */
+function balancedObjectEnd(text: string, start: number): number {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let at = start; at < text.length; at += 1) {
+    const character = text[at];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') inString = true;
+    else if (character === '{') depth += 1;
+    else if (character === '}') {
+      depth -= 1;
+      if (depth === 0) return at + 1;
+    }
+  }
+  return -1;
 }
 
 /** The OS label the shell reports, or the page's floor when there is no shell. */
@@ -194,6 +281,31 @@ export async function shellInfo(): Promise<ShellInfo | null> {
     }
   }
   return null;
+}
+
+/**
+ * Hand one `http(s)` address to the platform's browser (§4.10).
+ *
+ * The shell owns the act: the packaged app installs no opener plugin, so a
+ * page's `window.open` or a `target=_blank` anchor has nothing to catch it and
+ * a link drawn that way is a button that does nothing. The browser harness has
+ * no shell, so it uses the browser's own tab. The scheme is checked here as well
+ * as in the shell: every link press funnels through this one function.
+ */
+export async function openExternal(url: string): Promise<boolean> {
+  const text = url.trim();
+  if (!safeUrl(text)) return false;
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri) {
+    try {
+      await tauri.core.invoke('open_external', { url: text });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  window.open(text, '_blank', 'noopener');
+  return true;
 }
 
 /** One plan-changed publication (D9): the revision, or why it is not valid. */
@@ -275,6 +387,124 @@ export function onMenuChoice(handler: (id: string) => void): () => void {
   return () => {};
 }
 
+/**
+ * A file asked for by the Preferences window (§4.10). Preferences is a window
+ * whose whole content is Settings, so it has no source pane: its file doors ask
+ * the shell, and the shell hands the path to the window that draws the pane.
+ * Main window only — the shell addresses `main` explicitly.
+ */
+export function onOpenSource(handler: (file: string) => void): () => void {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri?.event) {
+    let unlisten: (() => void) | null = null;
+    void tauri.event
+      .listen('open-source', (event) => handler(String(event.payload ?? '')))
+      .then((off) => {
+        unlisten = off;
+      });
+    return () => unlisten?.();
+  }
+  return () => {};
+}
+
+/**
+ * Open a file in the **main** window's source pane. Returns `true` when a live
+ * window took it; `false` means there is no shell here (the browser renders
+ * Settings in the canvas, where `openFile`'s own state is enough).
+ */
+export async function openSourceInMainWindow(file: string): Promise<boolean> {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri) {
+    try {
+      return (await tauri.core.invoke('open_source', { file })) === true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/** Close this window — the Preferences window's *Done* (§4.10). */
+export function closeWindow(): void {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri?.window) {
+    tauri.window.getCurrentWindow().close();
+  }
+}
+
+/**
+ * One app preference written in one window and needed by the other. The keys are
+ * the stores that live in the page rather than the plan: `component-styles`
+ * carries the per-component designs and the interface size as one snapshot,
+ * `theme` carries the light/dark choice.
+ */
+export type PreferenceChange = { key: 'component-styles' | 'theme'; value: string };
+
+const PREFERENCE_CHANNEL = 'sam.preferences';
+
+/**
+ * Hand a preference to the window that draws it (§4.10). Preferences live in the
+ * webview's own `localStorage`, and the Preferences window is a **second
+ * webview** with its own copy of every store: a design chosen there changed the
+ * copy in that window and nothing else, so the app behind kept the old design
+ * until a relaunch re-read the store. Desktop crosses on the shell's event bus;
+ * a browser window has no shell, so the same message goes over a
+ * `BroadcastChannel` — the harness can drive it, and two web windows agree too.
+ */
+export function sendPreference(change: PreferenceChange): void {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri) {
+    void tauri.core.invoke('publish_preference', change).catch(() => {
+      /* the window that made the choice still has it */
+    });
+    return;
+  }
+  if (transport() === 'web') {
+    try {
+      const channel = new BroadcastChannel(PREFERENCE_CHANNEL);
+      channel.postMessage(change);
+      channel.close();
+    } catch {
+      /* no channel here: this window's own store already has the choice */
+    }
+  }
+}
+
+/** The other transport of `sendPreference` — the window that draws it listens. */
+export function onPreferenceChange(handler: (change: PreferenceChange) => void): () => void {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri?.event) {
+    let unlisten: (() => void) | null = null;
+    void tauri.event
+      .listen('preference-changed', (event) => {
+        const payload = event.payload as PreferenceChange | null;
+        if (payload && typeof payload.key === 'string' && typeof payload.value === 'string') {
+          handler(payload);
+        }
+      })
+      .then((off) => {
+        unlisten = off;
+      });
+    return () => unlisten?.();
+  }
+  if (transport() === 'web') {
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel(PREFERENCE_CHANNEL);
+      channel.onmessage = (event) => {
+        const payload = event.data as PreferenceChange | null;
+        if (payload && typeof payload.key === 'string' && typeof payload.value === 'string') {
+          handler(payload);
+        }
+      };
+    } catch {
+      channel = null;
+    }
+    return () => channel?.close();
+  }
+  return () => {};
+}
+
 /** A second launch's arguments, routed to the running window (§4.10). */
 export function onLaunch(handler: (argv: string[]) => void): () => void {
   const tauri = scope().__TAURI__;
@@ -300,6 +530,180 @@ export async function watchPlan(plan: string): Promise<void> {
       /* the app still re-reads on its own writes */
     }
   }
+}
+
+/** Stop watching a plan the window has left (`app.plan` became null). */
+export async function unwatchPlan(): Promise<void> {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri) {
+    try {
+      await tauri.core.invoke('unwatch_plan');
+    } catch {
+      /* the next watch replaces it anyway */
+    }
+  }
+}
+
+/**
+ * Tell the shell which plan folder this window loaded (R11). The shell reports
+ * it back in `shell_info` on the next launch, so the app opens the folder the
+ * student was working in rather than whichever plan the plans root resolves.
+ * Called once the plan has read, never for a folder that only resolved a root.
+ */
+export async function rememberPlan(plan: string): Promise<void> {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri) {
+    try {
+      await tauri.core.invoke('remember_plan', { plan });
+    } catch {
+      /* the folder list still remembers it for this window's session */
+    }
+  }
+}
+
+/**
+ * One event from the running agent turn (§4.7 through the deck), exactly as
+ * `sam_core::agent::AgentEvent` serializes it, tagged with the run id the
+ * start call returned. `exit` is the last event of every run.
+ */
+export type AgentEvent =
+  | { runId: string; kind: 'started'; agent: string; bin: string }
+  | { runId: string; kind: 'session'; id: string }
+  | { runId: string; kind: 'text' | 'thinking'; text: string }
+  | { runId: string; kind: 'tool'; id: string; name: string; summary: string }
+  | { runId: string; kind: 'file'; path: string }
+  | { runId: string; kind: 'toolResult'; toolUseId: string; isError: boolean; content: string }
+  | { runId: string; kind: 'result'; summary: string }
+  | { runId: string; kind: 'error'; message: string }
+  | { runId: string; kind: 'log' | 'stderr'; line: string }
+  | { runId: string; kind: 'exit'; code: number };
+
+export type AgentStart = { runId: string; agent: string; plan: string };
+
+/** One model row from `agent.models` (`source` says live list vs hints). */
+export type AgentModel = { id: string; label: string };
+export type AgentModels = { agent: string; source: 'live' | 'fallback' | 'profile' | 'none'; models: AgentModel[] };
+
+/**
+ * What one CLI says its models are. Asked lazily — `opencode models` and
+ * `agy models` are network round-trips — and answered from the adapter's
+ * documented hints when the CLI has no listing command.
+ */
+export async function agentModels(agentId: string | null): Promise<AgentModels> {
+  const result = await dispatch('agent.models', agentId ? { agent: agentId } : {});
+  return result.data as AgentModels;
+}
+
+/**
+ * Start one assistant turn. Desktop only on purpose: the CLIs it drives live
+ * on the user's machine, which a browser harness cannot reach — the deck
+ * renders the honest "runs in the desktop app" blocker instead of failing late.
+ */
+export async function agentStart(options: {
+  agentId?: string | null;
+  model?: string | null;
+  resume?: string | null;
+  context?: string | null;
+  prompt: string;
+  plan: string;
+}): Promise<AgentStart> {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri) {
+    try {
+      return (await tauri.core.invoke('agent_start', {
+        agentId: options.agentId ?? null,
+        model: options.model ?? null,
+        resume: options.resume ?? null,
+        context: options.context ?? null,
+        prompt: options.prompt,
+        plan: options.plan,
+      })) as AgentStart;
+    } catch (error) {
+      throw new IpcError(parseDiagnostics(error));
+    }
+  }
+  throw new IpcError({
+    code: 'ipc.unavailable',
+    path: '-',
+    line: null,
+    message: 'the assistant runs the coding agents installed on this machine — open the desktop app',
+  });
+}
+
+/** Stop the running turn (the deck's Stop). `false` = nothing was running. */
+export async function agentCancel(): Promise<boolean> {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri) {
+    try {
+      return (await tauri.core.invoke('agent_cancel')) === true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/** One line of the CLI-install answer (`install_cli`). */
+export type CliInstall = {
+  installed: boolean;
+  needsElevation?: boolean;
+  elevated?: boolean;
+  action?: string;
+  path?: string;
+  target?: string | null;
+  command?: string;
+};
+
+/**
+ * Put the bundled `sam` on this machine's PATH (§4.10's machine seam): the
+ * View menu's item and the palette's `app.installCli` row. The desktop's shell
+ * owns the platform's own permission ask; a browser has nothing to link.
+ */
+export async function installCli(remove = false): Promise<CliInstall> {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri) {
+    try {
+      return (await tauri.core.invoke('install_cli', { remove })) as CliInstall;
+    } catch (error) {
+      throw new IpcError(parseDiagnostics(error));
+    }
+  }
+  throw new IpcError({
+    code: 'ipc.unavailable',
+    path: '-',
+    line: null,
+    message: 'installing the command line tool needs the desktop app',
+  });
+}
+
+/** Subscribe to the running turn's event stream. Desktop only, like `agentStart`. */
+export function onAgentEvent(handler: (event: AgentEvent) => void): () => void {
+  const tauri = scope().__TAURI__;
+  if (transport() === 'tauri' && tauri?.event) {
+    let unlisten: (() => void) | null = null;
+    // A subscription that is torn down before `listen` resolves must not leak:
+    // the returned `off` would be stored after the fact and never called, and
+    // the next mount would handle every event twice.
+    let cancelled = false;
+    void tauri.event
+      .listen('agent-event', (event) => handler(event.payload as AgentEvent))
+      .then((off) => {
+        if (cancelled) off();
+        else unlisten = off;
+      })
+      .catch((error) => {
+        // A stream that never subscribes would leave every run at "Working"
+        // with no rows and no exit: say it in the console the window already
+        // keeps, rather than failing silently.
+        console.warn('the agent event stream could not subscribe', error);
+      });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+      unlisten = null;
+    };
+  }
+  return () => {};
 }
 
 /**

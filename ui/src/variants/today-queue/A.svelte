@@ -27,6 +27,7 @@
     onLog,
     onAdd,
     onRemove,
+    onWatch,
     onAddToToday,
   }: Props = $props();
 
@@ -160,6 +161,17 @@
           >
             <Icon name={lift.group === 'committed' ? 'close' : 'plus'} size={14} />
           </button>
+          {#if lift.item.link}
+            <button
+              class="cd-iconbtn"
+              type="button"
+              title="Open the material in your browser"
+              aria-label={`Watch ${titleOf(lift.item)}`}
+              onclick={() => onWatch(lift.item)}
+            >
+              <Icon name="play" size={14} />
+            </button>
+          {/if}
           <button
             class="cd-pill cd-pill--quiet cd-pill--sm"
             type="button"
@@ -213,6 +225,8 @@
             class="tqa-block"
             type="button"
             data-state={stateOf(row.group)}
+            data-record-id={row.item.id}
+            data-record-type={row.item.kind}
             style="--h: {blockH(row)}px"
             aria-label="Bring up {reading(row)}{runningId === row.item.id ? ' — a session is running on it' : ''}"
             onclick={() => (liftedId = row.item.id)}

@@ -5,6 +5,10 @@
 # §9's version rule: the tauri family is pinned to v2 — v3 exists only as an
 # alpha tag and is not a target. `Cargo.lock` carries the exact patch releases,
 # so the build is reproducible without restating them here.
+#
+# `@tauri-apps/api` in `ui/package.json` must share this crate's major.minor, or
+# `tauri build` aborts before it compiles anything ("Found version mismatched
+# Tauri packages"). It is pinned exactly for that reason: 2.11.x here, 2.11.x there.
 
 [package]
 name = "sam-shell"

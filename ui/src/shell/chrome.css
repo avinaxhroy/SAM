@@ -89,11 +89,11 @@
       from their content too.
 
    So the override is deleted rather than repaired. The grid is the system's, the
-   four tracks are the app's, and the system's §27 restack now reaches a live
-   declaration. */
+   tracks are the app's (rail · canvas · the one right pane), and the system's §27
+   restack now reaches a live declaration. */
 .cd-body { min-height: 0; }
 .cd-body > .cd-scroller { min-width: 0; min-height: 0; }
-.cd-body > .src-pane, .cd-body > .cd-detail { min-width: 0; }
+.cd-body > .src-pane, .cd-body > .cd-detailpane, .cd-body > .cmp-inspector { min-width: 0; }
 
 /* Below the system's 760px restack the two panes are no longer side columns —
    there is no side left — so they join the single column as rows under the
@@ -103,11 +103,14 @@
    size, not a reduced product. */
 @media (max-width: 760px) {
   .cd-body { grid-template-columns: minmax(0, 1fr) !important; }
-  .cd-body > .src-pane, .cd-body > .cd-detail { max-height: 46vh; overflow: auto; }
+  .cd-body > .src-pane, .cd-body > .cd-detailpane, .cd-body > .cmp-inspector { max-height: 46vh; overflow: auto; }
   /* The detail pane is the thing a row opens *instead of* navigating away, so at
      narrow it earns the one floating layer the system allows and the canvas
-     stays behind it. */
-  .cd-body > .cd-detail {
+     stays behind it. The composer's sidebar (COMPOSER §4.8) takes the same
+     treatment for the same reason: it is where edit mode's recording side
+     lives, and capability is never made unreachable (D13). */
+  .cd-body > .cd-detailpane,
+  .cd-body > .cmp-inspector {
     position: absolute;
     inset: var(--titlebar-h) 0 0 auto;
     width: min(420px, 100%);

@@ -13,6 +13,7 @@
     onOpen,
     onClose,
     onTopic,
+    onWatch,
     onNewCourse,
     onNewTopic,
   }: CoursesProps = $props();
@@ -64,19 +65,36 @@
           <h2 class="crsa-chaplabel">{chapter.label}</h2>
           <div class="cd-card crsa-topics">
             {#each chapter.topics as topic (topic.id)}
-              <button
-                class="crsa-topic"
-                type="button"
-                data-next={topic.id === opened.nextId ? '1' : undefined}
-                data-command="record.panel"
-                data-placement="recordTable.rowContext"
-                aria-label={`${topic.label} — ${topic.stage}`}
-                onclick={() => onTopic(topic.id)}
-              >
-                <span class="crsa-tick" data-s={topic.state} aria-hidden="true"><i></i></span>
-                <span class="crsa-topic__t">{topic.label}</span>
-                <span class="crsa-topic__m num">{topic.minutes === null ? '' : `${topic.minutes} min`}</span>
-              </button>
+              <div class="crsa-topicrow">
+                <button
+                  class="crsa-topic"
+                  type="button"
+                  data-next={topic.id === opened.nextId ? '1' : undefined}
+                  data-command="record.panel"
+                  data-placement="recordTable.rowContext"
+                  data-record-id={topic.id}
+                  data-record-type={topic.type}
+                  aria-label={`${topic.label} — ${topic.stage}`}
+                  onclick={() => onTopic(topic.id)}
+                >
+                  <span class="crsa-tick" data-s={topic.state} aria-hidden="true"><i></i></span>
+                  <span class="crsa-topic__t">{topic.label}</span>
+                  <span class="crsa-topic__m num">{topic.minutes === null ? '' : `${topic.minutes} min`}</span>
+                </button>
+                {#if topic.link}
+                  <!-- The topic's own material, one press from the row: drawn
+                       only when the plan names one. -->
+                  <button
+                    class="cd-iconbtn crsa-watch"
+                    type="button"
+                    title="Open the material in your browser"
+                    aria-label={`Watch ${topic.label}`}
+                    onclick={() => onWatch(topic.id)}
+                  >
+                    <Icon name="play" size={13} />
+                  </button>
+                {/if}
+              </div>
             {/each}
           </div>
         </section>
@@ -259,7 +277,19 @@
     text-align: left;
     transition: background var(--dur-1) var(--ease);
   }
-  .crsa-topic + .crsa-topic {
+  .crsa-topicrow {
+    display: flex;
+    align-items: stretch;
+  }
+  .crsa-topicrow > .crsa-topic {
+    flex: 1;
+    min-width: 0;
+  }
+  .crsa-watch {
+    align-self: center;
+    margin-inline-end: var(--space-md);
+  }
+  .crsa-topicrow + .crsa-topicrow .crsa-topic {
     border-top: 1px dashed var(--rule-strong);
   }
   .crsa-topic:hover {

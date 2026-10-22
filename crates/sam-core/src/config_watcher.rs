@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::config_store::{ConfigStoreError, load};
+use crate::config_store::ConfigStoreError;
 use crate::diagnostic::Diagnostic;
 use crate::resolved_config::ResolvedConfig;
 
@@ -125,10 +125,25 @@ fn run<F>(
         // The directory may have been deleted and recreated, and the file set
         // may have changed — re-attach before loading.
         attach(&mut watcher, &plan_root);
+        // Cheap no-op drop first: the revision fingerprint reads and hashes the
+        // source bytes, while a full load also parses, decodes and validates
+        // every record. A save that changed no byte (an FSEvents replay, an
+        // editor's write-twice) stops here.
+        let raw = crate::config_store::raw_revision(&plan_root);
+        if last_revision.as_deref() == Some(raw.as_str()) {
+            continue;
+        }
         let event = load_event(&plan_root);
+        // A commit renames one file at a time (§4.6 step 4), so a load that
+        // lands in that window sees a mixed plan. That is a transaction in
+        // flight, not a broken plan: the last good publication stands until the
+        // commit finishes and the journal is gone. A crashed journal is bounded
+        // by `transaction_in_flight`'s age check, so it cannot hide a real
+        // failure for long.
+        if event.config.is_none() && transaction_in_flight(&plan_root) {
+            continue;
+        }
         let key = event_key(&event);
-        // Content-hash no-op drop (ble-scale-sync): a byte-identical save and
-        // an FSEvents replay both publish nothing.
         if last_revision.as_deref() == Some(key.as_str()) {
             continue;
         }
@@ -137,8 +152,44 @@ fn run<F>(
     }
 }
 
+/// Whether a multi-file commit is between `journal(prepared)` and finalize.
+/// A journal file exists for exactly that span, and the age bound keeps a
+/// crashed one from suppressing publications forever.
+fn transaction_in_flight(plan_root: &Path) -> bool {
+    let journal = plan_root.join(".sam").join("tx").join("journal");
+    let Ok(entries) = std::fs::read_dir(journal) else {
+        return false;
+    };
+    let now = std::time::SystemTime::now();
+    entries.flatten().any(|entry| {
+        let path = entry.path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("json") {
+            return false;
+        }
+        entry
+            .metadata()
+            .ok()
+            .and_then(|metadata| metadata.modified().ok())
+            .and_then(|modified| now.duration_since(modified).ok())
+            .map(|age| age.as_secs() < 60)
+            .unwrap_or(false)
+    })
+}
+
 fn load_event(plan_root: &Path) -> WatchEvent {
-    match load(plan_root, "explicit") {
+    let resources = match crate::resources::paths() {
+        Ok(paths) => paths.resources_dir,
+        Err(message) => {
+            return WatchEvent {
+                config: None,
+                diagnostics: vec![Diagnostic::error("watch.load-failed", plan_root.to_string_lossy().to_string(), message)],
+            };
+        }
+    };
+    // The watcher only needs the published revision and the diagnostics, never
+    // the raw source bytes a writer retains; a read-only load is the same
+    // validation without copying every file into memory.
+    match crate::config_store::load_readonly(plan_root, "explicit", &resources) {
         Ok(config) => WatchEvent {
             config: Some(config),
             diagnostics: Vec::new(),
@@ -158,11 +209,26 @@ fn load_event(plan_root: &Path) -> WatchEvent {
     }
 }
 
-/// What "unchanged" means: a published revision, or the shape of the failure.
+/// What "unchanged" means: a published revision, or the *shape of the
+/// failure*. A count was the first pass's key, and two different broken states
+/// with the same number of findings were "unchanged" — during an agent's screen
+/// work that is exactly the sequence a reader sees, and the second set of
+/// diagnostics was never published.
 fn event_key(event: &WatchEvent) -> String {
     match &event.config {
         Some(config) => config.revision.clone(),
-        None => format!("invalid-{}", event.diagnostics.len()),
+        None => {
+            use std::hash::{Hash, Hasher};
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            event.diagnostics.len().hash(&mut hasher);
+            for diagnostic in &event.diagnostics {
+                diagnostic.code.hash(&mut hasher);
+                diagnostic.path.hash(&mut hasher);
+                diagnostic.line.hash(&mut hasher);
+                diagnostic.message.hash(&mut hasher);
+            }
+            format!("invalid-{:016x}", hasher.finish())
+        }
     }
 }
 
@@ -221,4 +287,55 @@ pub fn channel_events(
         let _ = sender.send(event);
     });
     (watcher, receiver)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diagnostic::Diagnostic;
+
+    fn invalid(messages: &[&str]) -> WatchEvent {
+        WatchEvent {
+            config: None,
+            diagnostics: messages
+                .iter()
+                .map(|message| Diagnostic::error("test.invalid", "content/views.json", *message))
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn two_different_broken_states_are_two_publications() {
+        // The count is not the shape of the failure: an agent iterating on a
+        // screen can produce two different single-finding states, and the
+        // second must still reach the canvas.
+        let first = invalid(&["blocks[0]: unknown kind"]);
+        let second = invalid(&["blocks[1]: missing title"]);
+        assert_ne!(event_key(&first), event_key(&second));
+        // The same findings are the same state, whatever order they arrive in
+        // is not — the list is ordered by the loader, so equal lists are equal.
+        assert_eq!(event_key(&first), event_key(&invalid(&["blocks[0]: unknown kind"])));
+    }
+
+    #[test]
+    fn a_journal_in_flight_is_recognised_and_ages_out() {
+        let root = std::env::temp_dir().join("sam-watcher-journal-test");
+        let journal = root.join(".sam").join("tx").join("journal");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&journal).unwrap();
+        assert!(!transaction_in_flight(&root), "an empty journal directory is not a commit");
+        let file = journal.join("tx-1.json");
+        std::fs::write(&file, b"{}").unwrap();
+        assert!(
+            transaction_in_flight(&root),
+            "a fresh journal is a commit between prepared and finalize"
+        );
+        // An old journal is a crash that recovery has not cleaned up: it must
+        // not suppress publications forever.
+        let old = std::time::SystemTime::now() - std::time::Duration::from_secs(120);
+        let handle = std::fs::File::options().write(true).open(&file).unwrap();
+        handle.set_modified(old).unwrap();
+        assert!(!transaction_in_flight(&root));
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

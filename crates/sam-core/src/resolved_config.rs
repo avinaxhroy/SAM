@@ -7,7 +7,7 @@
 //! derives them for display in the content tree. Formula values are derived,
 //! never persisted in `fields` (§3.1).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 
 use crate::config_store::PositionedRecord;
@@ -15,6 +15,114 @@ use crate::diagnostic::Diagnostic;
 use crate::json_value::{JSONValue, scalar_text};
 use crate::model::{AppearanceFile, Record, RulesFile, ShellFile, TypeDef, ViewDef};
 use crate::resources::TokenRegister;
+
+/// One week record's calendar span, parsed once at load.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WeekSpan {
+    pub start: i64,
+    pub end: i64,
+    pub index: i64,
+    pub id: String,
+}
+
+/// One term record's start date and id, in file order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TermStart {
+    pub start: String,
+    pub id: String,
+}
+
+/// Plan-wide lookup tables, built once by the loader (§4.6).
+///
+/// The record store is a vector and the reader must not pay a linear scan per
+/// record. A view filter evaluates one expression per record; a relation step
+/// or `currentTerm()` that scans all N records turns the query into O(N²) —
+/// measured at 5.3 s for a 10k-record view before this index existed. `built`
+/// distinguishes "loaded plan, no weeks/terms" from a hand-built test config
+/// that never ran the builder, so those callers keep the old scan.
+#[derive(Debug, Default)]
+pub struct PlanLookup {
+    by_id: HashMap<String, usize>,
+    type_counts: HashMap<String, usize>,
+    weeks: Vec<WeekSpan>,
+    terms: Vec<TermStart>,
+    built: bool,
+}
+
+impl PlanLookup {
+    pub fn build(records: &[PositionedRecord]) -> Self {
+        let mut by_id: HashMap<String, usize> = HashMap::with_capacity(records.len());
+        let mut type_counts: HashMap<String, usize> = HashMap::new();
+        let mut weeks: Vec<WeekSpan> = Vec::new();
+        let mut terms: Vec<TermStart> = Vec::new();
+        for (index, positioned) in records.iter().enumerate() {
+            let record = &positioned.record;
+            // First occurrence wins, matching `ResolvedConfig::record`'s
+            // long-standing first-match rule (duplicates are a validation
+            // error, but a hand-built config must answer the same way).
+            by_id.entry(record.id.clone()).or_insert(index);
+            *type_counts.entry(record.type_.clone()).or_insert(0) += 1;
+            match record.type_.as_str() {
+                "week" => {
+                    let (Some(start), Some(end), Some(index)) = (
+                        record.fields.get("start").and_then(JSONValue::as_str),
+                        record.fields.get("end").and_then(JSONValue::as_str),
+                        record.fields.get("index").and_then(JSONValue::as_i64),
+                    ) else {
+                        continue;
+                    };
+                    let (Some(start), Some(end)) =
+                        (crate::evaluator::parse_date(start), crate::evaluator::parse_date(end))
+                    else {
+                        continue;
+                    };
+                    weeks.push(WeekSpan {
+                        start: crate::transaction::days_from_civil(start.0, start.1, start.2),
+                        end: crate::transaction::days_from_civil(end.0, end.1, end.2),
+                        index,
+                        id: record.id.clone(),
+                    });
+                }
+                "term" => {
+                    if let Some(start) = record.fields.get("start").and_then(JSONValue::as_str) {
+                        terms.push(TermStart {
+                            start: start.to_string(),
+                            id: record.id.clone(),
+                        });
+                    }
+                }
+                _ => {}
+            }
+        }
+        Self {
+            by_id,
+            type_counts,
+            weeks,
+            terms,
+            built: true,
+        }
+    }
+
+    pub fn index_of(&self, id: &str) -> Option<usize> {
+        self.by_id.get(id).copied()
+    }
+
+    pub fn type_count(&self, type_name: &str) -> usize {
+        self.type_counts.get(type_name).copied().unwrap_or(0)
+    }
+
+    pub fn is_built(&self) -> bool {
+        self.built
+    }
+
+    pub fn weeks(&self) -> &[WeekSpan] {
+        &self.weeks
+    }
+
+    pub fn terms(&self) -> &[TermStart] {
+        &self.terms
+    }
+}
 
 pub struct ResolvedConfig {
     pub plan_root: PathBuf,
@@ -28,6 +136,9 @@ pub struct ResolvedConfig {
     /// reader's iteration order (§4.1 file order) and the writer's positions
     /// are the same collection; there is no second copy.
     pub positioned_records: Vec<PositionedRecord>,
+    /// Id / week / term lookup tables built with the record store. Never
+    /// authoritative: a stale entry falls back to the record store.
+    pub lookup: PlanLookup,
     /// Layer-2 expression ASTs, parsed once at load. Keyed by the expression
     /// text as it appears in `content/types.json`, shared by every record of
     /// every type that declares it (§4.4).
@@ -68,10 +179,123 @@ impl ResolvedConfig {
     }
 
     pub fn record(&self, id: &str) -> Option<&Record> {
+        self.record_at(id).map(|(_, record)| record)
+    }
+
+    /// The record and its **file position** — what index narrowing needs to
+    /// rebuild a candidate list in file order without scanning the store.
+    pub fn record_at(&self, id: &str) -> Option<(usize, &Record)> {
+        if let Some(index) = self.lookup.index_of(id)
+            && let Some(positioned) = self.positioned_records.get(index)
+        {
+            return Some((index, &positioned.record));
+        }
+        // Hand-built configs (and a lookup that predates a test's push) keep
+        // the first-match scan; a loaded plan never reaches it.
         self.positioned_records
             .iter()
-            .map(|positioned| &positioned.record)
-            .find(|record| record.id == id)
+            .enumerate()
+            .find(|(_, positioned)| positioned.record.id == id)
+            .map(|(index, positioned)| (index, &positioned.record))
+    }
+
+    /// How many records a kind holds — the pre-index candidate count a view
+    /// projection reports without walking the store.
+    pub fn type_count(&self, type_name: &str) -> usize {
+        if self.lookup.is_built() {
+            return self.lookup.type_count(type_name);
+        }
+        self.positioned_records
+            .iter()
+            .filter(|positioned| positioned.record.type_ == type_name)
+            .count()
+    }
+
+    /// The `week` record covering `day`, as `(id, index)` — the plan's own
+    /// answer for `weekOf()` and the frame's "week n of N". The lookup table
+    /// avoids rescanning every record for every row evaluating `weekOf`.
+    pub fn covering_week(&self, day: i64) -> Option<(String, i64)> {
+        let mut best: Option<(i64, &str)> = None;
+        for week in self.lookup.weeks() {
+            if day >= week.start && day <= week.end {
+                let better = best.as_ref().is_none_or(|(best_index, best_id)| {
+                    week.index < *best_index || (week.index == *best_index && week.id.as_str() < *best_id)
+                });
+                if better {
+                    best = Some((week.index, week.id.as_str()));
+                }
+            }
+        }
+        if best.is_none() && !self.lookup.is_built() {
+            return self.covering_week_scan(day);
+        }
+        best.map(|(index, id)| (id.to_string(), index))
+    }
+
+    fn covering_week_scan(&self, day: i64) -> Option<(String, i64)> {
+        let mut best: Option<(i64, String)> = None;
+        for week in self.records_iter().filter(|record| record.type_ == "week") {
+            let (Some(start), Some(end), Some(index)) = (
+                week.fields.get("start").and_then(JSONValue::as_str),
+                week.fields.get("end").and_then(JSONValue::as_str),
+                week.fields.get("index").and_then(JSONValue::as_i64),
+            ) else {
+                continue;
+            };
+            let (Some(start), Some(end)) =
+                (crate::evaluator::parse_date(start), crate::evaluator::parse_date(end))
+            else {
+                continue;
+            };
+            let start = crate::transaction::days_from_civil(start.0, start.1, start.2);
+            let end = crate::transaction::days_from_civil(end.0, end.1, end.2);
+            if day >= start && day <= end {
+                let better = best.as_ref().is_none_or(|(best_index, best_id)| {
+                    index < *best_index || (index == *best_index && week.id < *best_id)
+                });
+                if better {
+                    best = Some((index, week.id.clone()));
+                }
+            }
+        }
+        best.map(|(index, id)| (id, index))
+    }
+
+    /// Id of the term with the greatest start ≤ `today`; ties by the greater
+    /// id. The lookup table keeps `currentTerm()` off the record store, which a
+    /// filter calls once per row.
+    pub fn current_term_id(&self, today: &str) -> Option<String> {
+        if !self.lookup.is_built() {
+            return self.current_term_id_scan(today);
+        }
+        let mut best: Option<(&str, &str)> = None;
+        for term in self.lookup.terms() {
+            if term.start.as_str() > today {
+                continue;
+            }
+            let candidate = (term.start.as_str(), term.id.as_str());
+            if best.is_none_or(|current| candidate > current) {
+                best = Some(candidate);
+            }
+        }
+        best.map(|(_, id)| id.to_string())
+    }
+
+    fn current_term_id_scan(&self, today: &str) -> Option<String> {
+        let mut best: Option<(String, String)> = None;
+        for term in self.records_iter().filter(|record| record.type_ == "term") {
+            let Some(start) = term.fields.get("start").and_then(JSONValue::as_str) else {
+                continue;
+            };
+            if start > today {
+                continue;
+            }
+            let candidate = (start.to_string(), term.id.clone());
+            if best.as_ref().is_none_or(|current| &candidate > current) {
+                best = Some(candidate);
+            }
+        }
+        best.map(|(_, id)| id)
     }
 
     /// The parsed AST for a `formula` field's expression, from the load-time

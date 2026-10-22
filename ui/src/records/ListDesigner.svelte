@@ -27,6 +27,7 @@
   import { IpcError, dispatch } from '../ipc';
   import { app } from '../session.svelte';
   import Sheet from '../shell/Sheet.svelte';
+  import Icon from '../shell/Icon.svelte';
   import IconPicker from '../composer/IconPicker.svelte';
   import '../styles/sheets.css';
   // The icon picker is the composer's own control (COMPOSER §4.7): it belongs
@@ -155,66 +156,91 @@
 </script>
 
 <Sheet
-  title={mode === 'screen' ? 'New screen' : 'New list'}
+  title={mode === 'screen' ? 'New screen' : mode === 'existing' ? 'New list' : 'New kind'}
   subtitle={mode === 'screen'
-    ? 'A screen of your own — you choose what stands on it, and in what order'
+    ? 'A screen of your own — you choose what stands on it, and in what order.'
     : mode === 'existing'
-      ? 'A saved view of a kind that already exists'
-      : 'A kind of thing to track, with its own columns'}
+      ? 'A saved view of a kind that already exists.'
+      : 'A kind of thing to track, with its own columns.'}
+  icon={mode === 'screen' ? 'plus' : mode === 'existing' ? 'checklist' : 'squareStack'}
+  wash={mode === 'screen' ? 'sky' : mode === 'existing' ? 'lilac' : 'mint'}
   onclose={onclose}
 >
-  <div class="cd-segment" role="radiogroup" aria-label="What are you making?">
+  <div class="cd-segment cd-segment--lead" role="radiogroup" aria-label="What are you making?">
     <button
       type="button"
       role="radio"
       aria-checked={mode === 'screen'}
       onclick={() => (mode = 'screen')}
-    >A screen</button>
+    >
+      <Icon name="panel" size={14} />
+      A screen
+    </button>
     <button
       type="button"
       role="radio"
       aria-checked={mode === 'existing'}
       onclick={() => (mode = 'existing')}
-    >Of an existing kind</button>
+    >
+      <Icon name="squareStack" size={14} />
+      Of an existing kind
+    </button>
     <button
       type="button"
       role="radio"
       aria-checked={mode === 'kind'}
       onclick={() => (mode = 'kind')}
-    >New kind</button>
+    >
+      <Icon name="sparkle" size={14} />
+      New kind
+    </button>
   </div>
 
   {#if mode === 'screen'}
-    <div class="cd-sheet__field">
-      <label class="cd-sheet__label" for="screen-name">Name</label>
+    <div class="ld-form">
+      <label class="ld-label" for="screen-name">Name</label>
       <input
         id="screen-name"
-        class="cd-sheet__well"
+        class="ld-field"
         type="text"
         autocomplete="off"
-        placeholder="revision, or anything"
+        placeholder="A name, revision, or anything"
         bind:value={name}
       />
     </div>
 
-    <div class="cd-sheet__stack">
-      <span class="cd-sheet__label" id="screen-icon">Icon</span>
+    <div class="ld-form">
+      <span class="ld-label" id="screen-icon">Icon</span>
       <IconPicker
         value={icon}
         labelledby="screen-icon"
         label="Icon"
+        search
         onpick={(option) => (icon = icon === option ? '' : option)}
       />
-      <p class="cd-sheet__hint">
-        the glyph the rail shows beside this screen’s name — pick one, or leave it
-      </p>
+      <!-- What the rail will draw, stated before the screen exists: the glyph
+           and the name, in the rail's own proportions. A preview is the one
+           thing a name-and-glyph form cannot do in words. -->
+      <div class="cmp-screenpreview">
+        <span class="cd-glyph cd-glyph--sm" data-w="sky" aria-hidden="true">
+          <Icon name={icon || 'panel'} />
+        </span>
+        <span class="cmp-screenpreview__text">
+          <span class="cmp-screenpreview__name">{name.trim() === '' ? 'Screen name' : name.trim()}</span>
+          <span class="cmp-screenpreview__say">
+            {icon === ''
+              ? 'As the rail will draw it — with the app’s own glyph'
+              : 'As the rail will draw it'}
+          </span>
+        </span>
+      </div>
     </div>
   {:else if mode === 'existing'}
-    <div class="cd-sheet__field">
-      <label class="cd-sheet__label" for="list-name">Name</label>
+    <div class="ld-form">
+      <label class="ld-label" for="list-name">Name</label>
       <input
         id="list-name"
-        class="cd-sheet__well"
+        class="ld-field"
         type="text"
         autocomplete="off"
         placeholder="this term"
@@ -224,11 +250,11 @@
     {#if kinds.length === 0}
       <p class="cd-empty">No kinds exist yet — create one with “New kind”.</p>
     {:else}
-      <div class="cd-sheet__field">
-        <label class="cd-sheet__label" for="list-kind">Kind</label>
+      <div class="ld-form">
+        <label class="ld-label" for="list-kind">Kind</label>
         <select
           id="list-kind"
-          class="cd-sheet__well cd-sheet__select"
+          class="ld-field ld-select"
           value={existingType}
           onchange={(event) => (existingType = (event.currentTarget as HTMLSelectElement).value)}
         >
@@ -237,50 +263,49 @@
             <option value={kind}>{kind}</option>
           {/each}
         </select>
+        <p class="ld-hint">The list shows this kind’s records as rows you can edit in place.</p>
       </div>
     {/if}
   {:else}
-    <div class="cd-sheet__field">
-      <label class="cd-sheet__label" for="kind-name">What do you want to track?</label>
+    <div class="ld-form">
+      <label class="ld-label" for="kind-name">What do you want to track?</label>
       <input
         id="kind-name"
-        class="cd-sheet__well"
+        class="ld-field"
         type="text"
         autocomplete="off"
         placeholder="chapter"
         bind:value={name}
       />
+      <p class="ld-hint">the id is a slug of this name — the engine derives it</p>
     </div>
-    <p class="cd-sheet__hint">the id is a slug of this name — the engine derives it</p>
 
-    <div class="cd-sheet__field">
-      <label class="cd-sheet__label" for="kind-icon">
-        Icon <span class="cd-sheet__key">icon</span>
-      </label>
-      <input
-        id="kind-icon"
-        class="cd-sheet__well"
-        type="text"
-        autocomplete="off"
-        placeholder="squareStack"
-        bind:value={icon}
+    <div class="ld-form">
+      <span class="ld-label" id="kind-icon">Icon <span class="cd-sheet__key">icon</span></span>
+      <!-- A kind's glyph cannot be cleared (`type.new` carries no
+           `clear-icon`), so the picker offers no None tile here. -->
+      <IconPicker
+        value={icon}
+        labelledby="kind-icon"
+        label="Icon"
+        clears={false}
+        onpick={(option) => (icon = icon === option ? '' : option)}
       />
+      <p class="ld-hint">an icon NAME, not a symbol — an unknown one falls back rather than rendering blank</p>
     </div>
-    <p class="cd-sheet__hint">
-      an icon NAME, not a symbol — an unknown one falls back rather than rendering blank
-    </p>
 
-    <div class="cd-sheet__row">
+    <div class="ld-toggle">
       <button
-        class="cd-sheet__toggle"
+        class="ld-switch"
         type="button"
-        aria-pressed={trackable}
+        role="switch"
+        aria-checked={trackable}
         onclick={() => (trackable = !trackable)}
       >
-        <span class="cd-check" aria-hidden="true">{trackable ? '✓' : ''}</span>
+        <span class="ld-switch__track" aria-hidden="true"><span class="ld-switch__knob"></span></span>
         Trackable
       </button>
-      <span class="cd-sheet__hint">has progress through a pipeline</span>
+      <span class="ld-hint">has progress through a pipeline</span>
     </div>
 
     {#if trackable}
@@ -290,11 +315,11 @@
           trackable, it just has no stage machine yet.
         </p>
       {:else}
-        <div class="cd-sheet__field">
-          <label class="cd-sheet__label" for="kind-pipeline">Pipeline</label>
+        <div class="ld-form">
+          <label class="ld-label" for="kind-pipeline">Pipeline</label>
           <select
             id="kind-pipeline"
-            class="cd-sheet__well cd-sheet__select"
+            class="ld-field ld-select"
             value={pipeline}
             onchange={(event) => (pipeline = (event.currentTarget as HTMLSelectElement).value)}
           >
@@ -313,19 +338,19 @@
       </p>
     {/if}
 
-    <div class="cd-sheet__stack">
-      <label class="cd-sheet__label" for="kind-columns">Starter columns</label>
+    <div class="ld-form">
+      <label class="ld-label" for="kind-columns">Starter columns</label>
       <textarea
         id="kind-columns"
-        class="cd-sheet__well cd-sheet__data"
+        class="ld-field cd-sheet__data"
         rows="4"
         spellcheck="false"
         aria-label="Starter columns"
         placeholder={'chapter:text\ndue:date\nstatus:select:pending|done'}
         bind:value={columns}
       ></textarea>
-      <p class="cd-sheet__hint">
-        one per line, as <code>key: kind</code> — {starters.length}
+      <p class="ld-hint">
+        one per line, as <code>chapter:text</code> — {starters.length}
         {starters.length === 1 ? 'column' : 'columns'}
       </p>
     </div>
@@ -350,3 +375,100 @@
     </button>
   {/snippet}
 </Sheet>
+
+<style>
+  /* ── the form ────────────────────────────────────────────────────────────
+     A field is a label over a well, at the sheet's full width, and the label is
+     the app's own bold small — never the two-column label/control row the
+     short sheets use, because these fields are *read* (a name, a list of
+     columns) rather than scanned past. */
+  .ld-form {
+    display: grid;
+    gap: var(--space-2xs);
+    min-width: 0;
+  }
+  .ld-label {
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-display);
+    letter-spacing: var(--track-caps);
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .ld-label .cd-sheet__key { text-transform: none; letter-spacing: normal; }
+  .ld-field {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--pill-h);
+    padding: var(--space-2xs) var(--space-sm);
+    border: 0;
+    border-radius: var(--r-mini);
+    background: var(--well);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    transition: background var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+  }
+  .ld-field:focus,
+  .ld-field:focus-visible {
+    outline: none;
+    background: var(--card);
+    box-shadow: inset 0 0 0 1.5px var(--ink-4);
+  }
+  .ld-field::placeholder { color: var(--ink-4); }
+  .ld-select { width: 100%; }
+  .ld-hint {
+    margin: 0;
+    font-size: var(--text-2xs);
+    line-height: 1.45;
+    color: var(--ink-3);
+  }
+
+  /* ── the yes/no ──────────────────────────────────────────────────────────
+     The declared control for yes/no is the switch (`controls.md` §2), never a
+     two-option segment whose first option is always lit. The track is the well
+     and the knob is the card, so the state reads without colour. */
+  .ld-toggle {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  .ld-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-label);
+    color: var(--ink-2);
+  }
+  .ld-switch[aria-checked='true'] { color: var(--ink); }
+  .ld-switch__track {
+    position: relative;
+    display: block;
+    width: 36px;
+    height: 22px;
+    flex: none;
+    border-radius: var(--r-pill);
+    background: var(--well-2);
+    transition: background var(--dur-1) var(--ease);
+  }
+  .ld-switch[aria-checked='true'] .ld-switch__track { background: var(--ink); }
+  .ld-switch__knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--r-pill);
+    background: var(--card);
+    box-shadow: var(--sh-1);
+    transition: transform var(--dur-2) var(--ease);
+  }
+  .ld-switch[aria-checked='true'] .ld-switch__knob { transform: translateX(14px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ld-field,
+    .ld-switch__track,
+    .ld-switch__knob { transition: none; }
+  }
+</style>

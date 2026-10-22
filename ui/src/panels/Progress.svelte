@@ -48,10 +48,15 @@
      * Fetch two consecutive 7-day windows ending on plan today (`app.today`, R2).
      * Deduplicates and sorts days by reported date across parallel queries.
      */
-    async function readWindow(days: number): Promise<{ days: DayRead[]; total: number }> {
-      const first = await app.run('today.view', {}, { tracked: false });
-      if (!first) return { days: [], total: 0 };
-      const read = first.data as TodayRead;
+    async function readWindow(
+      days: number,
+      current: TodayRead | null = null,
+    ): Promise<{ days: DayRead[]; total: number }> {
+      // The panel already holds today's page from the read that filled its
+      // cards; asking the engine for it again is a second full load for bytes
+      // the screen is holding.
+      const read = current ?? ((await app.run('today.view', {}, { tracked: false }))?.data as TodayRead);
+      if (!read) return { days: [], total: 0 };
       const page = read.days ?? [];
       if (days <= 7) {
         return { days: page, total: page.reduce((sum, day) => sum + day.loggedMin, 0) };
@@ -97,7 +102,7 @@
 
       const [facts, queue] = await Promise.all([
         app.run('today.view', {}, { tracked: false }),
-        app.run('reviews.due', {}, { tracked: false }),
+        app.reviewsDue(),
       ]);
 
       if (!facts || !queue) {
@@ -117,12 +122,15 @@
       progress = rows;
 
       // Two 7-day query windows anchored to plan today (R2): current week and previous week.
-      history = (await readWindow(14)).days;
+      history = (await readWindow(14, today)).days;
 
-      studyRecords = study ? ((await app.recordsOf(study)) ?? []) : [];
-      setRecords = sets ? ((await app.recordsOf(sets)) ?? []) : [];
-      subjectRecords = subjects ? ((await app.recordsOf(subjects)) ?? []) : [];
-      sessionRecords = await app.recordsOf('session');
+      const all = (await app.recordsOf('*')) ?? [];
+      const ofType = (name: string | null): RecordDoc[] =>
+        name ? all.filter((record) => record.type === name) : [];
+      studyRecords = ofType(study);
+      setRecords = ofType(sets);
+      subjectRecords = ofType(subjects);
+      sessionRecords = ofType('session');
 
       reading = false;
     }

@@ -7,7 +7,7 @@
 <h1 align="center">SAM</h1>
 
 <p align="center">
-  <img src="today.png" alt="SAM Today Preview" />
+  <img src="today.png" alt="The Today screen in SAM" />
 </p>
 
 <p align="center">
@@ -20,11 +20,13 @@
   </a>
 </p>
 
-Most study tools enforce one rigid workflow: to-do lists that know nothing about course prerequisites, flashcard apps disconnected from syllabi, or opinionated dashboard apps that assume everyone studies the same way.
+Most study tools enforce one rigid workflow: to-do lists that know nothing about course prerequisites, flashcard apps disconnected from syllabi, or dashboards that assume everyone studies the same way.
 
-Real studying differs across disciplines. A medical student drilling anatomy flashcards does not work like an engineering student working through problem sets, and a university student managing weekly lecture milestones does not work like an autodidact reading through technical books.
+Real studying differs across disciplines. A medical student drilling anatomy, an engineering student working problem sets, and an autodidact reading technical books need different screens and different measures of progress.
 
-SAM is built as an operating system rather than a fixed dashboard. It stores your curriculum as plain JSON and line-delimited records on disk, lets you assemble custom screens with a drag-and-drop widget composer, and lets you choose how progress is measured for each subject.
+SAM is built as an operating system rather than a fixed dashboard. Your curriculum is plain JSON and line-delimited records on disk, the study screens are assembled from widgets, and each kind of work can follow its own progression pipeline while reviews follow the plan's scheduler. The desktop app and the `sam` command line read the same plan folder, so the same work is available by mouse, by keyboard, by editing the files, and by script.
+
+When you want help authoring, the built-in assistant runs an agent CLI you already have and writes through the same `sam` commands.
 
 ---
 
@@ -32,7 +34,7 @@ SAM is built as an operating system rather than a fixed dashboard. It stores you
 
 ### Prebuilt releases
 
-Download prebuilt binaries for macOS, Windows, and Linux from [GitHub Releases](https://github.com/avinaxhroy/SAM/releases).
+Download prebuilt binaries for macOS, Windows, and Linux from [GitHub Releases](https://github.com/avinaxhroy/SAM/releases): a `.dmg`, an `.exe`, and an `.AppImage` or `.deb`. The desktop app requires macOS 13 or newer, Windows 10/11 with WebView2 109 or newer, or a Linux desktop with WebKitGTK 4.1. The published macOS build targets Apple Silicon; Intel Macs build from source.
 
 #### macOS installation
 
@@ -42,7 +44,7 @@ Install via Homebrew:
 brew install --cask avinaxhroy/tap/sam
 ```
 
-Or download the DMG directly. Because releases are not code-signed yet, strip the quarantine flag if Gatekeeper blocks launch:
+Or download the DMG directly. Releases are ad-hoc signed rather than notarized, so Gatekeeper may block the first launch:
 
 ```bash
 # If the downloaded DMG will not open:
@@ -52,76 +54,91 @@ xattr -d com.apple.quarantine ~/Downloads/SAM_*.dmg
 xattr -cr /Applications/SAM.app
 ```
 
-#### Windows and Linux
+#### The `sam` CLI on your PATH
 
-Download the installer or `.AppImage` / `.deb` from the releases page and launch it directly.
+The app carries the CLI inside its bundle. *Install command line tool* in the View menu links it into a directory already on `PATH`: a symlink on macOS and Linux, asking the system to authorize the write where rights are needed, and a user-`PATH` append on Windows. After that, `sam` works in any terminal, and agents like Claude Code or OpenCode can edit plans through the same commands the in-app assistant uses.
 
 ### Building from source
 
 Prerequisites:
 
-- Rust 1.80 or newer (2024 edition)
-- Node.js v20 or newer, with pnpm v9 or newer
-- Linux only: `libwebkit2gtk-4.1-dev` headers
+- **Rust** 1.96 or newer (the workspace uses the 2024 edition).
+- **Node.js** 20.19 or newer, with **pnpm** 9 or newer.
+- **Tauri CLI** 2: `cargo install tauri-cli --version "^2" --locked`.
+- **Linux only:** `libwebkit2gtk-4.1-dev` and the usual Tauri build dependencies.
+
+The desktop shell embeds the built frontend at compile time, so the UI comes first:
 
 ```bash
-# 1. Install frontend dependencies and build assets
+# 1. Install frontend dependencies and build the bundle
 pnpm -C ui install
 pnpm -C ui build
 
-# 2. Build workspace binaries
+# 2. Build the workspace, including the sam CLI
 cargo build --workspace --release
 
-# 3. Launch the desktop app
-cargo tauri dev
+# 3. Copy the CLI to the name Tauri's bundle expects
+node scripts/sidecar.mjs
 
-# 4. Or run the headless CLI
-./target/release/sam help
+# 4. Run the app, or produce a bundle
+cargo tauri dev
+cargo tauri build
 ```
 
-On first launch without an existing plan, SAM opens a starter screen to select a preset or create a blank plan folder.
+Step 3 copies the binary; nothing here compiles the CLI except step 2. `cargo tauri build` runs the same copy through its build hook, so it needs step 2 to have run.
+
+The CLI is left at `target/release/sam`. A plain cargo build creates no `Resources` folder at `target/Resources`, where that binary looks for presets, themes, and tokens, so commands that read them fail. Point `SAM_RESOURCES` at the source resources when running from the checkout:
+
+```bash
+SAM_RESOURCES="$PWD/Sources/SAMCore/Resources" ./target/release/sam plan.new --preset seed --plan /tmp/demo
+```
+
+On first launch SAM asks for a plan name and a folder. The blank starter is the default, the bundled presets are one click away, and a folder that already holds a plan opens in place.
 
 ---
 
 ## Screen Composer
 
-Every screen in the desktop app can be modified or built from scratch using the Screen Composer.
+The rail's study screens (Today, Plan, Courses, Reviews, Library, Notes, Progress) are built from widgets. Click the pencil in the titlebar to edit the current screen; **Add** in the rail opens the sheet for a new one.
 
-Click the pencil icon in the titlebar (or create a new screen from the sidebar) to enter edit mode:
+- **12 widgets**, in two groups:
+  - Today: Session card, Today's queue, Coming up, Week chart.
+  - Study: Plan spine, Courses, Practice banks, Mocks calendar, Recall card, Review queue, Progress figures, Library.
+- **Width**: half (`span: 1`) or full (`span: 2`).
+- **Variants**: the `‹` and `›` chevrons on a frame cycle the designs that fit it.
+- **Order**: drag a frame to a new position.
+- **Removal**: the frame's own button, with an undo receipt.
+- **Reset**: *Use SAM’s design again* takes your components off and redraws the screen as SAM designed it.
 
-- **12 built-in widgets**: Focus card, daily queue, course list, plan spine, practice problem bank, review queue, recall card, seven-day chart, upcoming dates, weekly progress figures, mock exam calendar, and reference library.
-- **Grid widths**: Toggle any widget between half-width (`span: 1`) and full-width (`span: 2`).
-- **Inline design variants**: Cycle component styles with the `‹` and `›` chevrons directly on the widget frame.
-- **Reordering and deletion**: Drag widgets into position. Deletions show an undo toast receipt.
-- **One-click reset**: Revert any preset screen back to its default layout at any time.
+The right-hand sidebar follows the selection: the screen's actions with nothing selected, the selected widget's own controls once a frame is pressed, and the record's fields once a row is pressed.
 
-Screen layouts persist to `content/views.json` through atomic file transactions. Every layout change supports undo (`⌘Z` or `Ctrl+Z`).
+Layout edits write to `content/views.json` in one atomic transaction, and `⌘Z` undoes them.
 
 ---
 
 ## Pluggable study methods
 
-How you complete work is defined by progression pipelines in `content/rules.json`. Different entity types can use different completion rules:
+How you complete work is defined by progression pipelines in `content/rules.json`. Different kinds can use different completion rules:
 
-- `check`: Simple done or not-done state. Suitable for reading lists, lectures, and task outlines.
-- `pages`: Page tracking for books and articles (`reading` → `read`).
-- `progress`: Multi-step coursework and projects (`started` → `midway` → `done`).
-- `flip`: Lecture and proof workflow (`learned` → `proved` → `anchored`). Topics require target numbers of solved problems before unlocking the proved stage.
-- `srs`: Spaced repetition (`new` → `learning` → `review` → `mature`), driven by recall ratings.
+- `check`: done or not done. Reading lists, lectures, outlines.
+- `pages`: page tracking for books and long articles (`reading` → `read`).
+- `progress`: multi-step coursework and projects (`started` → `midway` → `done`).
+- `flip`: lecture and proof workflow (`learned` → `proved` → `anchored`). A proof gate on `watch` topics requires at least two solved problems before `proved`.
+- `srs`: spaced repetition (`new` → `learning` → `review` → `mature`), driven by recall ratings.
 
-Switch an entity's pipeline at any time without losing historical progress:
+Changing a kind's pipeline takes either one `--map` per stage a record has reached or `--fresh` to start a new active state. Replaced stages move to the record's history and are never reinterpreted:
 
 ```bash
-sam type.setPipeline topic --pipeline check --map learned=done --map proved=done --plan ./my-plan
+sam type.setPipeline --type topic --pipeline check --map learned=done --map proved=done --plan ./my-plan
 ```
 
 ### Review schedulers
 
-When an item enters a review queue, next intervals calculate through your chosen scheduler in `rules.json`:
+When an item enters a review queue, the plan's scheduler sets the next interval:
 
-- **FSRS-6**: Embedded Rust implementation of the Free Spaced Repetition Scheduler, using 21 configurable weights to model memory stability and retrievability.
-- **SuperMemo-2 (`sm2`)**: Traditional ease factor and repetition intervals.
-- **Fixed ladders (`fixed`)**: Explicit day intervals (by default, `[1, 7, 30]` days).
+- **FSRS-6**: an embedded Rust implementation of the Free Spaced Repetition Scheduler, using 21 configurable weights to model memory stability and retrievability.
+- **SuperMemo-2 (`sm2`)**: the classic ease factor and repetition intervals.
+- **Fixed ladders (`fixed`)**: explicit day intervals; the starter plan uses `[1, 7, 30]`.
 
 ---
 
@@ -129,37 +146,40 @@ When an item enters a review queue, next intervals calculate through your chosen
 
 Every engine capability is accessible across four surfaces:
 
-| Surface      | Interface       | How to use it                                                                         |
-| ------------ | --------------- | ------------------------------------------------------------------------------------- |
-| **Click**    | Desktop app     | Graphical controls, tables, boards, and timers in Svelte 5.                           |
-| **Name**     | Command palette | Press `⌘K` (or `Ctrl+K`) to search screens, run commands, or use quick capture (`a`). |
-| **Text**     | File system     | Edit JSON and `.jsonl` files in your editor; the watcher reloads within ~150ms.       |
-| **Terminal** | Headless CLI    | Run `sam <command-id>` for scripting and automation.                                  |
+| Surface      | Interface              | How to use it                                                                                               |
+| ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Click**    | Desktop app            | Tables, boards, the composer, timers, and sheets.                                                           |
+| **Name**     | Command palette (`⌘K`) | Capture a record, run any command, or jump to a screen or record.                                           |
+| **Text**     | Files and source pane  | Edit the plan's JSON and JSONL directly, or in the source pane (`⌘⇧J`); the watcher reloads within ~150 ms. |
+| **Terminal** | `sam` CLI              | Every command id, with `--json` for scripts and agents.                                                     |
 
 ---
 
 ## Plan structure on disk
 
-A study plan is a standard directory on your computer:
+A study plan is a directory on your computer:
 
 ```
 my-plan/
+├── README.md              # what the plan is
 ├── content/
-│   ├── types.json          # Entity schemas (course, topic, session, problemset)
-│   ├── views.json          # Screen layouts, block arrangements, and composer widgets
-│   ├── rules.json          # Schedulers, progression pipelines, and proof gates
-│   ├── shell.json          # Navigation destinations and icons
-│   ├── appearance.json     # Pinned theme and font scaling
-│   └── records/
-│       ├── course.jsonl    # Line-by-line course records
-│       ├── topic.jsonl     # Syllabus topics with estimates and links
-│       └── session.jsonl   # Logged study sessions
+│   ├── types.json         # entity schemas (course, topic, session, assessment…)
+│   ├── views.json         # screen layouts, block arrangements, and composed widgets
+│   ├── rules.json         # schedulers, progression pipelines, and proof gates
+│   ├── shell.json         # navigation destinations and keybindings
+│   ├── appearance.json    # pinned theme and text scale
+│   └── records/           # one file per kind, created with the first record
+│       ├── course.jsonl   # line-by-line course records
+│       ├── topic.jsonl    # syllabus topics with estimates and links
+│       └── session.jsonl  # logged study sessions
 ├── state/
-│   └── state.json          # Review history, timestamps, and recall stability
-└── index.sqlite            # Read-only SQLite search cache (auto-generated)
+│   └── state.json         # progress and review history (created once there is progress)
+└── .sam/                  # lock, settings, transaction journal and before-images
 ```
 
-Records are stored as line-delimited JSON (`.jsonl`). Each line is a self-contained record, producing clean Git diffs.
+Records are line-delimited JSON (`.jsonl`). Each line is one record, so a change appears as one line in `git diff`. Git is optional; `.sam/` holds the lock, settings, journal, and before-images rather than content.
+
+The derived SQLite search index is not part of the plan. It lives under the app's data directory as `indexes/<plan-name>-<hash>/index.sqlite`, is rebuilt incrementally from the records, and can be deleted at any time; `sam paths --plan <dir> --json` prints the indexes folder and, when one exists, the index's path.
 
 Plans live by default in your platform application data directory:
 
@@ -173,61 +193,88 @@ Target any custom directory with `--plan <path>`.
 
 ## Bundled presets
 
-SAM includes 8 curriculum starters:
+SAM ships eight presets:
 
-- `blank`: Empty schema ready for custom entity definitions.
-- `university-term`: Traditional semester with courses, units, topics, weekly schedules, and credits.
-- `self-study`: Milestone-oriented plan for independent courses, books, and practical projects.
-- `jee`: High-volume problem practice across Physics, Chemistry, and Mathematics with accuracy metrics.
-- `neet`: High-retention medical entrance syllabus covering Biology, Chemistry, and Physics paired with FSRS.
-- `cbse11-pcm`: Class 11 secondary curriculum mapped to standard textbook chapters.
-- `language`: Vocabulary acquisition, grammar rules, reading logs, and listening practice.
-- `seed`: Reference starter with sample records used for engine tests.
+- `blank`: starter schema, no records — twelve kinds, starter views, and the flip progression with its proof gate. A new plan starts here.
+- `seed`: the same schema with a set of example records; the engine's test fixture.
+- `university-term`: a one-term computer science plan — four courses, their units and topics, credits, and a weekly schedule.
+- `self-study`: tracks broken into stages, worked through a flip loop where solved problems prove readiness.
+- `jee`: JEE (Main + Advanced) preparation across Physics, Chemistry, and Mathematics, with problem sets.
+- `neet`: NEET (UG) preparation with three chapter spines and problem sets.
+- `cbse11-pcm`: Class 11 CBSE Physics, Chemistry, and Mathematics, chapter by chapter.
+- `language`: words, sentences, dialogues, and a kana board, reviewed on FSRS.
 
-Create a plan from any preset:
+Create a plan from a preset, either under the default plans folder or exactly where you point it:
 
 ```bash
-sam plan.new --name "Computer Systems" --preset university-term --plan ./my-plan
+sam plan.new --name "Computer Systems" --preset university-term
+sam plan.new --preset university-term --plan ./my-plan
 ```
 
-See [`docs/presets.md`](docs/presets.md) for customization guides.
+See [`docs/presets.md`](docs/presets.md) for what each preset contains and how to author your own.
+
+---
+
+## Settings and sharing
+
+Settings (`⌘,`) has five places, and the find field narrows any list:
+
+- **The day**: daily targets, timezone, review scheduling.
+- **How you work**: every shortcut the plan binds, and any collision between them.
+- **Appearance**: theme, light or dark, text size.
+- **Component styles**: the design each component draws with.
+- **This plan**: export, import, which kinds stay personal, and every file the plan keeps.
+
+Export writes a `*.samprofile` holding the plan's five config documents — schema, views, rules, shell, and appearance — plus the records that are not personal. Kinds marked personal stay behind unless you include them, and including them also carries progress. Import writes a new plan and opens it, and the app opens `.samprofile` files from the desktop.
 
 ---
 
 ## Command-line interface
 
-Every graphical action maps to a command ID in the headless `sam` binary:
+Every action in the app carries a command id, and the `sam` binary dispatches the same ids:
 
 ```bash
-# Inspect the current plan and today's queue
+# Create a plan from a preset, then read where things are
+sam plan.new --preset university-term --plan ./my-plan
 sam today.view --plan ./my-plan
 sam paths --plan ./my-plan --json
 
-# Add a topic and advance it past a proof gate
-sam topic.new --title "Graph Traversal" --kind practice --est 45 --course c.cs.dsa --plan ./my-plan
-sam record.advanceStage --id topic.r1 --stage proved --problems 2 --plan ./my-plan
+# Add a course and a topic
+sam course.new --id c.dm --name "Discrete Mathematics" --code CS101 --credits 4 --plan ./my-plan
+sam topic.new --id t.logic --title "Propositional logic" --course c.dm --kind read --est 30 --plan ./my-plan
 
-# Log a review rating (calculates next due date)
-sam record.logReview --id topic.r1 --rating good --plan ./my-plan
+# Move a topic through its pipeline, then log a review
+sam record.advanceStage --id t.logic --stage learned --plan ./my-plan
+sam record.advanceStage --id t.logic --stage proved --problems 2 --plan ./my-plan
+sam record.logReview --id t.logic --rating good --plan ./my-plan
 
-# Apply batch updates or validate configuration
+# Preview and commit a batch, then validate the plan
+sam apply updates.jsonl --dry-run --plan ./my-plan
 sam apply updates.jsonl --plan ./my-plan
 sam configcheck --plan ./my-plan
 ```
 
-Standard exit codes signal status: `0` (success), `1` (validation or proof gate error), `2` (usage), `3` (concurrency conflict), `4` (I/O error).
+Each kind also gets its own `.new` command (`sam topic.new`, `sam course.new`), so a record's fields are plain flags. `--json` is the default when output is not a terminal, and `sam --commands --plan ./my-plan --json` lists every id the plan exposes.
 
-See [`docs/cli.md`](docs/cli.md) for batch transactions via stdin and optimistic concurrency options.
+Exit codes: `0` success; `1` invalid plan or a refused write, including a failed proof gate; `2` usage; `3` conflicting concurrent write; `4` I/O failure; `5` presentation — the command reports the desktop action it needs, because no window is attached.
+
+See [`docs/cli.md`](docs/cli.md) for batch transactions via stdin, revision pinning, and the full command surface.
 
 ---
 
 ## Authoring study plans with AI
 
-SAM exposes schema introspection and atomic batch ingestion via the CLI, so you can populate plans with AI coding agents or standard chatbots without special plugins.
+SAM exposes schema introspection and atomic batch ingestion through the CLI, so plans can be populated by the in-app assistant, by an AI coding agent at the terminal, or by a chatbot producing a batch file.
 
-### 1. With an AI coding agent (Claude Code, Cursor, Windsurf, OpenHands, Antigravity)
+### 1. From the app's assistant
 
-Paste this prompt into your agent's chat or terminal:
+The titlebar's sparkle (`⌘J`) opens the assistant. It runs one turn of an agent CLI already installed on this machine — Claude Code, OpenCode, GitHub Copilot CLI, Antigravity, Gemini CLI, Oh My Pi, or Pi — against the plan the window has open, wherever that folder lives. The agent writes through `sam` (stage, dry-run, commit against the revision it read), so its work lands as the same transactions yours do, and open screens reload as records appear. While the turn runs the room dims behind a slow field of light; when it ends you get a receipt with one Undo. The model pill lists the models the chosen CLI reports.
+
+SAM ships no model and no API keys; the CLI you already have does the thinking. The same turn runs headless: `sam agent.list` finds the installed CLIs, and `sam agent.run <prompt> --plan ./my-plan` runs one. See [`docs/ai-agents.md`](docs/ai-agents.md#3-using-the-assistant-inside-the-app) for the adapters and the receipt.
+
+### 2. With an AI coding agent
+
+An agent that can run shell commands can build a plan. Paste this prompt into its chat or terminal:
 
 ```text
 Create a study plan for [my learning goal or syllabus] in ./my-plan using SAM. Follow the workflow in https://github.com/avinaxhroy/SAM/blob/main/docs/ai-agents.md:
@@ -238,9 +285,7 @@ Create a study plan for [my learning goal or syllabus] in ./my-plan using SAM. F
 5. Verify today's queue: sam today.view --plan ./my-plan
 ```
 
-The agent runs these CLI commands directly and populates your study plan.
-
-### 2. With a chatbot (ChatGPT, Claude, Gemini)
+### 3. With a chatbot
 
 Generate a batch file using the schema specification at [`docs/ai-prompt.md`](docs/ai-prompt.md):
 
@@ -263,7 +308,7 @@ sam apply batch.jsonl --dry-run --plan ./my-plan
 sam apply batch.jsonl --plan ./my-plan
 ```
 
-The desktop app detects the new records via its file watcher (~150ms) and updates active views without restarting.
+The desktop app detects the new records via its file watcher (~150 ms) and updates active views without restarting.
 
 See [`docs/ai-agents.md`](docs/ai-agents.md) for terminal workflows and [`docs/ai-prompt.md`](docs/ai-prompt.md) for the schema specification.
 
@@ -271,31 +316,39 @@ See [`docs/ai-agents.md`](docs/ai-agents.md) for terminal workflows and [`docs/a
 
 ## Keyboard shortcuts
 
-| Shortcut        | Context | Action                                                   |
-| --------------- | ------- | -------------------------------------------------------- |
-| `⌘K` / `Ctrl+K` | Global  | Open command palette / search records                    |
-| `a`             | Global  | Quick capture a new task or topic                        |
-| `⌘Z` / `Ctrl+Z` | Global  | Undo last persisted mutation (restores exact file bytes) |
-| `Space`         | Reviews | Reveal recall card answer                                |
-| `1`             | Reviews | Grade recall as **Again**                                |
-| `2`             | Reviews | Grade recall as **Good**                                 |
-| `Esc`           | Global  | Close open sheet, palette, or cancel draft               |
+| Shortcut               | Context | Action                                                        |
+| ---------------------- | ------- | ------------------------------------------------------------- |
+| `⌘K` / `Ctrl+K`        | Global  | Open the command palette: capture, commands, screens, records |
+| `⌘J` / `Ctrl+J`        | Global  | Open the assistant                                            |
+| `⌘⇧J` / `Ctrl+Shift+J` | Global  | Toggle the source pane                                        |
+| `⌘,` / `Ctrl+,`        | Global  | Open settings                                                 |
+| `⌘Z` / `Ctrl+Z`        | Global  | Undo the last persisted change (restores exact bytes)         |
+| `⌘⇧Z` / `Ctrl+Shift+Z` | Global  | Redo                                                          |
+| `Space`                | Reviews | Reveal the answer                                             |
+| `1` / `2`              | Reviews | Grade **Forgot** / **Good** (after reveal)                    |
+| `n`                    | Reviews | Show all four grades; `1`–`4` then grade the card             |
+| `Esc`                  | Global  | Close the open sheet or palette                               |
+
+A plan's bindings live in `content/shell.json`; Settings → *How you work* lists them and flags collisions, and any key the plan leaves unset falls back to the built-in default.
 
 ---
 
 ## Development and testing
 
 ```bash
-# Build frontend
-pnpm -C ui install
-pnpm -C ui build
-
-# Run workspace unit and integration tests
+# Workspace unit and integration tests
 cargo test --workspace
 
-# Launch desktop app in development
-cargo tauri dev
+# Design and specification checks
+node tools/tokenlint.mjs
+node tools/plancheck.mjs
+node tools/presets.mjs
+
+# Browser, accessibility, and census suite
+node tools/gates.mjs
 ```
+
+[`docs/development.md`](docs/development.md) covers the full setup, the browser harness, the quality gates, and the architectural rules — including the integration test that keeps Tauri out of the engine crates.
 
 ---
 
@@ -304,7 +357,10 @@ cargo tauri dev
 - [Architecture and engine design](docs/architecture.md)
 - [Content model and schema definition](docs/content-model.md)
 - [CLI reference and batch workflows](docs/cli.md)
-- [Presets and custom curriculum templates](docs/presets.md)
+- [Presets and curriculum templates](docs/presets.md)
+- [Authoring with AI agents and chatbots](docs/ai-agents.md)
+- [Schema specification for AI](docs/ai-prompt.md)
+- [Development and contributing](docs/development.md)
 
 ---
 

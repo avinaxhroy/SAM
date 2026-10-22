@@ -113,6 +113,12 @@ pub struct BackupManifest {
     pub summary: String,
     pub base_revision: String,
     pub new_revision: Option<String>,
+    /// The assistant turn that committed this transaction, when one did
+    /// (`SAM_RUN` in the child's environment). It is the receipt's key: a
+    /// timestamp can only guess which write belonged to a run, and a guess can
+    /// make Undo revert someone else's edit. Absent for every ordinary write.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run: Option<String>,
     pub entries: Vec<BackupEntry>,
 }
 
@@ -139,6 +145,10 @@ struct JournalDoc {
     base_revision: String,
     new_revision: Option<String>,
     summary: String,
+    /// The assistant turn that committed this (§4.7 `SAM_RUN`), carried into
+    /// the manifest so a recovery still knows whose write it was.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    run: Option<String>,
     entries: Vec<JournalEntry>,
 }
 
@@ -295,6 +305,11 @@ pub fn commit(
         !changes.is_empty(),
         "a no-op batch never reaches the engine"
     );
+    // The turn that is writing, when an assistant child is the caller (§4.7):
+    // the deck reads its receipt back by this key instead of by timestamp.
+    let run = std::env::var(crate::resources::RUN_ENV)
+        .ok()
+        .filter(|name| !name.is_empty());
     for change in changes {
         validate_relative(&change.path)?;
     }
@@ -353,6 +368,7 @@ pub fn commit(
             base_revision: base_revision.to_string(),
             new_revision: Some(new_revision.to_string()),
             summary: summary.to_string(),
+            run: run.clone(),
             entries: entries.clone(),
         };
         canonical_bytes(&doc)
@@ -401,6 +417,7 @@ pub fn commit(
         summary: summary.to_string(),
         base_revision: base_revision.to_string(),
         new_revision: Some(new_revision.to_string()),
+        run: run.clone(),
         entries: changes
             .iter()
             .enumerate()
@@ -618,6 +635,7 @@ fn finish_commit(root: &Path, journal: &JournalDoc) -> Result<(), TransactionErr
             summary: format!("{} (recovered)", journal.summary),
             base_revision: journal.base_revision.clone(),
             new_revision: journal.new_revision.clone(),
+            run: journal.run.clone(),
             entries: journal
                 .entries
                 .iter()

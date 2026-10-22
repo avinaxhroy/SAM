@@ -124,7 +124,7 @@
   }
 
   async function refresh(): Promise<void> {
-    const result = await app.run('reviews.due', {}, { tracked: false });
+    const result = await app.reviewsDue();
     if (result) {
       queue = result.data as Queue;
       failure = null;
@@ -522,9 +522,14 @@
   }
 
   // ── variant contracts ──────────────────────────────────────────────────
-  /** Backlog queue props contract across variant designs. */
+  /** Backlog queue props contract across variant designs. A backlog of 10k
+   *  rows is 10k cards; the count still reports all of them, the page draws a
+   *  bounded window (the same rule the record table follows). */
+  const DUE_PAGE = 250;
+  let dueLimit = $state(DUE_PAGE);
+  const dueShown = $derived(due.slice(0, dueLimit));
   const queueRows = $derived<QueueRow[]>(
-    due.map((row) => ({
+    dueShown.map((row) => ({
       id: row.id,
       title: row.title,
       course: codeOf(row.context),
@@ -548,10 +553,10 @@
   const backlog = $derived<QueueProps>({
     groups: queueGroups,
     rows: queueRows,
-    total: queueRows.length,
-    oldestLate: queueRows.reduce((most, row) => Math.max(most, row.late), 0),
-    dueToday: queueRows.filter((row) => row.late === 0).length,
-    weekOld: queueRows.filter((row) => row.late >= 8).length,
+    total: due.length,
+    oldestLate: due.reduce((most, row) => Math.max(most, row.overdueDays), 0),
+    dueToday: due.filter((row) => row.overdueDays === 0).length,
+    weekOld: due.filter((row) => row.overdueDays >= 8).length,
     moved: { deferred, graded },
     days: (queue ? DEFER_DAYS.map((offset) => ({ days: offset, label: dayText(addDays(queue.today, offset)) })) : []),
     onPut: pin,
@@ -946,6 +951,13 @@
       {#if due.length > 0 && !done}
         <!-- Backlog queue grouped by lateness windows. -->
         <Variant surface="reviews-queue" {...backlog} />
+        {#if due.length > dueShown.length}
+          <div style="display:flex;justify-content:center;padding:var(--space-sm) 0 var(--space-md)">
+            <button class="cd-pill cd-pill--quiet cd-pill--sm" type="button" onclick={() => (dueLimit += DUE_PAGE)}>
+              Show {Math.min(due.length - dueShown.length, DUE_PAGE)} more of {due.length}
+            </button>
+          </div>
+        {/if}
       {/if}
 
       {#if waiting.length > 0}

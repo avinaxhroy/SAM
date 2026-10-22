@@ -412,6 +412,13 @@ export type TodayItem = {
   weekIndex: number | null;
   daysUntil: number | null;
   reason: string;
+  /**
+   * The study material this row can open — the record's own link, or the one
+   * its resource names (`watchUrl` first). Null when the plan names none, and
+   * then the card draws no button: the field is optional by design, never a
+   * placeholder.
+   */
+  link: string | null;
 };
 
 /** The six facts `today.view` states, in the fixed order the screen states. */

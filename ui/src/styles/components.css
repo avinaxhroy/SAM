@@ -292,6 +292,47 @@ button.cd-cell { width: 100%; }
 .cd-segment button:hover { color: var(--ink); }
 .cd-segment button[aria-checked="true"] { background: var(--ink); color: var(--ink-inv); box-shadow: var(--sh-ink); }
 
+/* The **lead** segment: the one that chooses what is being made, at the head of
+   a creation sheet. It takes the sheet's full width and each option carries its
+   own glyph, because a three-way choice between *kinds of thing* is the first
+   question the sheet asks and the last one the student should have to read
+   twice. Its chosen pill is the card behind a hairline ring rather than ink: a
+   sheet whose subject is not decided yet has spent no ink, and three lit
+   options in a row would each claim to be the sheet's primary object. */
+/* **The card segment**: the same control, where the chosen pill is the *card*
+   behind a hairline ring instead of ink. A segment that chooses a *door* (which
+   way to pick a folder) or a *subject not yet decided* (what am I making) has
+   spent no ink: the screen's one dark object is its commit, and a lit segment
+   would claim it. `--lead` is this at the sheet's full width. */
+.cd-segment--card button[aria-checked="true"] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--sh-1), inset 0 0 0 1px var(--rule);
+}
+
+.cd-segment--lead {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  width: 100%;
+  padding: var(--space-2xs);
+}
+.cd-segment--lead button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  min-width: 0;
+  padding: 0 var(--space-xs);
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+}
+.cd-segment--lead button:hover { color: var(--ink); }
+.cd-segment--lead button[aria-checked="true"] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--sh-1), inset 0 0 0 1px var(--rule);
+}
+
 /* A switch is the declared control for yes/no (controls.md §2): never a
    two-option segment, whose first option is always lit and reads as a default
    the student did not choose. The track is the well and the knob is the card,
@@ -568,9 +609,9 @@ button.cd-identity__key:hover { background: var(--well-2); color: var(--ink); }
 }
 
 /* ── 14 · THE ROOM'S COLUMNS (P2) ──────────────────────────────────────────
-   The design system's `.cd-body` is the rail and the canvas. The app added two
-   panes beside the canvas — the source pane (Appendix C.4) and the detail pane
-   (UI_SPEC §2.2's declared panel) — and a two-column grid puts the second one
-   on a new row. Declared here, once, so no screen has to guess: the panes take
-   their own width and the canvas takes the slack. */
-.cd-body { grid-template-columns: var(--rail-w) minmax(0, 1fr) auto auto; }
+   The design system's `.cd-body` is the rail and the canvas. The app adds one
+   pane in the third column — the source editor (Appendix C.4), the record
+   detail (UI_SPEC §2.2's declared panel), or the composer's sidebar, never two
+   at once — so the pane takes its own width and the canvas takes the slack.
+   Declared here, once, so no screen has to guess. */
+.cd-body { grid-template-columns: var(--rail-w) minmax(0, 1fr) auto; }

@@ -74,6 +74,8 @@ struct Facts<'a> {
     /// The record's own `min` duration, in minutes (a logged session).
     logged: Option<i64>,
     course: Option<Value>,
+    /// The one link the row can launch — see `launch_link`.
+    link: Option<String>,
 }
 
 /// One row of the day, already claimed by its group.
@@ -90,6 +92,8 @@ struct Row {
     week_index: Option<i64>,
     days_until: Option<i64>,
     reason: String,
+    /// The study material this row can open, when the plan names one.
+    link: Option<String>,
 }
 
 impl Row {
@@ -107,8 +111,67 @@ impl Row {
             "weekIndex": self.week_index,
             "daysUntil": self.days_until,
             "reason": self.reason,
+            "link": self.link,
         })
     }
+}
+
+/// The link a row launches: the URL the record itself declares, else the first
+/// one its relations declare — one hop, because a topic names its lecture by
+/// relation (`topic.resource`) and the resource is what holds the address.
+///
+/// Within one record, `watchUrl` wins over any other URL field: the action's
+/// word is *watch*, and a plan that declares a distinct watch link means that is
+/// the address the student presses play on. Only `http(s)` is offered, the same
+/// rule the UI applies (`safeUrl.ts`) — a `mailto:` or a relative path is not a
+/// study link, and printing one as a button would be a promise the shell cannot
+/// keep.
+fn launch_link(
+    config: &ResolvedConfig,
+    record: &Record,
+    def: &crate::model::TypeDef,
+) -> Option<String> {
+    if let Some(link) = url_of(record, def) {
+        return Some(link);
+    }
+    for field in def.fields.iter().filter(|field| field.type_ == "relation") {
+        for id in record.links.get(&field.key).into_iter().flatten() {
+            let Some(target) = config.record(id) else {
+                continue;
+            };
+            let Some(target_def) = config.types.get(&target.type_) else {
+                continue;
+            };
+            if let Some(link) = url_of(target, target_def) {
+                return Some(link);
+            }
+        }
+    }
+    None
+}
+
+/// One record's own URL field: `watchUrl` when it declares one, then the plan's
+/// own field order. The declared type is the mechanism; the key is the content.
+fn url_of(record: &Record, def: &crate::model::TypeDef) -> Option<String> {
+    let declared: Vec<&crate::model::FieldDef> = def
+        .fields
+        .iter()
+        .filter(|field| field.type_ == "url")
+        .collect();
+    let ordered = declared
+        .iter()
+        .filter(|field| field.key == "watchUrl")
+        .chain(declared.iter().filter(|field| field.key != "watchUrl"));
+    for field in ordered {
+        let Some(text) = record.fields.get(&field.key).and_then(Value::as_str) else {
+            continue;
+        };
+        let text = text.trim();
+        if text.starts_with("http://") || text.starts_with("https://") {
+            return Some(text.to_string());
+        }
+    }
+    None
 }
 
 /// The whole day, as facts.
@@ -210,6 +273,7 @@ pub fn today_view_json(
             est,
             logged,
             course: course_of(config, record, &washes),
+            link: launch_link(config, record, def),
         });
     }
 
@@ -372,6 +436,7 @@ pub fn today_view_json(
             week_index: fact.week_index,
             days_until: Some(days_until),
             reason: due_phrase(&today, date),
+            link: fact.link.clone(),
         });
     }
     upcoming.sort_by(|a, b| a.due.cmp(&b.due).then_with(|| a.id.cmp(&b.id)));
@@ -525,6 +590,7 @@ fn row(
         week_index: fact.week_index,
         days_until: None,
         reason,
+        link: fact.link.clone(),
     }
 }
 
@@ -896,5 +962,55 @@ mod tests {
         // A day with nothing logged states 0, not null — a zero is a fact.
         assert_eq!(value["totals"]["loggedMin"], 0);
         assert!(value["totals"]["plannedMin"].as_i64().unwrap() > 0);
+    }
+
+    /// One row by id, across every group — the caller does not care which group
+    /// claimed it, only what the row states.
+    fn row_of<'a>(value: &'a Value, id: &str) -> &'a Value {
+        value["groups"]
+            .as_array()
+            .expect("groups")
+            .iter()
+            .flat_map(|group| group["items"].as_array().expect("items"))
+            .find(|item| item["id"] == id)
+            .unwrap_or_else(|| panic!("{id} is on the day"))
+    }
+
+    #[test]
+    fn a_row_carries_the_watch_link_of_the_resource_it_names() {
+        let config = load("presets/seed");
+        let context = frozen(&config);
+        // The seed's first topic names a resource that declares both a `url`
+        // and a `watchUrl`: the press is *watch*, so the watch link is the one
+        // a row offers — not the landing page beside it.
+        let value = today_view_json(
+            &config,
+            &context,
+            &TodayRequest {
+                limit: 100,
+                ..Default::default()
+            },
+        );
+        assert_eq!(
+            row_of(&value, "t.demo.01")["link"],
+            "https://example.org/intro?t=0"
+        );
+    }
+
+    #[test]
+    fn a_row_with_no_material_states_no_link() {
+        let config = load("presets/seed");
+        let context = frozen(&config);
+        let value = today_view_json(
+            &config,
+            &context,
+            &TodayRequest {
+                limit: 100,
+                ..Default::default()
+            },
+        );
+        // The second topic names no resource: the key is null, and the card
+        // draws no button — a placeholder would be a promise of nothing.
+        assert!(row_of(&value, "t.demo.02")["link"].is_null());
     }
 }

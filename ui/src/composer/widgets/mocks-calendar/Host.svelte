@@ -200,7 +200,7 @@
     <div class="cd-empty cd-empty--tight">
       <span class="cd-empty__art"><Icon name="refresh" size={24} /></span>
       <div class="cd-empty__t">The month could not be read</div>
-      <div class="cd-empty__s">The plan did not answer. Try again in a moment, or run SAM --configcheck.</div>
+      <div class="cd-empty__s">The plan did not answer. Try again in a moment.</div>
       <button class="cd-pill cd-pill--ghost cd-pill--sm" type="button" onclick={() => void read()}>
         <Icon name="refresh" size={13} />
         Try again

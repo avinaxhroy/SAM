@@ -6,9 +6,11 @@
 //! Output is deterministic: canonical record serialization, explicit null ordering,
 //! and stable ID tie-breakers on every sort (§4.4).
 
+use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
+use std::rc::Rc;
 
 use crate::diagnostic::Diagnostic;
 use crate::evaluator::{EvalContext, Evaluation, L2Value};
@@ -411,6 +413,7 @@ pub fn resolve_with(
                 context,
                 index,
                 owner: name.to_string(),
+                queries: RefCell::new(HashMap::new()),
             };
             screen.blocks(blocks, name, view, None, 0)
         }
@@ -457,34 +460,43 @@ fn query(
     index: Option<&crate::index::Index>,
 ) -> Result<QueryOutcome, ViewError> {
     let view_path = format!("content/views.json#/views/{name}");
-    // A composed screen names no type, so it queries nothing: no candidate
-    // records, no index narrowing, and an empty projection (COMPOSER §2.1).
-    let mut candidates: Vec<&Record> = view
-        .type_
-        .as_deref()
-        .map(|type_name| {
-            config
-                .records_iter()
-                .filter(|record| record.type_ == type_name)
-                .collect()
-        })
-        .unwrap_or_default();
-    let candidate_count = candidates.len();
     let mut warnings: Vec<Diagnostic> = Vec::new();
 
     // ---- the index narrows, it never decides. The translated predicate is
     // implied by the L2 filter, so the candidate set is a superset of the true
     // matches and the filter below still runs over it (§4.6: "Query plans and
-    // evaluator/index result parity are test gates").
+    // evaluator/index result parity are test gates"). When it answers, the
+    // candidate list is built from the ids — the full-store scan it replaces is
+    // the cost this cache exists to avoid.
+    let type_name = view.type_.as_deref();
+    let mut indexed_ids: Option<Vec<String>> = None;
     if let (Some(index), Some(filter_text), Some(type_name)) =
-        (index, view.filter.as_deref(), view.type_.as_deref())
+        (index, view.filter.as_deref(), type_name)
         && let Ok(expr) = expression::parse(filter_text, &format!("{view_path}/filter"))
         && let Some(filter) = crate::index::translate_filter(config, type_name, &expr)
         && let Ok(ids) = index.candidates(type_name, &filter)
     {
-        let wanted: BTreeSet<&str> = ids.iter().map(String::as_str).collect();
-        candidates.retain(|record| wanted.contains(record.id.as_str()));
+        indexed_ids = Some(ids);
     }
+    // A composed screen names no type, so it queries nothing (COMPOSER §2.1).
+    let candidate_count = type_name.map(|name| config.type_count(name)).unwrap_or(0);
+    let candidates: Vec<&Record> = match (indexed_ids.as_deref(), type_name) {
+        (Some(ids), Some(_)) => {
+            let mut found: Vec<(usize, &Record)> = ids
+                .iter()
+                .filter_map(|id| config.record_at(id))
+                .collect();
+            // The index answers in its own row order; the projection's order is
+            // the plan's file order (§4.1), as the unindexed path produces.
+            found.sort_by_key(|(position, _)| *position);
+            found.into_iter().map(|(_, record)| record).collect()
+        }
+        (None, Some(type_name)) => config
+            .records_iter()
+            .filter(|record| record.type_ == type_name)
+            .collect(),
+        _ => Vec::new(),
+    };
 
     // ---- filter: only records that evaluate to true pass (null/false and
     // runtime errors exclude, errors also warn — §4.4).
@@ -655,6 +667,10 @@ struct Screen<'a> {
     /// The view the blocks live in — the tail of every diagnostic path and the
     /// default source for a block that names no view.
     owner: String,
+    /// One query per view per screen: a screen commonly draws a stat, a chart
+    /// and a list over the same view, and each block was re-running the full
+    /// filter/sort/limit.
+    queries: RefCell<HashMap<String, Rc<QueryOutcome>>>,
 }
 
 impl Screen<'_> {
@@ -1043,7 +1059,7 @@ impl Screen<'_> {
         block: &BlockDef,
         owner_name: &str,
         owner: &ViewDef,
-    ) -> Result<(String, QueryOutcome), serde_json::Value> {
+    ) -> Result<(String, Rc<QueryOutcome>), serde_json::Value> {
         self.source_quiet(block, owner_name, owner).ok_or_else(|| {
             placeholder(
                 &block.kind,
@@ -1061,7 +1077,7 @@ impl Screen<'_> {
         block: &BlockDef,
         owner_name: &str,
         owner: &ViewDef,
-    ) -> Option<(String, QueryOutcome)> {
+    ) -> Option<(String, Rc<QueryOutcome>)> {
         let (name, view) = match &block.view {
             None => (owner_name.to_string(), owner),
             Some(name) => {
@@ -1069,9 +1085,14 @@ impl Screen<'_> {
                 (name.clone(), view)
             }
         };
-        query(self.config, &name, view, self.context, self.index)
-            .ok()
-            .map(|outcome| (name, outcome))
+        if let Some(hit) = self.queries.borrow().get(&name) {
+            return Some((name, Rc::clone(hit)));
+        }
+        let outcome = Rc::new(query(self.config, &name, view, self.context, self.index).ok()?);
+        self.queries
+            .borrow_mut()
+            .insert(name.clone(), Rc::clone(&outcome));
+        Some((name, outcome))
     }
 
     fn value_of(

@@ -14,6 +14,7 @@
  * `derived` value when the kind declares the formula.
  */
 import { app } from '../session.svelte';
+import { safeUrl } from '../safeUrl';
 import { recordLabel, type RecordDoc } from '../types';
 
 /** What the engine knows about one trackable record's ladder. */
@@ -41,17 +42,48 @@ export type PlanModel = {
   pipelines: Record<string, string[]>;
 };
 
+/** One model per published revision: a rail switch or a second panel on the
+ *  same screen shares the read and the arrays, not just the engine cache. */
+let cachedFor: string | null = null;
+let cachedRun: Promise<PlanModel> | null = null;
+
 /** Read the whole model. Safe on every revision — every read is cached. */
-export async function readPlanModel(): Promise<PlanModel> {
+export function readPlanModel(): Promise<PlanModel> {
+  const key = `${app.plan ?? ''}|${app.revision ?? ''}`;
+  if (cachedFor === key && cachedRun) return cachedRun;
+  cachedFor = key;
+  cachedRun = buildPlanModel().catch((error) => {
+    // A failed read is not cached: the next mount on this revision retries.
+    if (cachedFor === key) {
+      cachedFor = null;
+      cachedRun = null;
+    }
+    throw error;
+  });
+  return cachedRun;
+}
+
+async function buildPlanModel(): Promise<PlanModel> {
   const kinds = Object.entries(app.types).map(([name, def]) => ({ name, def }));
   const workKinds = kinds.filter(({ def }) => def.trackable === true).map(({ name }) => name);
   const identityKinds = kinds.filter(({ def }) => def.colorRole === 'identity').map(({ name }) => name);
+
+  // One read for every kind: the model is plan-wide, and a per-kind loop cost
+  // one engine load per declared type on every panel mount (twelve in the seed
+  // plan). `*` is the engine's model-wide `records` projection.
+  const all = (await app.recordsOf('*')) ?? [];
+  const byType = new Map<string, RecordDoc[]>();
+  for (const record of all) {
+    const bucket = byType.get(record.type);
+    if (bucket) bucket.push(record);
+    else byType.set(record.type, [record]);
+  }
 
   const items: RecordDoc[] = [];
   const identities: RecordDoc[] = [];
   const other: RecordDoc[] = [];
   for (const { name } of kinds) {
-    const records = (await app.recordsOf(name)) ?? [];
+    const records = byType.get(name) ?? [];
     if (workKinds.includes(name)) items.push(...records);
     else if (identityKinds.includes(name)) identities.push(...records);
     else other.push(...records);
@@ -61,7 +93,7 @@ export async function readPlanModel(): Promise<PlanModel> {
   const weeks = other.filter((record) => record.type === 'week');
 
   const progress = new Map<string, ProgressFact>();
-  const queue = await app.run('reviews.due', {}, { tracked: false });
+  const queue = await app.reviewsDue();
   const queueData = queue?.data as
     | { due?: unknown[]; upcoming?: unknown[]; waiting?: unknown[]; pipelines?: Record<string, { stages?: string[] }> }
     | undefined;
@@ -186,4 +218,39 @@ export function hasField(kind: string, key: string): boolean {
 /** A record's label, for the screens that list it (never its id). */
 export function labelOfRecord(record: RecordDoc): string {
   return recordLabel(record);
+}
+
+/**
+ * The one link a record launches — the same rule `today.view` applies in the
+ * engine: the record's own URL field (`watchUrl` first, then the plan's own
+ * order), else the first relation target that declares one, one hop. Null when
+ * nothing in the plan names a material, and then no screen draws a button.
+ */
+export function launchLinkOf(model: PlanModel, record: RecordDoc): string | null {
+  const own = urlOf(record);
+  if (own) return own;
+  for (const field of app.types[record.type]?.fields ?? []) {
+    if (field.type !== 'relation') continue;
+    for (const id of record.links?.[field.key] ?? []) {
+      const target = model.byId.get(id);
+      const link = target ? urlOf(target) : null;
+      if (link) return link;
+    }
+  }
+  return null;
+}
+
+function urlOf(record: RecordDoc): string | null {
+  const declared = (app.types[record.type]?.fields ?? []).filter(
+    (field) => field.type === 'url',
+  );
+  const ordered = [
+    ...declared.filter((field) => field.key === 'watchUrl'),
+    ...declared.filter((field) => field.key !== 'watchUrl'),
+  ];
+  for (const field of ordered) {
+    const value = record.fields[field.key];
+    if (typeof value === 'string' && safeUrl(value)) return value.trim();
+  }
+  return null;
 }

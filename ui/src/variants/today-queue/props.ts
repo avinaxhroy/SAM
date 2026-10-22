@@ -41,6 +41,11 @@ export type Props = {
   onAdd: (item: TodayItem) => void;
   /** Take this item off today — the same field, cleared. */
   onRemove: (item: TodayItem) => void;
+  /**
+   * Open the item's study material in the browser. Only rows whose item states
+   * a `link` offer it; a row with no link draws no button.
+   */
+  onWatch: (item: TodayItem) => void;
   /** The card head's Add: the `today.add` sheet. */
   onAddToToday: () => void;
 };

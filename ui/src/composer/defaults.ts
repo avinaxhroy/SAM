@@ -8,7 +8,7 @@
  *
  * - the pencil opens a designed screen **as a draft** of this list, so the
  *   student starts from what they can already see rather than from nothing;
- * - *Use SAM's design again* is the same list, one `--clear` away;
+ * - *Reset to SAM's design* is the same list, one `--clear` away;
  * - the edit bar can say whether the screen still wears SAM's design, which is
  *   `panel` present and `components` not yet written.
  *

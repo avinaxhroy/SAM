@@ -13,6 +13,7 @@
     onOpen,
     onClose,
     onTopic,
+    onWatch,
     onNewCourse,
     onNewTopic,
   }: CoursesProps = $props();
@@ -107,15 +108,18 @@
         <div class="crsb-pane">
           <div class="cd-card crsb-topics">
             {#each active.topics as topic (topic.id)}
-              <button
-                class="crsb-topic"
-                type="button"
-                data-next={isNext(opened, topic) ? '1' : undefined}
-                data-command="record.panel"
-                data-placement="recordTable.rowContext"
-                aria-label={`${topic.label} — ${topic.stage}`}
-                onclick={() => onTopic(topic.id)}
-              >
+              <div class="crsb-topicrow">
+                <button
+                  class="crsb-topic"
+                  type="button"
+                  data-next={isNext(opened, topic) ? '1' : undefined}
+                  data-command="record.panel"
+                  data-placement="recordTable.rowContext"
+                  data-record-id={topic.id}
+                  data-record-type={topic.type}
+                  aria-label={`${topic.label} — ${topic.stage}`}
+                  onclick={() => onTopic(topic.id)}
+                >
                 <span class="crsb-glyph" data-s={topic.state}>
                   <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
                     {#if isNext(opened, topic)}
@@ -136,9 +140,22 @@
                     {/if}
                   </svg>
                 </span>
-                <span class="crsb-topic__t">{topic.label}</span>
-                <span class="crsb-topic__m num">{topic.minutes === null ? '' : `${topic.minutes} min`}</span>
-              </button>
+                  <span class="crsb-topic__t">{topic.label}</span>
+                  <span class="crsb-topic__m num">{topic.minutes === null ? '' : `${topic.minutes} min`}</span>
+                </button>
+                {#if topic.link}
+                  <!-- Drawn only when the plan names material: no placeholder. -->
+                  <button
+                    class="cd-iconbtn crsb-watch"
+                    type="button"
+                    title="Open the material in your browser"
+                    aria-label={`Watch ${topic.label}`}
+                    onclick={() => onWatch(topic.id)}
+                  >
+                    <Icon name="play" size={13} />
+                  </button>
+                {/if}
+              </div>
             {/each}
           </div>
         </div>
@@ -409,7 +426,19 @@
     text-align: left;
     transition: background var(--dur-1) var(--ease);
   }
-  .crsb-topic + .crsb-topic {
+  .crsb-topicrow {
+    display: flex;
+    align-items: stretch;
+  }
+  .crsb-topicrow > .crsb-topic {
+    flex: 1;
+    min-width: 0;
+  }
+  .crsb-watch {
+    align-self: center;
+    margin-inline-end: var(--space-md);
+  }
+  .crsb-topicrow + .crsb-topicrow .crsb-topic {
     border-top: 1px dashed var(--rule-strong);
   }
   .crsb-topic:hover {

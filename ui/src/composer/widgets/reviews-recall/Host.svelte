@@ -130,7 +130,7 @@
   }
 
   async function refresh(): Promise<void> {
-    const result = await app.run('reviews.due', {}, { tracked: false });
+    const result = await app.reviewsDue();
     if (result) {
       queue = result.data as Queue;
       failure = null;

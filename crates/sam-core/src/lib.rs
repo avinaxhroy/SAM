@@ -3,7 +3,9 @@
 //! Content model, resource resolution, validation, transaction engine, and dispatcher.
 //! Designed with no windowing or UI dependencies (D18), serving both the desktop shell and the CLI.
 
+pub mod agent;
 pub mod apply;
+pub mod cli_install;
 pub mod command_registry;
 pub mod config_store;
 pub mod config_watcher;

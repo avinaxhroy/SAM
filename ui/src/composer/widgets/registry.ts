@@ -136,6 +136,11 @@ export function widgetLabel(surface: string): string {
   return known ? known.label : nameOf(surface);
 }
 
+/** The one line the catalog states it with, for the surface a frame selects. */
+export function widgetNote(surface: string): string {
+  return WIDGETS.find((widget) => widget.surface === surface)?.note ?? '';
+}
+
 const HOSTS = import.meta.glob<{ default: Component<Record<string, unknown>> }>('./*/Host.svelte', {
   eager: true,
 });

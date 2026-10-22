@@ -29,6 +29,8 @@
     kind,
     onOpen,
     onDefer,
+    link,
+    onWatch,
   }: TodayFocusProps = $props();
 
   /** The arc, clamped the way the demo clamps it (demo.js `gauge()`). */
@@ -116,6 +118,21 @@
             Start
           </button>
           <Duration {minutes} onCommit={onMinutes} />
+          {#if link}
+            <!-- The student's material, one press away: the lecture the topic
+                 names. Drawn only when the plan carries a link — a disabled
+                 button would promise a destination that does not exist. -->
+            <button
+              class="cd-pill cd-pill--ghost cd-pill--lg"
+              type="button"
+              title="Open the material in your browser"
+              aria-label={title ? `Watch ${title}` : 'Watch the material'}
+              onclick={onWatch}
+            >
+              <Icon name="play" size={13} />
+              Watch
+            </button>
+          {/if}
           {#if openLabel}
             <button
               class="cd-pill cd-pill--ghost cd-pill--lg"

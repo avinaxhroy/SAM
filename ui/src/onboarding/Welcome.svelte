@@ -17,7 +17,7 @@ before it has done anything for them. Nothing here is a claim about the build
 beyond those three.
 -->
 <script lang="ts">
-  import eagle from './eaglestudy.png';
+  import eagle from './eaglestudy.webp';
 
   const promises = [
     {

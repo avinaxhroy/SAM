@@ -26,6 +26,7 @@
     onStop,
     onAdd,
     onRemove,
+    onWatch,
     onAddToToday,
   }: Props = $props();
 
@@ -196,7 +197,12 @@
       {:else}
         {#each slice as row (row.item.id)}
           {@const course = courseOf(row.item)}
-          <div class="tqc-row" data-run={runningId === row.item.id ? '1' : undefined}>
+          <div
+            class="tqc-row"
+            data-run={runningId === row.item.id ? '1' : undefined}
+            data-record-id={row.item.id}
+            data-record-type={row.item.kind}
+          >
             {#if course}
               <span class="cd-chip cd-chip--code tqc-row__c" data-w={course.wash}>{course.label}</span>
             {:else}
@@ -215,6 +221,17 @@
               >
                 <Icon name={row.group === 'committed' ? 'close' : 'plus'} size={14} />
               </button>
+              {#if row.item.link}
+                <button
+                  class="cd-iconbtn"
+                  type="button"
+                  title="Open the material in your browser"
+                  aria-label={`Watch ${titleOf(row.item)}`}
+                  onclick={() => onWatch(row.item)}
+                >
+                  <Icon name="play" size={13} />
+                </button>
+              {/if}
               {#if runningId === row.item.id}
                 {#if elapsed}
                   <span class="cd-chip cd-chip--info">
