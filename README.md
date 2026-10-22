@@ -135,7 +135,7 @@ sam type.setPipeline --type topic --pipeline check --map learned=done --map prov
 
 ### Review schedulers
 
-When an item enters a review queue, the plan's scheduler sets the next interval:
+When an item enters a review queue, its pipeline's scheduler sets the next interval; a pipeline that names none falls back to the plan's:
 
 - **FSRS-6**: an embedded Rust implementation of the Free Spaced Repetition Scheduler, using 21 configurable weights to model memory stability and retrievability.
 - **SuperMemo-2 (`sm2`)**: the classic ease factor and repetition intervals.
